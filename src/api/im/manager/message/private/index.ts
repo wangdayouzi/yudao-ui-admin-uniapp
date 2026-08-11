@@ -12,16 +12,17 @@ export interface ImManagerPrivateMessageVO {
   type: number
   content: string
   status: number
+  receiptStatus: number
   sendTime: string
   createTime: string
 }
 
-/** 获得私聊消息分页 */
+/** 获取私聊消息分页 */
 export function getManagerPrivateMessagePage(params: PageParam) {
   return http.get<PageResult<ImManagerPrivateMessageVO>>('/im/manager/message/private/page', params)
 }
 
-/** 获得私聊消息详情 */
+/** 获取私聊消息详情 */
 export function getManagerPrivateMessage(id: number) {
   return http.get<ImManagerPrivateMessageVO>('/im/manager/message/private/get', { id })
 }

@@ -8,7 +8,7 @@ export interface FinanceReceiptItem {
   bizId?: number
   bizNo?: string
   totalPrice?: number
-  receivedPrice?: number
+  receiptedPrice?: number
   receiptPrice?: number
   remark?: string
 }
@@ -18,13 +18,19 @@ export interface FinanceReceipt {
   id?: number // 收款单编号
   no?: string // 收款单号
   customerId?: number // 客户编号
+  customerName?: string // 客户名称
   accountId?: number // 结算账户编号
+  accountName?: string // 结算账户名称
   financeUserId?: number // 财务人员编号
-  receiptTime?: string | number | Date // 收款时间
+  financeUserName?: string // 财务人员名称
+  receiptTime?: Date | string | number // 收款时间
   totalPrice?: number // 合计金额，单位：元
   discountPrice?: number // 优惠金额，单位：元
   receiptPrice?: number // 实际收款，单位：元
   status?: number // 状态
+  creator?: string // 创建人
+  creatorName?: string // 创建人名称
+  createTime?: Date // 创建时间
   remark?: string // 备注
   fileUrl?: string // 附件地址
   items?: FinanceReceiptItem[] // 收款明细

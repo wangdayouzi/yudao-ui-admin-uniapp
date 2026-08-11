@@ -1,59 +1,47 @@
 <template>
   <view class="yd-page-container">
     <!-- 顶部导航栏 -->
-    <wd-navbar title="排产列表式编辑" left-arrow placeholder safe-area-inset-top fixed @click-left="handleBack" />
+    <wd-navbar title="甘特图编辑" left-arrow placeholder safe-area-inset-top fixed @click-left="handleBack" />
 
-    <!-- 任务列表 -->
+    <!-- 甘特图 -->
     <scroll-view class="min-h-0 flex-1" scroll-y scroll-with-animation>
-      <view class="mx-24rpx mt-24rpx rounded-12rpx bg-[#fff7e6] p-20rpx text-24rpx text-[#8a5a00]">
-        PC 端支持甘特图拖拽编辑；移动端本轮采用列表式编辑，点击生产任务进入时间和数量维护。
-      </view>
       <view v-if="loading" class="py-100rpx text-center text-26rpx text-[#999]">
         加载中...
       </view>
-      <view v-else-if="taskRows.length === 0" class="py-100rpx text-center">
-        <wd-empty icon="content" tip="暂无生产任务" />
-      </view>
-      <view v-else class="p-24rpx">
-        <view
-          v-for="item in taskRows"
-          :key="item.originalId || item.id"
-          class="mb-20rpx rounded-12rpx bg-white p-24rpx shadow-sm"
-          @click="handleEdit(item)"
-        >
-          <view class="mb-12rpx flex items-start justify-between gap-16rpx">
-            <view class="min-w-0 flex-1">
-              <view class="truncate text-30rpx text-[#333] font-semibold">
-                {{ item.text || '-' }}
-              </view>
-              <view class="mt-4rpx text-24rpx text-[#999]">
-                {{ item.process || item.workstation || '生产任务' }}
-              </view>
-            </view>
-            <view class="h-28rpx w-28rpx rounded-full" :style="{ backgroundColor: item.colorCode || item.color || '#1677ff' }" />
+      <TaskGanttPreview
+        v-else
+        title="排产甘特图"
+        :tasks="ganttTasks"
+        :editable="hasAccessByCodes(['mes:pro-task:update'])"
+        @task-click="handleEdit"
+        @task-update="handleTaskUpdate"
+      >
+        <template #actions>
+          <view class="flex items-center gap-12rpx">
+            <wd-button size="small" variant="plain" @click="handleRefresh">
+              刷新
+            </wd-button>
+            <wd-button v-if="hasAccessByCodes(['mes:pro-task:update'])" size="small" type="primary" :loading="formLoading" :disabled="pendingCount === 0" @click="handleSave">
+              保存{{ pendingCount ? `(${pendingCount})` : '' }}
+            </wd-button>
           </view>
-          <view class="text-26rpx text-[#666] space-y-8rpx">
-            <view>工作站：{{ item.workstation || '-' }}</view>
-            <view>开始：{{ formatDateTime(item.startDate) || '-' }}</view>
-            <view>结束：{{ formatDateTime(item.endDate) || '-' }}</view>
-            <view>时长：{{ item.duration ?? '-' }}</view>
-          </view>
-        </view>
-      </view>
+        </template>
+      </TaskGanttPreview>
     </scroll-view>
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { ProTaskGanttVO } from '@/api/mes/pro/task'
-import { computed, onMounted, ref } from 'vue'
-import { getGanttTaskList } from '@/api/mes/pro/task'
+import type { ProTask, ProTaskGantt } from '@/api/mes/pro/task'
+import { onShow } from '@dcloudio/uni-app'
+import { useDialog } from '@wot-ui/ui/components/wd-dialog'
+import { useToast } from '@wot-ui/ui/components/wd-toast'
+import { computed, ref } from 'vue'
+import { getGanttTaskList, getTask, updateTask } from '@/api/mes/pro/task'
+import { useAccess } from '@/hooks/useAccess'
 import { navigateBackPlus } from '@/utils'
-import { formatDateTime } from '@/utils/date'
-
-const BarcodeBizTypeEnum = {
-  TASK: 303,
-} as const
+import { BarcodeBizTypeEnum, MesProTaskStatusEnum, MesProWorkOrderStatusEnum, MesProWorkOrderTypeEnum } from '@/utils/constants'
+import TaskGanttPreview from '../components/task-gantt-preview.vue'
 
 definePage({
   style: {
@@ -62,14 +50,21 @@ definePage({
   },
 })
 
-const loading = ref(false) // 列表加载状态
-const ganttTasks = ref<ProTaskGanttVO[]>([]) // 甘特任务数据
-const taskRows = computed(() =>
-  ganttTasks.value.filter(item => item.type === BarcodeBizTypeEnum.TASK || item.type === 'task' || item.originalId),
-)
+const toast = useToast()
+const dialog = useDialog()
+const { hasAccessByCodes } = useAccess()
+const loading = ref(false) // 页面加载状态
+const formLoading = ref(false) // 保存状态
+const ganttTasks = ref<ProTaskGantt[]>([]) // 甘特任务数据
+const pendingChanges = ref(new Map<number, ProTask>()) // 待保存修改
+const needReloadOnShow = ref(false) // 从任务表单返回后刷新
+const pendingCount = computed(() => pendingChanges.value.size)
 
 /** 返回上一页 */
-function handleBack() {
+async function handleBack() {
+  if (!await confirmDiscardChanges()) {
+    return
+  }
   navigateBackPlus('/pages-mes/pro/task/index')
 }
 
@@ -77,22 +72,124 @@ function handleBack() {
 async function getList() {
   loading.value = true
   try {
-    ganttTasks.value = await getGanttTaskList({})
+    ganttTasks.value = await getGanttTaskList({
+      status: MesProWorkOrderStatusEnum.CONFIRMED,
+      type: MesProWorkOrderTypeEnum.SELF,
+    })
   } finally {
     loading.value = false
   }
 }
 
-/** 编辑任务 */
-function handleEdit(item: ProTaskGanttVO) {
-  const taskId = item.originalId || Number(item.id)
-  if (!taskId) {
-    return
+/** 确认放弃未保存修改 */
+async function confirmDiscardChanges() {
+  if (pendingChanges.value.size === 0) {
+    return true
   }
-  uni.navigateTo({ url: `/pages-mes/pro/task/form/index?id=${taskId}` })
+  try {
+    await dialog.confirm({
+      title: '提示',
+      msg: '当前有未保存的排产调整，确认放弃吗？',
+    })
+    return true
+  } catch {
+    return false
+  }
 }
 
-onMounted(() => {
+/** 记录拖拽修改 */
+function handleTaskUpdate(change: ProTask) {
+  if (!change.id) {
+    return
+  }
+  const next = new Map(pendingChanges.value)
+  next.set(change.id, change)
+  pendingChanges.value = next
+  ganttTasks.value = ganttTasks.value.map((item) => {
+    if (item.type !== BarcodeBizTypeEnum.TASK || item.originalId !== change.id) {
+      return item
+    }
+    return {
+      ...item,
+      startDate: change.startTime,
+      endDate: change.endTime,
+      duration: change.duration,
+    }
+  })
+}
+
+/** 保存甘特修改 */
+async function handleSave() {
+  if (pendingChanges.value.size === 0) {
+    return
+  }
+
+  formLoading.value = true
+  try {
+    const changes = Array.from(pendingChanges.value.values())
+
+    // 保存前重新拉取任务状态，避免拖拽期间任务已完成或取消
+    const checkedChanges = await Promise.all(changes.map(async change => ({
+      change,
+      task: await getTask(Number(change.id)).catch(() => undefined),
+    })))
+    const updates = checkedChanges.filter(({ task }) => {
+      return task?.id
+        && task.status !== MesProTaskStatusEnum.FINISHED
+        && task.status !== MesProTaskStatusEnum.CANCELED
+    })
+    if (updates.length === 0) {
+      toast.warning('任务不存在、已完成或已取消，不能调整')
+      pendingChanges.value = new Map()
+      await getList()
+      return
+    }
+
+    // 只提交仍可调整的任务
+    await Promise.all(updates.map(({ change }) =>
+      updateTask(change),
+    ))
+    const skippedCount = changes.length - updates.length
+    toast.success(skippedCount ? `已保存 ${updates.length} 条，跳过 ${skippedCount} 条终态任务` : `已保存 ${updates.length} 条修改`)
+
+    // 清空本地草稿并刷新甘特图
+    pendingChanges.value = new Map()
+    uni.$emit('mes:pro:task:reload')
+    await getList()
+  } finally {
+    formLoading.value = false
+  }
+}
+
+/** 刷新甘特图 */
+async function handleRefresh() {
+  if (!await confirmDiscardChanges()) {
+    return
+  }
+  pendingChanges.value = new Map()
+  await getList()
+}
+
+/** 编辑任务 */
+async function handleEdit(item: ProTaskGantt) {
+  if (item.type !== BarcodeBizTypeEnum.TASK || !item.originalId) {
+    return
+  }
+  if (!await confirmDiscardChanges()) {
+    return
+  }
+  needReloadOnShow.value = true
+  const readonlyQuery = hasAccessByCodes(['mes:pro-task:update']) ? '' : '&readonly=true'
+  uni.navigateTo({ url: `/pages-mes/pro/task/form/index?id=${item.originalId}${readonlyQuery}` })
+}
+
+/** 初始化 */
+onShow(() => {
+  if (ganttTasks.value.length > 0 && !needReloadOnShow.value) {
+    return
+  }
+  needReloadOnShow.value = false
+  pendingChanges.value = new Map()
   getList()
 })
 </script>

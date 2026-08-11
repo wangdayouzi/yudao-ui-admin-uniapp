@@ -14,7 +14,7 @@ import { getDefaultValue, isRuleDisabled, isRuleHidden } from './utils'
 export function createApi(ctx: FormCreateApiContext): FormCreateApi {
   const normalizeFields = (fields?: string | string[]) => {
     if (fields === undefined) {
-      return api.fields()
+      return ctx.rules.value.map(rule => rule.field).filter(Boolean) as string[]
     }
     return Array.isArray(fields) ? fields : [fields]
   }
@@ -32,7 +32,7 @@ export function createApi(ctx: FormCreateApiContext): FormCreateApi {
     return false
   }
 
-  const filterSubFormValue = (rule: NormalizedFormCreateRule, value: any): any => {
+  function filterSubFormValue(rule: NormalizedFormCreateRule, value: any): any {
     if (!Array.isArray(value)) {
       return value
     }
@@ -40,7 +40,7 @@ export function createApi(ctx: FormCreateApiContext): FormCreateApi {
     return value.map(row => filterSubFormRow(childRules, row || {}))
   }
 
-  const filterSubFormRow = (childRules: NormalizedFormCreateRule[], row: Record<string, any>) => {
+  function filterSubFormRow(childRules: NormalizedFormCreateRule[], row: Record<string, any>) {
     const result: Record<string, any> = {}
     const controlResult = applyControlRules(childRules, row)
     controlResult.rules.forEach((rule) => {
@@ -239,11 +239,12 @@ export function createApi(ctx: FormCreateApiContext): FormCreateApi {
       ctx.refresh?.()
     },
     fetch(option) {
+      // 事件脚本按原版 form-create 使用 res.data；请求仍走项目 http 自动携带登录态。
       return fetchProviderData(option, {
         api,
         formData: ctx.formData.value,
         option: ctx.option?.value,
-      })
+      }, undefined, { rawResponse: true })
     },
     getData(id, defaultValue) {
       return getProviderData(id, {
@@ -255,7 +256,11 @@ export function createApi(ctx: FormCreateApiContext): FormCreateApi {
     async getGlobalData(name) {
       const source = ctx.option?.value.globalData?.[name]
       if (source?.type === 'fetch') {
-        return api.fetch({ key: name })
+        return fetchProviderData({ key: name }, {
+          api,
+          formData: ctx.formData.value,
+          option: ctx.option?.value,
+        })
       }
       return api.getData(`$globalData.${name}`)
     },

@@ -9,7 +9,7 @@
         <view class="text-30rpx text-[#333] font-semibold">
           连接配置
         </view>
-        <wd-button v-if="hasAccessByCodes(['iot:device:update'])" size="small" plain @click="handleEditConfig">
+        <wd-button v-if="hasAccessByCodes(['iot:device:update'])" size="small" variant="plain" @click="handleEditConfig">
           编辑
         </wd-button>
       </view>
@@ -61,6 +61,20 @@
           </view>
           <wd-input v-model="formData.identifier" placeholder="请输入标识符" clearable />
         </view>
+        <yd-search-picker
+          ref="functionCodeSearchPickerRef"
+          v-model="formData.functionCode"
+          label="功能码"
+          :columns="ModbusFunctionCodeOptions"
+          all-option
+        />
+        <yd-search-picker
+          ref="statusSearchPickerRef"
+          v-model="formData.status"
+          label="状态"
+          :dict-type="DICT_TYPE.COMMON_STATUS"
+          all-option
+        />
         <view class="yd-search-form-actions">
           <wd-button class="flex-1" variant="plain" @click="handleReset">
             重置
@@ -98,10 +112,10 @@
             轮询间隔：{{ item.pollInterval ? `${item.pollInterval} ms` : '-' }}
           </view>
           <view v-if="hasAccessByCodes(['iot:device:update'])" class="flex justify-end gap-16rpx">
-            <wd-button size="small" plain @click="handleEditPoint(item)">
+            <wd-button size="small" type="primary" variant="plain" @click="handleEditPoint(item)">
               编辑
             </wd-button>
-            <wd-button size="small" type="error" plain @click="handleDeletePoint(item)">
+            <wd-button size="small" type="danger" variant="plain" @click="handleDeletePoint(item)">
               删除
             </wd-button>
           </view>
@@ -143,14 +157,14 @@
               <template v-if="isServer">
                 <wd-form-item title="工作模式" title-width="200rpx" center prop="mode">
                   <wd-radio-group v-model="configFormData.mode" type="button">
-                    <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.IOT_MODBUS_MODE)" :key="dict.value" :value="dict.value">
+                    <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.IOT_MODBUS_MODE)" :key="dict.value" :name="dict.value" :value="dict.value">
                       {{ dict.label }}
                     </wd-radio>
                   </wd-radio-group>
                 </wd-form-item>
                 <wd-form-item title="帧格式" title-width="200rpx" center prop="frameFormat">
                   <wd-radio-group v-model="configFormData.frameFormat" type="button">
-                    <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.IOT_MODBUS_FRAME_FORMAT)" :key="dict.value" :value="dict.value">
+                    <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.IOT_MODBUS_FRAME_FORMAT)" :key="dict.value" :name="dict.value" :value="dict.value">
                       {{ dict.label }}
                     </wd-radio>
                   </wd-radio-group>
@@ -158,7 +172,7 @@
               </template>
               <wd-form-item title="状态" title-width="200rpx" center prop="status">
                 <wd-radio-group v-model="configFormData.status" type="button">
-                  <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)" :key="dict.value" :value="dict.value">
+                  <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)" :key="dict.value" :name="dict.value" :value="dict.value">
                     {{ dict.label }}
                   </wd-radio>
                 </wd-radio-group>
@@ -186,15 +200,17 @@
         <scroll-view scroll-y class="max-h-60vh">
           <wd-form ref="pointFormRef" :model="pointFormData" :schema="pointFormSchema">
             <wd-cell-group border>
-              <wd-form-item
-                title="物模型属性" title-width="200rpx" prop="thingModelId"
-                is-link :value="thingModelLabel" placeholder="请选择物模型属性"
-                @click="thingModelPickerVisible = true"
+              <yd-form-picker
+                v-model="pointFormData.thingModelId"
+                label="物模型属性" label-width="200rpx" prop="thingModelId"
+                :columns="propertyOptions" label-key="label" value-key="id"
+                filterable placeholder="请选择物模型属性"
+                @confirm="handleThingModelConfirm"
               />
-              <wd-form-item
-                title="功能码" title-width="200rpx" prop="functionCode"
-                is-link :value="functionCodeLabel" placeholder="请选择功能码"
-                @click="functionCodePickerVisible = true"
+              <yd-form-picker
+                v-model="pointFormData.functionCode"
+                label="功能码" label-width="200rpx" prop="functionCode"
+                :columns="ModbusFunctionCodeOptions" placeholder="请选择功能码"
               />
               <wd-form-item title="寄存器地址" title-width="200rpx" prop="registerAddress">
                 <wd-input v-model.number="pointFormData.registerAddress" type="number" clearable placeholder="请输入寄存器地址">
@@ -206,25 +222,26 @@
               <wd-form-item title="寄存器数量" title-width="200rpx" prop="registerCount">
                 <wd-input-number v-model="pointFormData.registerCount" :min="1" :max="125" />
               </wd-form-item>
-              <wd-form-item
-                title="原始数据类型" title-width="200rpx" prop="rawDataType"
-                is-link :value="rawDataTypeLabel" placeholder="请选择数据类型"
-                @click="rawDataTypePickerVisible = true"
+              <yd-form-picker
+                v-model="pointFormData.rawDataType"
+                label="原始数据类型" label-width="200rpx" prop="rawDataType"
+                :columns="rawDataTypeColumns" placeholder="请选择数据类型"
+                @confirm="handleRawDataTypeConfirm"
               />
-              <wd-form-item
-                title="字节序" title-width="200rpx" prop="byteOrder"
-                is-link :value="byteOrderLabel" placeholder="请选择字节序"
-                @click="byteOrderPickerVisible = true"
+              <yd-form-picker
+                v-model="pointFormData.byteOrder"
+                label="字节序" label-width="200rpx" prop="byteOrder"
+                :columns="byteOrderColumns" placeholder="请选择字节序"
               />
               <wd-form-item title="缩放因子" title-width="200rpx" prop="scale">
-                <wd-input-number v-model="pointFormData.scale" :step="0.1" />
+                <wd-input-number v-model="pointFormData.scale" :precision="6" :step="0.1" />
               </wd-form-item>
               <wd-form-item title="轮询间隔(ms)" title-width="200rpx" prop="pollInterval">
                 <wd-input-number v-model="pointFormData.pollInterval" :min="100" :step="1000" />
               </wd-form-item>
               <wd-form-item title="状态" title-width="200rpx" center prop="status">
                 <wd-radio-group v-model="pointFormData.status" type="button">
-                  <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)" :key="dict.value" :value="dict.value">
+                  <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)" :key="dict.value" :name="dict.value" :value="dict.value">
                     {{ dict.label }}
                   </wd-radio>
                 </wd-radio-group>
@@ -239,50 +256,6 @@
         </view>
       </view>
     </wd-popup>
-
-    <!-- 物模型属性选择器 -->
-    <wd-select-picker
-      v-model="pointFormData.thingModelId"
-      v-model:visible="thingModelPickerVisible"
-      title="请选择物模型属性"
-      :columns="propertyOptions"
-      value-key="id"
-      label-key="label"
-      type="radio"
-      filterable
-      @confirm="handleThingModelConfirm"
-    />
-    <!-- 功能码选择器 -->
-    <wd-select-picker
-      v-model="pointFormData.functionCode"
-      v-model:visible="functionCodePickerVisible"
-      title="请选择功能码"
-      :columns="ModbusFunctionCodeOptions"
-      value-key="value"
-      label-key="label"
-      type="radio"
-    />
-    <!-- 原始数据类型选择器 -->
-    <wd-select-picker
-      v-model="pointFormData.rawDataType"
-      v-model:visible="rawDataTypePickerVisible"
-      title="请选择数据类型"
-      :columns="rawDataTypeColumns"
-      value-key="value"
-      label-key="label"
-      type="radio"
-      @confirm="handleRawDataTypeConfirm"
-    />
-    <!-- 字节序选择器 -->
-    <wd-select-picker
-      v-model="pointFormData.byteOrder"
-      v-model:visible="byteOrderPickerVisible"
-      title="请选择字节序"
-      :columns="byteOrderColumns"
-      value-key="value"
-      label-key="label"
-      type="radio"
-    />
   </view>
 </template>
 
@@ -293,6 +266,7 @@ import type { DeviceModbusConfig } from '@/api/iot/device/modbus/config'
 import type { DeviceModbusPoint } from '@/api/iot/device/modbus/point'
 import type { Product } from '@/api/iot/product/product'
 import type { ThingModelData } from '@/api/iot/thingmodel'
+import type { YdSearchPickerExpose } from '@/components/yudao-ui'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { computed, onMounted, reactive, ref } from 'vue'
@@ -303,14 +277,18 @@ import { getProduct, ProtocolTypeEnum } from '@/api/iot/product/product'
 import { getThingModelList } from '@/api/iot/thingmodel'
 import { useAccess } from '@/hooks/useAccess'
 import { getIntDictOptions } from '@/hooks/useDict'
-import { getByteOrderOptions, getModbusFunctionCodeLabel, IoTThingModelTypeEnum, ModbusFunctionCodeOptions, ModbusRawDataTypeOptions } from '@/pages-iot/utils/constants'
 import { getTopPopupModalStyle, getTopPopupStyle, navigateBackPlus } from '@/utils'
-import { CommonStatusEnum, DICT_TYPE } from '@/utils/constants'
+import { CommonStatusEnum, DICT_TYPE, getByteOrderOptions, getModbusFunctionCodeLabel, IoTThingModelTypeEnum, ModbusFunctionCodeOptions, ModbusRawDataTypeOptions } from '@/utils/constants'
 import { createFormSchema } from '@/utils/wot'
 
 const props = defineProps<{ deviceId?: number | any }>()
 
-definePage({ style: { navigationBarTitleText: '', navigationStyle: 'custom' } })
+definePage({
+  style: {
+    navigationBarTitleText: '',
+    navigationStyle: 'custom',
+  },
+})
 
 const toast = useToast()
 const dialog = useDialog()
@@ -318,21 +296,36 @@ const { hasAccessByCodes } = useAccess()
 
 const deviceData = ref<Device>() // 设备数据
 const productData = ref<Product>() // 产品数据
-const modbusConfig = ref<Partial<DeviceModbusConfig>>({}) // 连接配置
+const modbusConfig = ref<DeviceModbusConfig>() // 连接配置
 const thingModelList = ref<ThingModelData[]>([]) // 物模型列表
 const pointList = ref<DeviceModbusPoint[]>([]) // 点位列表
 const pagingRef = ref<any>() // 分页组件引用
 const visible = ref(false) // 搜索弹窗显示状态
+const functionCodeSearchPickerRef = ref<YdSearchPickerExpose>() // 功能码搜索选择器
+const statusSearchPickerRef = ref<YdSearchPickerExpose>() // 状态搜索选择器
 const queryParams = ref<Record<string, any>>({}) // 查询参数
-const formData = reactive({ name: undefined as string | undefined, identifier: undefined as string | undefined }) // 搜索表单数据
+const formData = reactive({
+  name: undefined as string | undefined,
+  identifier: undefined as string | undefined,
+  functionCode: undefined as number | undefined,
+  status: undefined as number | undefined,
+}) // 搜索表单数据
 const isClient = computed(() => productData.value?.protocolType === ProtocolTypeEnum.MODBUS_TCP_CLIENT) // Client 模式
 const isServer = computed(() => productData.value?.protocolType === ProtocolTypeEnum.MODBUS_TCP_SERVER) // Server 模式
 const placeholder = computed(() => {
   const conditions: string[] = []
-  if (formData.name)
+  if (formData.name) {
     conditions.push(`属性:${formData.name}`)
-  if (formData.identifier)
+  }
+  if (formData.identifier) {
     conditions.push(`标识符:${formData.identifier}`)
+  }
+  if (formData.functionCode !== undefined) {
+    conditions.push(`功能码:${functionCodeSearchPickerRef.value?.format(formData.functionCode) || formData.functionCode}`)
+  }
+  if (formData.status !== undefined) {
+    conditions.push(`状态:${statusSearchPickerRef.value?.format(formData.status) || formData.status}`)
+  }
   return conditions.length ? conditions.join(' | ') : '搜索 Modbus 点位'
 })
 
@@ -365,17 +358,15 @@ const pointLoading = ref(false) // 点位提交状态
 const pointTitle = ref('') // 点位弹窗标题
 const pointFormRef = ref<FormInstance>() // 点位表单引用
 const pointFormData = ref<DeviceModbusPoint>(buildDefaultPoint()) // 点位表单数据
-const thingModelPickerVisible = ref(false) // 物模型属性选择器显示状态
-const functionCodePickerVisible = ref(false) // 功能码选择器显示状态
-const rawDataTypePickerVisible = ref(false) // 原始数据类型选择器显示状态
-const byteOrderPickerVisible = ref(false) // 字节序选择器显示状态
 const pointFormSchema = createFormSchema({
   thingModelId: [{ required: true, message: '请选择物模型属性' }],
   functionCode: [{ required: true, message: '请选择功能码' }],
-  registerAddress: [{ required: true, message: '请输入寄存器地址' }],
+  registerAddress: [{ required: true, message: '请输入寄存器地址' }, { type: 'number', min: 0, max: 65535 }],
   registerCount: [{ required: true, message: '请输入寄存器数量' }],
   rawDataType: [{ required: true, message: '请选择数据类型' }],
+  byteOrder: [{ required: true, message: '请选择字节序' }],
   pollInterval: [{ required: true, message: '请输入轮询间隔' }],
+  status: [{ required: true, message: '请选择状态' }],
 })
 
 const propertyOptions = computed(() => { // 属性类型物模型选项（下拉用）
@@ -385,10 +376,6 @@ const propertyOptions = computed(() => { // 属性类型物模型选项（下拉
 })
 const rawDataTypeColumns = computed(() => ModbusRawDataTypeOptions.map(item => ({ value: item.value, label: `${item.label} - ${item.description}` }))) // 数据类型下拉项
 const byteOrderColumns = computed(() => getByteOrderOptions(pointFormData.value.rawDataType).map(item => ({ value: item.value, label: `${item.label} - ${item.description}` }))) // 字节序下拉项（随数据类型变化）
-const thingModelLabel = computed(() => propertyOptions.value.find(item => item.id === pointFormData.value.thingModelId)?.label || '')
-const functionCodeLabel = computed(() => getModbusFunctionCodeLabel(pointFormData.value.functionCode))
-const rawDataTypeLabel = computed(() => pointFormData.value.rawDataType || '')
-const byteOrderLabel = computed(() => pointFormData.value.byteOrder || '')
 const registerAddressHex = computed(() => { // 寄存器地址十六进制显示
   const address = pointFormData.value.registerAddress
   if (address === undefined || address === null) {
@@ -445,7 +432,7 @@ async function getDetail() {
     productData.value = await getProduct(Number(deviceData.value.productId))
     thingModelList.value = await getThingModelList({ productId: deviceData.value.productId })
   }
-  modbusConfig.value = await getModbusConfig(Number(props.deviceId)) || {}
+  modbusConfig.value = await getModbusConfig(Number(props.deviceId))
 }
 
 /** 查询点位列表 */
@@ -478,7 +465,12 @@ function formatRegisterAddress(address?: number) {
 /** 搜索按钮操作 */
 function handleSearch() {
   visible.value = false
-  queryParams.value = { ...formData }
+  queryParams.value = {
+    name: formData.name || undefined,
+    identifier: formData.identifier || undefined,
+    functionCode: formData.functionCode,
+    status: formData.status,
+  }
   pagingRef.value?.reload()
 }
 
@@ -486,6 +478,8 @@ function handleSearch() {
 function handleReset() {
   formData.name = undefined
   formData.identifier = undefined
+  formData.functionCode = undefined
+  formData.status = undefined
   visible.value = false
   queryParams.value = {}
   pagingRef.value?.reload()
@@ -505,13 +499,14 @@ async function handleConfigSubmit() {
   if (!valid) {
     return
   }
+
   configLoading.value = true
   try {
     const data = { ...configFormData.value, deviceId: Number(props.deviceId) }
     await saveModbusConfig(data)
     toast.success('保存成功')
     configVisible.value = false
-    modbusConfig.value = await getModbusConfig(Number(props.deviceId)) || {}
+    modbusConfig.value = await getModbusConfig(Number(props.deviceId))
   } finally {
     configLoading.value = false
   }
@@ -554,6 +549,7 @@ async function handlePointSubmit() {
   if (!valid) {
     return
   }
+
   pointLoading.value = true
   try {
     const data = { ...pointFormData.value, deviceId: Number(props.deviceId) }
@@ -572,7 +568,7 @@ async function handlePointSubmit() {
 }
 
 /** 物模型属性选择确认：同步标识符、名称 */
-function handleThingModelConfirm({ value }: { value: any }) {
+function handleThingModelConfirm(value?: number) {
   const thingModel = thingModelList.value.find(item => item.id === value)
   if (thingModel) {
     pointFormData.value.identifier = thingModel.identifier!
@@ -581,7 +577,7 @@ function handleThingModelConfirm({ value }: { value: any }) {
 }
 
 /** 数据类型选择确认：自动算寄存器数量、重置字节序 */
-function handleRawDataTypeConfirm({ value }: { value: any }) {
+function handleRawDataTypeConfirm(value?: string) {
   const option = ModbusRawDataTypeOptions.find(item => item.value === value)
   if (option && option.registerCount > 0) {
     pointFormData.value.registerCount = option.registerCount

@@ -5,7 +5,9 @@ import { http } from '@/http/http'
 export interface StockMoveItem {
   id?: number
   fromWarehouseId?: number
+  fromWarehouseName?: string
   toWarehouseId?: number
+  toWarehouseName?: string
   productId?: number
   productName?: string
   productUnitName?: string
@@ -21,10 +23,14 @@ export interface StockMoveItem {
 export interface StockMove {
   id?: number // 调拨编号
   no?: string // 调拨单号
-  moveTime?: string | number | Date // 调拨时间
+  moveTime?: Date | string | number // 调拨时间
   totalCount?: number // 合计数量
   totalPrice?: number // 合计金额，单位：元
   status?: number // 状态
+  creator?: string // 创建人
+  creatorName?: string // 创建人名称
+  createTime?: Date // 创建时间
+  productNames?: string // 产品信息
   remark?: string // 备注
   fileUrl?: string // 附件地址
   items?: StockMoveItem[] // 调拨明细

@@ -2,7 +2,6 @@
   <view @click="visible = true">
     <wd-search :placeholder="placeholder" hide-cancel disabled />
   </view>
-
   <wd-popup
     v-model="visible"
     position="top"
@@ -18,10 +17,10 @@
         <wd-input v-model="formData.no" placeholder="请输入收款单号" clearable />
       </view>
       <yd-search-date-range v-model="formData.receiptTime" label="收款时间" />
-      <yd-search-picker v-model="formData.customerId" label="客户" :columns="customerOptions" label-key="name" value-key="id" placeholder="请选择客户" />
-      <yd-search-picker v-model="formData.creator" label="创建人" :columns="userOptions" label-key="name" value-key="id" placeholder="请选择创建人" />
-      <yd-search-picker v-model="formData.financeUserId" label="财务人员" :columns="userOptions" label-key="name" value-key="id" placeholder="请选择财务人员" />
-      <yd-search-picker v-model="formData.accountId" label="收款账户" :columns="accountOptions" label-key="name" value-key="id" placeholder="请选择收款账户" />
+      <CustomerSearchPicker ref="customerPickerRef" v-model="formData.customerId" />
+      <UserSearchPicker v-model="formData.creator" label="创建人" />
+      <UserSearchPicker v-model="formData.financeUserId" label="财务人员" />
+      <AccountSearchPicker ref="accountPickerRef" v-model="formData.accountId" label="收款账户" placeholder="请选择收款账户" />
       <yd-search-picker v-model="formData.status" label="状态" :dict-type="DICT_TYPE.ERP_AUDIT_STATUS" all-option />
       <view class="yd-search-form-item">
         <view class="yd-search-form-label">
@@ -48,43 +47,35 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { getDictLabel } from '@/hooks/useDict'
-import { erpOptionLoaders } from '@/pages-erp/config/options'
-import { normalizeOptions } from '@/pages-erp/utils/erp'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDate, formatDateRange } from '@/utils/date'
+import { UserSearchPicker } from '@/components/system-select'
+import AccountSearchPicker from '@/pages-erp/finance/account/components/account-search-picker.vue'
+import CustomerSearchPicker from '@/pages-erp/sale/customer/components/customer-search-picker.vue'
 
 const emit = defineEmits<{
   search: [data: Record<string, any>]
   reset: []
 }>()
-
 const visible = ref(false)
-const customerOptions = ref<Record<string, any>[]>([]) // 客户选项
-const userOptions = ref<Record<string, any>[]>([]) // 用户选项
-const accountOptions = ref<Record<string, any>[]>([]) // 账户选项
+const customerPickerRef = ref<InstanceType<typeof CustomerSearchPicker>>() // 客户选择器
+const accountPickerRef = ref<InstanceType<typeof AccountSearchPicker>>() // 结算账户选择器
 const formData = reactive({
   no: undefined as string | undefined,
-  receiptTime: ['', ''] as [any, any],
+  receiptTime: [undefined, undefined] as [any, any],
   customerId: undefined as number | undefined,
   creator: undefined as number | undefined,
   financeUserId: undefined as number | undefined,
   accountId: undefined as number | undefined,
-  status: -1,
+  status: undefined as number | undefined,
   remark: undefined as string | undefined,
   bizNo: undefined as string | undefined,
 })
 
-/** 获取选项名称 */
-function getOptionLabel(options: Record<string, any>[], id?: number) {
-  if (!id) {
-    return ''
-  }
-  return options.find(item => String(item.id) === String(id))?.name || String(id)
-}
-
+/** 搜索条件 placeholder 拼接 */
 const placeholder = computed(() => {
   const conditions: string[] = []
   if (formData.no) {
@@ -94,27 +85,28 @@ const placeholder = computed(() => {
     conditions.push(`收款时间:${formatDate(formData.receiptTime[0])}~${formatDate(formData.receiptTime[1])}`)
   }
   if (formData.customerId) {
-    conditions.push(`客户:${getOptionLabel(customerOptions.value, formData.customerId)}`)
+    conditions.push(`客户:${customerPickerRef.value?.format(formData.customerId) || formData.customerId}`)
   }
   if (formData.accountId) {
-    conditions.push(`账户:${getOptionLabel(accountOptions.value, formData.accountId)}`)
+    conditions.push(`账户:${accountPickerRef.value?.format(formData.accountId) || formData.accountId}`)
   }
-  if (formData.status !== -1) {
+  if (formData.status !== undefined) {
     conditions.push(`状态:${getDictLabel(DICT_TYPE.ERP_AUDIT_STATUS, formData.status)}`)
   }
   return conditions.length > 0 ? conditions.join(' | ') : '搜索收款单'
 })
 
+/** 搜索按钮操作 */
 function handleSearch() {
   visible.value = false
   emit('search', {
     no: formData.no || undefined,
     receiptTime: formatDateRange(formData.receiptTime),
     customerId: formData.customerId,
-    creator: formData.creator,
-    financeUserId: formData.financeUserId,
+    creator: formData.creator != null ? String(formData.creator) : undefined,
+    financeUserId: formData.financeUserId != null ? String(formData.financeUserId) : undefined,
     accountId: formData.accountId,
-    status: formData.status === -1 ? undefined : formData.status,
+    status: formData.status,
     remark: formData.remark || undefined,
     bizNo: formData.bizNo || undefined,
   })
@@ -123,27 +115,15 @@ function handleSearch() {
 /** 重置按钮操作 */
 function handleReset() {
   formData.no = undefined
-  formData.receiptTime = ['', '']
+  formData.receiptTime = [undefined, undefined]
   formData.customerId = undefined
   formData.creator = undefined
   formData.financeUserId = undefined
   formData.accountId = undefined
-  formData.status = -1
+  formData.status = undefined
   formData.remark = undefined
   formData.bizNo = undefined
   visible.value = false
   emit('reset')
 }
-
-/** 加载搜索下拉选项 */
-onMounted(async () => {
-  const [customers, users, accounts] = await Promise.all([
-    erpOptionLoaders.customer(),
-    erpOptionLoaders.user(),
-    erpOptionLoaders.account(),
-  ])
-  customerOptions.value = normalizeOptions(customers)
-  userOptions.value = normalizeOptions(users)
-  accountOptions.value = normalizeOptions(accounts)
-})
 </script>

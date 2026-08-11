@@ -10,6 +10,7 @@ export interface Account {
   sort?: number // 排序
   defaultStatus?: boolean // 是否默认
   name?: string // 账户名称
+  createTime?: Date // 创建时间
 }
 
 /** 获取结算账户分页列表 */

@@ -13,21 +13,7 @@
     @close="visible = false"
   >
     <view class="yd-search-form-container">
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          物料
-        </view>
-        <view
-          class="min-h-72rpx flex items-center justify-between gap-16rpx rounded-8rpx bg-[#f7f8fa] px-20rpx text-28rpx"
-          @click="openItemSelector"
-        >
-          <text class="min-w-0 flex-1 truncate" :class="selectedItemText ? 'text-[#333]' : 'text-[#999]'">
-            {{ selectedItemText || '请选择物料' }}
-          </text>
-          <wd-icon v-if="formData.itemId" name="close" size="28rpx" @click.stop="clearItem" />
-          <wd-icon v-else name="arrow-right" size="28rpx" />
-        </view>
-      </view>
+      <ItemSearchPicker ref="itemSearchPickerRef" v-model="formData.itemId" label="物料" placeholder="请选择物料" />
       <view class="yd-search-form-item">
         <view class="yd-search-form-label">
           批次号
@@ -38,68 +24,26 @@
           clearable
         />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          仓库
-        </view>
-        <view
-          class="min-h-72rpx flex items-center justify-between gap-16rpx rounded-8rpx bg-[#f7f8fa] px-20rpx text-28rpx"
-          @click="warehousePickerVisible = true"
-        >
-          <text class="min-w-0 flex-1 truncate" :class="warehouseDisplayValue ? 'text-[#333]' : 'text-[#999]'">
-            {{ warehouseDisplayValue || '请选择仓库' }}
-          </text>
-          <wd-icon v-if="formData.warehouseId" name="close" size="28rpx" @click.stop="clearWarehouse" />
-          <wd-icon v-else name="arrow-right" size="28rpx" />
-        </view>
-        <wd-picker
-          v-model:visible="warehousePickerVisible"
-          :model-value="warehousePickerValue"
-          :columns="warehouseOptions"
-          label-key="name"
-          value-key="id"
-          @confirm="handleWarehouseConfirm"
-        />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          库区
-        </view>
-        <view
-          class="min-h-72rpx flex items-center justify-between gap-16rpx rounded-8rpx bg-[#f7f8fa] px-20rpx text-28rpx"
-          @click="openLocationPicker"
-        >
-          <text class="min-w-0 flex-1 truncate" :class="locationDisplayValue ? 'text-[#333]' : 'text-[#999]'">
-            {{ locationDisplayValue || '请选择库区' }}
-          </text>
-          <wd-icon v-if="formData.locationId" name="close" size="28rpx" @click.stop="clearLocation" />
-          <wd-icon v-else name="arrow-right" size="28rpx" />
-        </view>
-        <wd-picker
-          v-model:visible="locationPickerVisible"
-          :model-value="locationPickerValue"
-          :columns="locationOptions"
-          label-key="name"
-          value-key="id"
-          @confirm="handleLocationConfirm"
-        />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          是否冻结
-        </view>
-        <wd-radio-group v-model="formData.frozen" type="button">
-          <wd-radio :value="undefined">
-            全部
-          </wd-radio>
-          <wd-radio :value="true">
-            是
-          </wd-radio>
-          <wd-radio :value="false">
-            否
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <WarehouseSearchPicker
+        ref="warehouseSearchPickerRef"
+        v-model="formData.warehouseId"
+        label="仓库"
+        placeholder="请选择仓库"
+        @change="handleWarehouseChange"
+      />
+      <WarehouseLocationSearchPicker
+        ref="locationSearchPickerRef"
+        v-model="formData.locationId"
+        label="库区"
+        :warehouse-id="formData.warehouseId"
+      />
+      <yd-search-picker
+        ref="frozenSearchPickerRef"
+        v-model="formData.frozen"
+        label="是否冻结"
+        :columns="frozenOptions"
+        all-option
+      />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -110,28 +54,15 @@
       </view>
     </view>
   </wd-popup>
-
-  <!-- 物料选择器 -->
-  <ItemSelector
-    ref="itemSelectorRef"
-    :multiple="false"
-    @confirm="handleItemConfirm"
-  />
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——① wd-picker（仓库/库区）改 yd-search-picker（:columns + all-option）；② wd-radio-group 冻结状态改 yd-search-picker（frozen，:columns + all-option）；③ 物料选择器后续评估收敛为 yd-search-picker
-import type { MdItemVO } from '@/api/mes/md/item'
-import type { WmMaterialStockQueryParams } from '@/api/mes/wm/materialstock'
-import type { WmWarehouseVO } from '@/api/mes/wm/warehouse'
-import type { WmWarehouseLocationVO } from '@/api/mes/wm/warehouse/location'
-import type { WotPickerValue } from '@/utils/wot'
-import { computed, onMounted, reactive, ref } from 'vue'
-import { getWarehouseSimpleList } from '@/api/mes/wm/warehouse'
-import { getWarehouseLocationSimpleList } from '@/api/mes/wm/warehouse/location'
-import ItemSelector from '@/pages-mes/md/item/components/item-selector.vue'
+import type { YdSearchPickerExpose } from '@/components/yudao-ui'
+import { computed, reactive, ref } from 'vue'
+import ItemSearchPicker from '@/pages-mes/md/item/components/item-search-picker.vue'
+import WarehouseSearchPicker from '@/pages-mes/wm/warehouse/components/warehouse-search-picker.vue'
+import WarehouseLocationSearchPicker from '@/pages-mes/wm/warehouse/location/components/warehouse-location-search-picker.vue'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
-import { getWotPickerFormValue } from '@/utils/wot'
 
 interface MaterialStockSearchFormData {
   itemId?: number
@@ -142,133 +73,54 @@ interface MaterialStockSearchFormData {
 }
 
 const emit = defineEmits<{
-  search: [data: WmMaterialStockQueryParams]
+  search: [data: Record<string, any>]
   reset: []
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const itemSelectorRef = ref<InstanceType<typeof ItemSelector>>() // 物料选择器引用
-const selectedItem = ref<MdItemVO>() // 已选物料
-const warehouseOptions = ref<WmWarehouseVO[]>([]) // 仓库选项
-const locationOptions = ref<WmWarehouseLocationVO[]>([]) // 库区选项
-const warehousePickerVisible = ref(false) // 仓库选择器显示状态
-const locationPickerVisible = ref(false) // 库区选择器显示状态
+const itemSearchPickerRef = ref<InstanceType<typeof ItemSearchPicker>>() // 物料搜索选择器
+const warehouseSearchPickerRef = ref<InstanceType<typeof WarehouseSearchPicker>>() // 仓库搜索选择器
+const locationSearchPickerRef = ref<InstanceType<typeof WarehouseLocationSearchPicker>>() // 库区搜索选择器
+const frozenSearchPickerRef = ref<YdSearchPickerExpose>() // 冻结状态搜索选择器
 const formData = reactive<MaterialStockSearchFormData>({}) // 搜索表单数据
-
-const selectedItemText = computed(() => {
-  return selectedItem.value
-    ? `${selectedItem.value.code || '-'} ${selectedItem.value.name || ''}`.trim()
-    : ''
-})
-const warehousePickerValue = computed(() => formData.warehouseId !== undefined ? [formData.warehouseId] : [])
-const locationPickerValue = computed(() => formData.locationId !== undefined ? [formData.locationId] : [])
-const warehouseDisplayValue = computed(() => getWotPickerFormValue(warehouseOptions.value, formData.warehouseId, {
-  labelKey: 'name',
-  placeholder: '',
-  valueKey: 'id',
-}))
-const locationDisplayValue = computed(() => getWotPickerFormValue(locationOptions.value, formData.locationId, {
-  labelKey: 'name',
-  placeholder: '',
-  valueKey: 'id',
-}))
-const frozenDisplayValue = computed(() => {
-  if (formData.frozen === true) {
-    return '是'
-  }
-  if (formData.frozen === false) {
-    return '否'
-  }
-  return ''
-})
+const frozenOptions = [
+  { label: '是', value: true },
+  { label: '否', value: false },
+]
 
 /** 搜索条件 placeholder 拼接 */
 const placeholder = computed(() => {
   const conditions: string[] = []
-  if (selectedItemText.value) {
-    conditions.push(`物料:${selectedItemText.value}`)
+  if (formData.itemId) {
+    conditions.push(`物料:${itemSearchPickerRef.value?.format(formData.itemId) || formData.itemId}`)
   }
   if (formData.batchCode) {
     conditions.push(`批次号:${formData.batchCode}`)
   }
-  if (warehouseDisplayValue.value) {
-    conditions.push(`仓库:${warehouseDisplayValue.value}`)
+  if (formData.warehouseId !== undefined) {
+    conditions.push(`仓库:${warehouseSearchPickerRef.value?.format(formData.warehouseId) || formData.warehouseId}`)
   }
-  if (locationDisplayValue.value) {
-    conditions.push(`库区:${locationDisplayValue.value}`)
+  if (formData.locationId !== undefined) {
+    conditions.push(`库区:${locationSearchPickerRef.value?.format(formData.locationId) || formData.locationId}`)
   }
-  if (frozenDisplayValue.value) {
-    conditions.push(`冻结:${frozenDisplayValue.value}`)
+  if (formData.frozen !== undefined) {
+    conditions.push(`冻结:${frozenSearchPickerRef.value?.format(formData.frozen) || formData.frozen}`)
   }
   return conditions.length > 0 ? conditions.join(' | ') : '搜索库存台账'
 })
 
-/** 加载仓库选项 */
-async function loadWarehouseOptions() {
-  warehouseOptions.value = await getWarehouseSimpleList() || []
-}
-
-/** 打开物料选择 */
-function openItemSelector() {
-  itemSelectorRef.value?.open()
-}
-
-/** 确认物料选择 */
-function handleItemConfirm(items: MdItemVO[]) {
-  const item = items[0]
-  if (!item) {
-    return
-  }
-  formData.itemId = item.id
-  selectedItem.value = item
-}
-
-/** 清空物料 */
-function clearItem() {
-  formData.itemId = undefined
-  selectedItem.value = undefined
-}
-
 /** 选择仓库 */
-async function handleWarehouseConfirm({ value }: { value: WotPickerValue[] }) {
-  formData.warehouseId = Number(value[0])
-  formData.locationId = undefined
-  locationOptions.value = await getWarehouseLocationSimpleList(formData.warehouseId) || []
-}
-
-/** 清空仓库 */
-function clearWarehouse() {
-  formData.warehouseId = undefined
-  formData.locationId = undefined
-  locationOptions.value = []
-}
-
-/** 打开库区选择 */
-async function openLocationPicker() {
-  if (!formData.warehouseId) {
-    uni.showToast({ title: '请先选择仓库', icon: 'none' })
-    return
-  }
-  if (locationOptions.value.length === 0) {
-    locationOptions.value = await getWarehouseLocationSimpleList(formData.warehouseId) || []
-  }
-  locationPickerVisible.value = true
-}
-
-/** 选择库区 */
-function handleLocationConfirm({ value }: { value: WotPickerValue[] }) {
-  formData.locationId = Number(value[0])
-}
-
-/** 清空库区 */
-function clearLocation() {
+function handleWarehouseChange() {
   formData.locationId = undefined
 }
 
 /** 搜索按钮操作 */
 function handleSearch() {
   visible.value = false
-  emit('search', { ...formData })
+  emit('search', {
+    ...formData,
+    frozen: formData.frozen,
+  })
 }
 
 /** 重置按钮操作 */
@@ -278,14 +130,7 @@ function handleReset() {
   formData.warehouseId = undefined
   formData.locationId = undefined
   formData.frozen = undefined
-  selectedItem.value = undefined
-  locationOptions.value = []
   visible.value = false
   emit('reset')
 }
-
-/** 初始化 */
-onMounted(() => {
-  loadWarehouseOptions()
-})
 </script>

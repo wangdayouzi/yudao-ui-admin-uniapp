@@ -52,20 +52,17 @@
 <script lang="ts" setup>
 import type { Tag } from '@/api/mp/tag'
 import type { MpUser } from '@/api/mp/user'
-import { onLoad } from '@dcloudio/uni-app'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { getSimpleTagList } from '@/api/mp/tag'
 import { getUser } from '@/api/mp/user'
 import { useAccess } from '@/hooks/useAccess'
 import { navigateBackPlus } from '@/utils'
 import { formatDateTime } from '@/utils/date'
-import { getMpRouteNumber, useMpRouteParams } from '../../utils/route'
 
 const props = defineProps<{
   id?: number | any
 }>()
-const { routeParams, syncRouteParams } = useMpRouteParams(props)
 
 definePage({
   style: {
@@ -76,7 +73,6 @@ definePage({
 
 const { hasAccessByCodes } = useAccess()
 const toast = useToast()
-const id = computed(() => getMpRouteNumber(routeParams.id))
 const formData = ref<MpUser>() // 详情数据
 const tagList = ref<Tag[]>([]) // 标签列表
 
@@ -93,12 +89,12 @@ function getTagName(tagId: number) {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
   try {
     toast.loading('加载中...')
-    formData.value = await getUser(id.value)
+    formData.value = await getUser(Number(props.id))
   } catch {
     formData.value = undefined
   } finally {
@@ -118,15 +114,14 @@ async function loadTagList() {
 
 /** 编辑粉丝 */
 function handleEdit() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
-  uni.navigateTo({ url: `/pages-mp/user/form/index?id=${id.value}` })
+  uni.navigateTo({ url: `/pages-mp/user/form/index?id=${props.id}` })
 }
 
 /** 初始化 */
-onLoad((query) => {
-  syncRouteParams(query)
+onMounted(() => {
   loadTagList()
   getDetail()
 })

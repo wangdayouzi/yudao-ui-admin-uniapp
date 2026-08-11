@@ -10,9 +10,9 @@
           <wd-cell title="退货单号" :value="formData.no || '保存时自动生成'" />
           <wd-form-item title="退货时间" title-width="220rpx" prop="returnTime" is-link :value="formatDate(formData.returnTime) || ''" placeholder="请选择退货时间" @click="dateVisible.returnTime = true" />
           <wd-datetime-picker v-model="formData.returnTime" v-model:visible="dateVisible.returnTime" title="请选择退货时间" type="date" />
-          <wd-cell title="关联订单" :value="formData.orderNo || '请选择可退货订单'" is-link @click="openOrderSelector" />
-          <ErpPicker v-model="formData.customerId" label="客户" label-width="220rpx" prop="customerId" source="customer" placeholder="请选择客户" />
-          <ErpPicker v-model="formData.saleUserId" label="销售人员" label-width="220rpx" source="user" placeholder="请选择销售人员" />
+          <wd-form-item title="关联订单" title-width="220rpx" prop="orderId" is-link :value="formData.orderNo || ''" placeholder="请选择可退货订单" @click="openOrderSelector" />
+          <CustomerFormPicker v-model="formData.customerId" prop="customerId" disabled />
+          <UserFormPicker v-model="formData.saleUserId" label="销售人员" label-width="220rpx" placeholder="请选择销售人员" />
           <wd-form-item title="备注" title-width="220rpx" prop="remark">
             <wd-textarea v-model="formData.remark" placeholder="请输入备注" :maxlength="500" show-word-limit clearable />
           </wd-form-item>
@@ -22,18 +22,16 @@
         </wd-cell-group>
 
         <!-- 退货明细 -->
-        <view class="px-24rpx py-16rpx text-28rpx text-[#666]">
-          退货产品清单
+        <view class="flex items-center justify-between px-24rpx py-16rpx">
+          <text class="text-28rpx text-[#333] font-semibold">退货产品清单</text>
         </view>
-        <wd-cell-group border>
-          <wd-form-item title="退货明细" title-width="220rpx">
-            <ReturnItemForm ref="itemEditorRef" v-model="formData.items" :product-options="productOptions" :warehouse-options="warehouseOptions" />
-          </wd-form-item>
-        </wd-cell-group>
+        <view class="px-24rpx">
+          <ReturnItemForm ref="itemEditorRef" v-model="formData.items" :warehouse-options="warehouseOptions" />
+        </view>
 
         <!-- 结算信息 -->
-        <view class="px-24rpx py-16rpx text-28rpx text-[#666]">
-          结算信息
+        <view class="flex items-center justify-between px-24rpx py-16rpx">
+          <text class="text-28rpx text-[#333] font-semibold">结算信息</text>
         </view>
         <wd-cell-group border>
           <wd-form-item title="优惠率(%)" title-width="220rpx" prop="discountPercent" center>
@@ -44,7 +42,7 @@
           <wd-form-item title="其它费用" title-width="220rpx" prop="otherPrice" center>
             <wd-input-number v-model="formData.otherPrice" :min="0" :precision="2" />
           </wd-form-item>
-          <ErpPicker v-model="formData.accountId" label="结算账户" label-width="220rpx" source="account" placeholder="请选择结算账户" />
+          <AccountFormPicker v-model="formData.accountId" label="结算账户" label-width="220rpx" placeholder="请选择结算账户" :auto-default="!props.id" />
           <wd-cell title="应退金额" :value="formatMoney(formData.totalPrice)" />
         </wd-cell-group>
       </wd-form>
@@ -67,26 +65,25 @@
 
 <script lang="ts" setup>
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
-import type { Product } from '@/api/erp/product/product'
 import type { SaleOrder } from '@/api/erp/sale/order'
 import type { SaleReturn } from '@/api/erp/sale/return'
 import type { Warehouse } from '@/api/erp/stock/warehouse'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { getProductSimpleList } from '@/api/erp/product/product'
 import { createSaleReturn, getSaleReturn, updateSaleReturn } from '@/api/erp/sale/return'
 import { getWarehouseSimpleList } from '@/api/erp/stock/warehouse'
 import { delay, navigateBackPlus } from '@/utils'
 import { formatDate } from '@/utils/date'
 import { createFormSchema } from '@/utils/wot'
-import ErpPicker from '@/pages-erp/components/erp-picker.vue'
-import { applyDefaultAccount } from '@/pages-erp/finance/account/components/use-default-account'
+import { UserFormPicker } from '@/components/system-select'
+import AccountFormPicker from '@/pages-erp/finance/account/components/account-form-picker.vue'
+import CustomerFormPicker from '@/pages-erp/sale/customer/components/customer-form-picker.vue'
 import ReturnItemForm from '../components/return-item-form.vue'
 import SaleOrderReturnPicker from '../components/sale-order-return-picker.vue'
-import { formatMoney, roundPrice, toNumber } from '@/pages-erp/utils/erp'
+import { roundPrice } from '@/pages-erp/utils/format'
+import { formatMoney, toNumber } from '@/utils/format'
 
-const props = defineProps<{ id?: number | any }>()
-
+const props = defineProps<{ id?: number }>()
 definePage({
   style: {
     navigationBarTitleText: '',
@@ -103,6 +100,7 @@ const formData = ref<SaleReturn>({
   customerId: undefined,
   accountId: undefined,
   saleUserId: undefined,
+  orderId: undefined,
   returnTime: Date.now(),
   orderNo: undefined,
   remark: undefined,
@@ -116,10 +114,10 @@ const formData = ref<SaleReturn>({
 const formRef = ref<FormInstance>() // 表单组件引用
 const itemEditorRef = ref<InstanceType<typeof ReturnItemForm>>() // 明细组件引用
 const orderSelectorRef = ref<InstanceType<typeof SaleOrderReturnPicker>>() // 可退货订单选择器引用
-const productOptions = ref<Product[]>([]) // 产品选项
 const warehouseOptions = ref<Warehouse[]>([]) // 仓库选项
 const dateVisible = reactive({ returnTime: false }) // 日期选择器状态
 const formSchema = createFormSchema({
+  orderId: [{ required: true, message: '销售订单不能为空' }],
   customerId: [{ required: true, message: '客户不能为空' }],
   returnTime: [{ required: true, message: '退货时间不能为空' }],
 })
@@ -143,12 +141,7 @@ function refreshAmount() {
 
 /** 加载基础选项 */
 async function loadOptions() {
-  const [products, warehouses] = await Promise.all([
-    getProductSimpleList(),
-    getWarehouseSimpleList(),
-    applyDefaultAccount(formData.value),
-  ])
-  productOptions.value = products || []
+  const warehouses = await getWarehouseSimpleList()
   warehouseOptions.value = warehouses || []
 }
 
@@ -159,10 +152,7 @@ async function getDetail() {
   }
   try {
     toast.loading('加载中...')
-    formData.value = {
-      ...formData.value,
-      ...await getSaleReturn(props.id),
-    }
+    formData.value = await getSaleReturn(props.id)
   } finally {
     toast.close()
   }
@@ -205,6 +195,7 @@ async function handleSubmit() {
   if (!valid || !itemEditorRef.value?.validate()) {
     return
   }
+
   refreshAmount()
   formLoading.value = true
   try {
@@ -222,6 +213,7 @@ async function handleSubmit() {
   }
 }
 
+/** 明细变更后刷新金额 */
 watch(() => [formData.value.items, formData.value.discountPercent, formData.value.otherPrice], refreshAmount, { deep: true })
 
 /** 初始化 */

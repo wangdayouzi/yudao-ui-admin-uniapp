@@ -23,39 +23,39 @@
     </view>
 
     <!-- 底部操作按钮 -->
-    <MesFooterActions content-class="yd-detail-footer-actions">
-      <wd-button
-        v-if="canUpdate"
-        class="flex-1"
-        type="warning"
-        @click="handleEdit"
-      >
-        编辑
-      </wd-button>
-      <wd-button
-        v-if="canDelete"
-        class="flex-1"
-        type="danger"
-        :loading="deleting"
-        @click="handleDelete"
-      >
-        删除
-      </wd-button>
-    </MesFooterActions>
+    <view class="yd-detail-footer">
+      <view class="yd-detail-footer-actions">
+        <wd-button
+          v-if="hasAccessByCodes(['mes:qc-defect:update'])"
+          class="flex-1"
+          type="warning"
+          @click="handleEdit"
+        >
+          编辑
+        </wd-button>
+        <wd-button
+          v-if="hasAccessByCodes(['mes:qc-defect:delete'])"
+          class="flex-1"
+          type="danger"
+          :loading="deleting"
+          @click="handleDelete"
+        >
+          删除
+        </wd-button>
+      </view>
+    </view>
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { QcDefectVO } from '@/api/mes/qc/defect'
+import type { QcDefect } from '@/api/mes/qc/defect'
 import { onShow } from '@dcloudio/uni-app'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, onMounted, ref, watch } from 'vue'
+import { ref } from 'vue'
 import { deleteDefect, getDefect } from '@/api/mes/qc/defect'
 import { useAccess } from '@/hooks/useAccess'
-import { useRouteQuery } from '@/hooks/useRouteQuery'
-import MesFooterActions from '@/pages-mes/components/mes-footer-actions.vue'
-import { navigateBackPlus } from '@/utils'
+import { delay, navigateBackPlus } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
 
@@ -71,13 +71,8 @@ definePage({
 const { hasAccessByCodes } = useAccess()
 const dialog = useDialog()
 const toast = useToast()
-const { getRouteQueryNumber } = useRouteQuery(props, '/pages-mes/qc/defect/detail/index')
-const formData = ref<QcDefectVO>() // 详情数据
+const formData = ref<QcDefect>() // 详情数据
 const deleting = ref(false) // 删除状态
-// TODO @YunaiV：简单 id 参数优先直接用 props.id 接收，不需要 useRouteQuery/getRouteQueryNumber 包一层；多参数页面只保留其它 query 的 helper。
-const currentId = computed(() => getRouteQueryNumber('id')) // 当前详情编号
-const canUpdate = computed(() => hasAccessByCodes(['mes:qc-defect:update']))
-const canDelete = computed(() => hasAccessByCodes(['mes:qc-defect:delete']))
 
 /** 返回上一页 */
 function handleBack() {
@@ -86,43 +81,28 @@ function handleBack() {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!currentId.value) {
+  if (!props.id || deleting.value) {
     return
   }
   try {
     toast.loading('加载中...')
-    const detailData = await getDefect(currentId.value)
-    if (!detailData) {
-      uni.showToast({ icon: 'none', title: '详情不存在，已返回列表' })
-      // TODO @YunaiV：成功后延迟返回统一改 delay(handleBack)，对齐 system/infra（本文件共 2 处 setTimeout(() => handleBack())）
-      setTimeout(() => handleBack(), 300)
-      return
-    }
-    formData.value = detailData
+    formData.value = await getDefect(Number(props.id))
   } finally {
     toast.close()
   }
 }
 
-/** 初始化页面数据 */
-async function initPage() {
-  if (!currentId.value) {
-    formData.value = undefined
+/** 编辑 */
+function handleEdit() {
+  if (!props.id) {
     return
   }
-  if (!formData.value || formData.value.id !== currentId.value) {
-    await getDetail()
-  }
-}
-
-/** 编辑缺陷类型 */
-function handleEdit() {
-  uni.navigateTo({ url: `/pages-mes/qc/defect/form/index?id=${currentId.value}` })
+  uni.navigateTo({ url: `/pages-mes/qc/defect/form/index?id=${props.id}` })
 }
 
 /** 删除缺陷类型 */
 async function handleDelete() {
-  if (!currentId.value) {
+  if (!props.id) {
     return
   }
   try {
@@ -135,25 +115,17 @@ async function handleDelete() {
   }
   deleting.value = true
   try {
-    await deleteDefect(currentId.value)
+    await deleteDefect(Number(props.id))
     toast.success('删除成功')
     uni.$emit('mes:qc:defect:reload')
-    setTimeout(() => handleBack(), 500)
+    delay(handleBack)
   } finally {
     deleting.value = false
   }
 }
 
 /** 初始化 */
-onMounted(() => {
-  initPage()
-})
-
 onShow(() => {
-  initPage()
-})
-
-watch(currentId, () => {
-  initPage()
+  getDetail()
 })
 </script>

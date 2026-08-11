@@ -43,20 +43,21 @@
 </template>
 
 <script lang="ts" setup>
+import type { MpArticle } from '@/api/mp/message'
 import { computed } from 'vue'
 
 const props = defineProps<{
-  articles?: any[]
+  articles?: MpArticle[]
 }>()
 
 const emit = defineEmits<{
-  (e: 'articleClick', article: any): void
+  (e: 'articleClick', article: MpArticle): void
 }>()
 
 const safeArticles = computed(() => props.articles || [])
 
 /** 获取图文封面 */
-function getImageUrl(article: any) {
-  return article?.picUrl || article?.thumbUrl || article?.thumbMediaUrl || article?.url || ''
+function getImageUrl(article: MpArticle) {
+  return article?.picUrl || article?.thumbUrl || article?.thumbMediaUrl || ''
 }
 </script>

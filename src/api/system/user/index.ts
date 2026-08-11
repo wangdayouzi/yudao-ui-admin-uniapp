@@ -17,7 +17,7 @@ export interface User {
   status: number
   remark?: string
   loginIp?: string
-  loginDate?: string
+  loginDate?: string | number | Date
   createTime?: string
 }
 
@@ -69,4 +69,9 @@ export function assignUserRole(userId: number, roleIds: number[]) {
 /** 获取用户精简列表 */
 export function getSimpleUserList() {
   return http.get<User[]>('/system/user/simple-list')
+}
+
+/** 获取用户精简信息 */
+export function getSimpleUser(id: number | string) {
+  return http.get<User>(`/system/user/get-simple?id=${id}`)
 }

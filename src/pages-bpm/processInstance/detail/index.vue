@@ -42,8 +42,41 @@
       </view>
     </view>
 
+    <!-- Tabs 区域：详情内容 -->
+    <view class="mx-24rpx mt-24rpx overflow-hidden rounded-16rpx bg-white">
+      <wd-tabs v-model="tabIndex" shrink>
+        <wd-tab title="详情" />
+        <wd-tab title="进度" />
+        <wd-tab title="评论" />
+        <wd-tab title="流程图" />
+      </wd-tabs>
+    </view>
+
+    <!-- 区域：审批详情（表单） -->
+    <FormDetail
+      v-show="tabType === 'detail'"
+      ref="formDetailRef"
+      :process-definition="processDefinition"
+      :process-instance="processInstance"
+      :form-fields-permission="formFieldsPermission"
+    />
+
+    <!-- 区域：审批进度 -->
+    <view v-show="tabType === 'progress'" class="mx-24rpx mt-24rpx rounded-16rpx bg-white">
+      <view class="p-24rpx">
+        <view class="mb-16rpx flex">
+          <text class="text-28rpx text-[#333] font-bold">审批进度</text>
+        </view>
+        <!-- 流程时间线 -->
+        <ProcessInstanceTimeline :activity-nodes="activityNodes" />
+      </view>
+    </view>
+
+    <!-- 区域：流程评论 -->
+    <ProcessInstanceCommentList v-show="tabType === 'comment'" :id="props.id" ref="commentListRef" />
+
     <!-- 区域：流程图（仅 PC 预览，移动端不支持） -->
-    <view class="mx-24rpx mt-24rpx rounded-16rpx bg-white">
+    <view v-show="tabType === 'diagram'" class="mx-24rpx mt-24rpx rounded-16rpx bg-white">
       <view class="p-24rpx">
         <view class="flex items-center justify-between">
           <view class="flex items-center">
@@ -65,27 +98,6 @@
       </view>
     </view>
 
-    <!-- 区域：审批详情（表单） -->
-    <FormDetail
-      ref="formDetailRef"
-      :process-definition="processDefinition"
-      :process-instance="processInstance"
-      :form-fields-permission="formFieldsPermission"
-    />
-
-    <!-- 区域：审批进度 -->
-    <view class="mx-24rpx mt-24rpx rounded-16rpx bg-white">
-      <view class="p-24rpx">
-        <view class="mb-16rpx flex">
-          <text class="text-28rpx text-[#333] font-bold">审批进度</text>
-        </view>
-        <!-- 流程时间线 -->
-        <ProcessInstanceTimeline :activity-nodes="activityNodes" />
-      </view>
-    </view>
-
-    <!-- TODO @芋艿：待开发，流程评论区域 -->
-
     <!-- 区域：底部操作栏 -->
     <ProcessInstanceOperationButton
       ref="operationButtonRef"
@@ -99,11 +111,12 @@
 import type { ApprovalNodeInfo, ProcessDefinition, ProcessInstance } from '@/api/bpm/processInstance'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { onUnload } from '@dcloudio/uni-app'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { getApprovalDetail } from '@/api/bpm/processInstance'
 import { navigateBackPlus } from '@/utils'
 import { BpmProcessInstanceStatus } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
+import ProcessInstanceCommentList from './components/comment-list.vue'
 import FormDetail from './components/form-detail.vue'
 import ProcessInstanceOperationButton from './components/operation-button.vue'
 import ProcessInstanceTimeline from './components/time-line.vue'
@@ -127,9 +140,13 @@ const processDefinition = ref<ProcessDefinition>()
 const formFieldsPermission = ref<Record<string, string>>({})
 
 const activityNodes = ref<ApprovalNodeInfo[]>([]) // 审批节点信息
+const tabIndex = ref(0) // 当前选中的详情页签下标
+const tabTypes = ['detail', 'progress', 'comment', 'diagram'] as const
+const tabType = computed(() => tabTypes[tabIndex.value] || 'detail') // 当前选中的详情页签类型
 
 const operationButtonRef = ref() // 操作按钮组件 ref
 const formDetailRef = ref<InstanceType<typeof FormDetail>>() // 流程表单 ref
+const commentListRef = ref<InstanceType<typeof ProcessInstanceCommentList>>() // 评论列表组件 ref
 
 /** 返回上一页 */
 function handleBack() {
@@ -171,7 +188,9 @@ async function loadProcessInstance() {
   // 获取审批节点，显示 Timeline 的数据
   activityNodes.value = data.activityNodes
 
+  // 初始化操作栏，并统一刷新评论列表
   operationButtonRef.value?.init(data.processInstance, data.todoTask)
+  commentListRef.value?.getList()
 }
 
 /** 校验流程表单中当前节点允许编辑的字段 */

@@ -43,49 +43,45 @@
     </scroll-view>
 
     <!-- 底部操作按钮 -->
-    <MesFooterActions v-if="hasActiveActions" content-class="yd-detail-footer-actions">
-      <wd-button
-        v-if="canUpdate"
-        class="flex-1"
-        type="success"
-        @click="handleDispose"
-      >
-        处置
-      </wd-button>
-      <wd-button
-        v-if="canDelete"
-        class="flex-1"
-        type="danger"
-        :loading="deleting"
-        @click="handleDelete"
-      >
-        删除
-      </wd-button>
-    </MesFooterActions>
+    <view v-if="hasActiveActions" class="yd-detail-footer">
+      <view class="yd-detail-footer-actions">
+        <wd-button
+          v-if="hasAccessByCodes(['mes:pro-andon-record:update'])"
+          class="flex-1"
+          type="success"
+          @click="handleDispose"
+        >
+          处置
+        </wd-button>
+        <wd-button
+          v-if="hasAccessByCodes(['mes:pro-andon-record:delete'])"
+          class="flex-1"
+          type="danger"
+          :loading="deleting"
+          @click="handleDelete"
+        >
+          删除
+        </wd-button>
+      </view>
+    </view>
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { ProAndonRecordVO } from '@/api/mes/pro/andon/record'
+import { onShow } from '@dcloudio/uni-app'
+import type { ProAndonRecord } from '@/api/mes/pro/andon/record'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { deleteAndonRecord, getAndonRecord } from '@/api/mes/pro/andon/record'
 import { useAccess } from '@/hooks/useAccess'
-import { useRouteQuery } from '@/hooks/useRouteQuery'
-import MesFooterActions from '@/pages-mes/components/mes-footer-actions.vue'
-import { navigateBackPlus } from '@/utils'
-import { DICT_TYPE } from '@/utils/constants'
+import { delay, navigateBackPlus } from '@/utils'
+import { DICT_TYPE, MesProAndonStatusEnum } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
 
 const props = defineProps<{
   id?: number | string
 }>()
-
-const MesProAndonStatusEnum = {
-  ACTIVE: 0,
-  HANDLED: 1,
-} as const
 
 definePage({
   style: {
@@ -97,15 +93,11 @@ definePage({
 const { hasAccessByCodes } = useAccess()
 const dialog = useDialog()
 const toast = useToast()
-const formData = ref<ProAndonRecordVO>() // 详情数据
+const formData = ref<ProAndonRecord>() // 详情数据
 const deleting = ref(false) // 删除状态
-const { getRouteQueryNumber } = useRouteQuery(props, '/pages-mes/pro/andon/record/detail/index')
-// TODO @YunaiV：简单 id 参数优先直接用 props.id 接收，不需要 useRouteQuery/getRouteQueryNumber 包一层；多参数页面只保留其它 query 的 helper。
-const currentId = computed(() => getRouteQueryNumber('id'))
-const canUpdate = computed(() => hasAccessByCodes(['mes:pro-andon-record:update']))
-const canDelete = computed(() => hasAccessByCodes(['mes:pro-andon-record:delete']))
 const hasActiveActions = computed(() => {
-  return formData.value?.status === MesProAndonStatusEnum.ACTIVE && (canUpdate.value || canDelete.value)
+  return formData.value?.status === MesProAndonStatusEnum.ACTIVE
+    && (hasAccessByCodes(['mes:pro-andon-record:update']) || hasAccessByCodes(['mes:pro-andon-record:delete']))
 })
 
 /** 返回上一页 */
@@ -115,20 +107,12 @@ function handleBack() {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!currentId.value) {
-    formData.value = undefined
+  if (!props.id || deleting.value) {
     return
   }
   try {
     toast.loading('加载中...')
-    const detailData = await getAndonRecord(currentId.value)
-    if (!detailData) {
-      uni.showToast({ icon: 'none', title: '详情不存在，已返回列表' })
-      // TODO @YunaiV：成功后延迟返回统一改 delay(handleBack)，对齐 system/infra（本文件共 2 处 setTimeout(() => handleBack())）
-      setTimeout(() => handleBack(), 300)
-      return
-    }
-    formData.value = detailData
+    formData.value = await getAndonRecord(Number(props.id))
   } finally {
     toast.close()
   }
@@ -136,15 +120,15 @@ async function getDetail() {
 
 /** 处置 */
 function handleDispose() {
-  if (!currentId.value) {
+  if (!props.id) {
     return
   }
-  uni.navigateTo({ url: `/pages-mes/pro/andon/record/form/index?id=${currentId.value}&mode=update` })
+  uni.navigateTo({ url: `/pages-mes/pro/andon/record/form/index?id=${props.id}&mode=update` })
 }
 
 /** 删除 */
 async function handleDelete() {
-  if (!currentId.value || !formData.value) {
+  if (!props.id || !formData.value) {
     return
   }
   try {
@@ -157,21 +141,17 @@ async function handleDelete() {
   }
   deleting.value = true
   try {
-    await deleteAndonRecord(currentId.value)
+    await deleteAndonRecord(Number(props.id))
     toast.success('删除成功')
     uni.$emit('mes:pro:andon:record:reload')
-    setTimeout(() => handleBack(), 500)
+    delay(handleBack)
   } finally {
     deleting.value = false
   }
 }
 
 /** 初始化 */
-onMounted(() => {
-  getDetail()
-})
-
-watch(currentId, () => {
+onShow(() => {
   getDetail()
 })
 </script>

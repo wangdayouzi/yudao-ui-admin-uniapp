@@ -21,20 +21,17 @@
         <view class="mb-24rpx rounded-12rpx bg-white p-8rpx shadow-sm">
           <wd-form-item title="选择年份" title-width="160rpx" is-link :value="formatDate(filters.year, 'YYYY')" placeholder="请选择年份" @click="yearVisible = true" />
           <wd-datetime-picker v-model="filters.year" v-model:visible="yearVisible" title="请选择年份" type="year" @confirm="loadData" />
-          <yd-tree-select
+          <DeptFormPicker
+            ref="deptPickerRef"
             v-model="filters.deptId"
             label="归属部门"
             label-width="160rpx"
-            filterable
-            :data="deptTree"
-            :props="{ value: 'id', label: 'name', children: 'children' }"
             placeholder="请选择归属部门"
             @change="handleDeptChange"
           />
-          <UserPicker
+          <UserFormPicker
             ref="userPickerRef"
             v-model="filters.userId"
-            type="radio"
             label="员工"
             label-width="160rpx"
             placeholder="请选择员工"
@@ -60,23 +57,21 @@
 </template>
 
 <script lang="ts" setup>
-import type { Dept } from '@/api/system/dept'
 import type { StatisticsColumn, StatisticsSection } from '@/pages-statistics/utils/statistics'
 import { computed, onMounted, reactive, ref } from 'vue'
 import {
   getContractCountPerformance,
   getContractPricePerformance,
+  getContractSummary,
   getReceivablePricePerformance,
 } from '@/api/crm/statistics/performance'
-import { getSimpleDeptList } from '@/api/system/dept'
-import UserPicker from '@/components/system-select/user-picker.vue'
+import { DeptFormPicker } from '@/components/system-select'
+import UserFormPicker from '@/components/system-select/user-form-picker.vue'
 import { useUserStore } from '@/store/user'
 import { navigateBackPlus } from '@/utils'
 import { formatDate } from '@/utils/date'
-import { handleTree } from '@/utils/tree'
 import {
   getDefaultDeptId,
-  getFirstDeptId,
   normalizeRows,
 } from '@/pages-statistics/utils/statistics'
 import StatisticsCard from '@/pages-statistics/components/card/statistics-card.vue'
@@ -96,11 +91,11 @@ const filters = reactive({
   userId: undefined as number | undefined,
 }) // 筛选条件
 const loadingMap = ref<Record<string, boolean>>({}) // 各分类加载状态（每个 tab 自己的 loading）
-const deptTree = ref<Dept[]>([]) // 部门树形结构
+const deptPickerRef = ref<InstanceType<typeof DeptFormPicker>>() // 部门选择器引用
 const sectionData = ref<Record<string, any[]>>({}) // 各分类数据缓存（每个 tab 自己的 rows）
 const tabIndex = ref(0) // 当前分类下标
 const yearVisible = ref(false) // 年份选择器显隐
-const userPickerRef = ref<InstanceType<typeof UserPicker>>() // 员工选择器引用
+const userPickerRef = ref<InstanceType<typeof UserFormPicker>>() // 员工选择器引用
 
 const queryParams = computed(() => {
   const year = filters.year ? new Date(filters.year).getFullYear() : now.getFullYear()
@@ -123,18 +118,42 @@ const sections = [
     columns: performanceColumns('合同金额'),
     load: getContractPricePerformance,
     chart: performanceChart('合同金额'),
+    transform: rows => rows.map(withPerformanceGrowthRate),
   },
   {
     title: '回款金额业绩',
     columns: performanceColumns('回款金额'),
     load: getReceivablePricePerformance,
     chart: performanceChart('回款金额'),
+    transform: rows => rows.map(withPerformanceGrowthRate),
   },
   {
     title: '签约合同数业绩',
     columns: performanceColumns('合同数'),
     load: getContractCountPerformance,
     chart: performanceChart('合同数'),
+    transform: rows => rows.map(withPerformanceGrowthRate),
+  },
+  {
+    title: '合同汇总表',
+    columns: [
+      { prop: 'time', label: '月份' },
+      { prop: 'contractCount', label: '合同数量' },
+      { prop: 'contractPrice', label: '合同金额', type: 'money' },
+      { prop: 'receivablePrice', label: '回款金额', type: 'money' },
+      { prop: 'unreceivedPrice', label: '未回款金额', type: 'money' },
+    ],
+    load: getContractSummary,
+    chart: {
+      type: 'bar',
+      categoryProp: 'time',
+      series: [
+        { name: '合同金额', prop: 'contractPrice', type: 'bar' },
+        { name: '回款金额', prop: 'receivablePrice', type: 'bar' },
+        { name: '未回款金额', prop: 'unreceivedPrice', type: 'line' },
+      ],
+      money: true,
+    },
   },
 ] as StatisticsSection[] // 统计分组配置
 const activeSection = computed(() => sections[tabIndex.value] || sections[0]) // 当前分类
@@ -149,7 +168,8 @@ async function loadActive() {
   const section = activeSection.value
   loadingMap.value[section.title] = true
   try {
-    sectionData.value[section.title] = normalizeRows(await section.load?.(queryParams.value)).map(withPerformanceGrowthRate)
+    const rows = normalizeRows(await section.load?.(queryParams.value))
+    sectionData.value[section.title] = section.transform ? section.transform(rows) : rows
   } catch {
     sectionData.value[section.title] = []
   } finally {
@@ -217,9 +237,8 @@ function performanceChart(label: string): StatisticsSection['chart'] {
 
 /** 初始化 */
 onMounted(async () => {
-  deptTree.value = handleTree(await getSimpleDeptList())
   if (!filters.deptId) {
-    filters.deptId = getFirstDeptId(deptTree.value)
+    filters.deptId = await deptPickerRef.value?.getFirstDeptId()
   }
   await loadData()
 })

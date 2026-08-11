@@ -25,34 +25,8 @@
         </view>
         <wd-input v-model="formData.name" placeholder="请输入转移单名称" clearable />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          转移单类型
-        </view>
-        <wd-radio-group v-model="formData.type" type="button">
-          <wd-radio
-            v-for="dict in getIntDictOptions(DICT_TYPE.MES_WM_TRANSFER_TYPE)"
-            :key="dict.value"
-            :value="dict.value"
-          >
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          单据状态
-        </view>
-        <wd-radio-group v-model="formData.status" type="button">
-          <wd-radio
-            v-for="dict in getIntDictOptions(DICT_TYPE.MES_WM_TRANSFER_STATUS)"
-            :key="dict.value"
-            :value="dict.value"
-          >
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <yd-search-picker v-model="formData.type" label="转移单类型" :dict-type="DICT_TYPE.MES_WM_TRANSFER_TYPE" all-option />
+      <yd-search-picker v-model="formData.status" label="单据状态" :dict-type="DICT_TYPE.MES_WM_TRANSFER_STATUS" all-option />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -66,10 +40,8 @@
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——wd-radio-group 类型/状态筛选改 yd-search-picker（type/status，配 dict-kind + all-option）
-import type { WmTransferQueryParams } from '@/api/mes/wm/transfer'
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 
@@ -81,7 +53,7 @@ interface SearchFormData {
 }
 
 const emit = defineEmits<{
-  search: [data: WmTransferQueryParams]
+  search: [data: Record<string, any>]
   reset: []
 }>()
 
@@ -110,8 +82,6 @@ const placeholder = computed(() => {
 function handleSearch() {
   visible.value = false
   emit('search', {
-    pageNo: 1,
-    pageSize: 10,
     code: formData.code || undefined,
     name: formData.name || undefined,
     type: formData.type,

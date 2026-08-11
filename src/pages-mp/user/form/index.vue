@@ -11,13 +11,13 @@
     <view>
       <wd-form ref="formRef" :model="formData">
         <wd-cell-group border>
-          <wd-form-item title="昵称" title-width="180rpx" prop="nickname">
+          <wd-form-item title="昵称" title-width="220rpx" prop="nickname">
             <wd-input v-model="formData.nickname" clearable placeholder="请输入昵称" />
           </wd-form-item>
-          <wd-form-item title="备注" title-width="180rpx" prop="remark">
+          <wd-form-item title="备注" title-width="220rpx" prop="remark">
             <wd-input v-model="formData.remark" clearable placeholder="请输入备注" />
           </wd-form-item>
-          <TagPicker v-model="formData.tagIds" />
+          <TagFormPicker v-model="formData.tagIds" />
         </wd-cell-group>
       </wd-form>
     </view>
@@ -34,18 +34,15 @@
 <script lang="ts" setup>
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { MpUser } from '@/api/mp/user'
-import { onLoad } from '@dcloudio/uni-app'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { getUser, updateUser } from '@/api/mp/user'
 import { delay, navigateBackPlus } from '@/utils'
-import TagPicker from '@/pages-mp/tag/components/tag-picker.vue'
-import { getMpRouteNumber, useMpRouteParams } from '../../utils/route'
+import TagFormPicker from '@/pages-mp/tag/components/tag-form-picker.vue'
 
 const props = defineProps<{
   id?: number | any
 }>()
-const { routeParams, syncRouteParams } = useMpRouteParams(props)
 
 definePage({
   style: {
@@ -55,7 +52,6 @@ definePage({
 })
 
 const toast = useToast()
-const id = computed(() => getMpRouteNumber(routeParams.id))
 const formLoading = ref(false) // 表单提交状态
 const formData = ref<MpUser>({
   id: undefined,
@@ -72,11 +68,11 @@ function handleBack() {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
   try {
-    formData.value = await getUser(id.value)
+    formData.value = await getUser(Number(props.id))
     formData.value.tagIds = formData.value.tagIds || []
   } catch {
     // 请求层已提示错误，保留默认表单
@@ -85,14 +81,14 @@ async function getDetail() {
 
 /** 提交表单 */
 async function handleSubmit() {
-  if (!id.value) {
+  if (!props.id) {
     toast.show('缺少粉丝编号')
     return
   }
   formLoading.value = true
   try {
     await updateUser({
-      id: id.value,
+      id: Number(props.id),
       nickname: formData.value.nickname,
       remark: formData.value.remark,
       tagIds: formData.value.tagIds,
@@ -106,8 +102,7 @@ async function handleSubmit() {
 }
 
 /** 初始化 */
-onLoad((query) => {
-  syncRouteParams(query)
+onMounted(() => {
   getDetail()
 })
 </script>

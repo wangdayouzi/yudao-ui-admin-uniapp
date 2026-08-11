@@ -11,9 +11,7 @@
           <wd-form-item title="退货时间" title-width="220rpx" prop="returnTime" is-link :value="formatDate(formData.returnTime) || ''" placeholder="请选择退货时间" @click="dateVisible.returnTime = true" />
           <wd-datetime-picker v-model="formData.returnTime" v-model:visible="dateVisible.returnTime" title="请选择退货时间" type="date" />
           <wd-cell title="关联订单" :value="formData.orderNo || '请选择可退货采购订单'" is-link @click="openOrderSelector" />
-          <wd-form-item title="供应商" title-width="220rpx" prop="supplierId">
-            <wd-input :model-value="supplierDisplayValue" placeholder="选择采购订单后回填" disabled />
-          </wd-form-item>
+          <SupplierFormPicker v-model="formData.supplierId" prop="supplierId" placeholder="选择采购订单后回填" disabled />
           <wd-form-item title="备注" title-width="220rpx" prop="remark">
             <wd-textarea v-model="formData.remark" placeholder="请输入备注" :maxlength="500" show-word-limit clearable />
           </wd-form-item>
@@ -22,17 +20,17 @@
           </wd-form-item>
         </wd-cell-group>
 
-        <view class="px-24rpx py-16rpx text-28rpx text-[#666]">
-          退货产品清单
+        <!-- 退货明细 -->
+        <view class="flex items-center justify-between px-24rpx py-16rpx">
+          <text class="text-28rpx text-[#333] font-semibold">退货产品清单</text>
         </view>
-        <wd-cell-group border>
-          <wd-form-item title="退货明细" title-width="220rpx">
-            <ReturnItemForm ref="itemEditorRef" v-model="formData.items" :warehouse-options="warehouseOptions" />
-          </wd-form-item>
-        </wd-cell-group>
+        <view class="px-24rpx">
+          <ReturnItemForm ref="itemEditorRef" v-model="formData.items" :warehouse-options="warehouseOptions" />
+        </view>
 
-        <view class="px-24rpx py-16rpx text-28rpx text-[#666]">
-          结算信息
+        <!-- 结算信息 -->
+        <view class="flex items-center justify-between px-24rpx py-16rpx">
+          <text class="text-28rpx text-[#333] font-semibold">结算信息</text>
         </view>
         <wd-cell-group border>
           <wd-form-item title="优惠率(%)" title-width="220rpx" prop="discountPercent" center>
@@ -43,11 +41,12 @@
           <wd-form-item title="其它费用" title-width="220rpx" prop="otherPrice" center>
             <wd-input-number v-model="formData.otherPrice" :min="0" :precision="2" />
           </wd-form-item>
-          <ErpPicker v-model="formData.accountId" label="结算账户" label-width="220rpx" source="account" placeholder="请选择结算账户" />
+          <AccountFormPicker v-model="formData.accountId" label="结算账户" label-width="220rpx" placeholder="请选择结算账户" :auto-default="!props.id" />
           <wd-cell title="应退金额" :value="formatMoney(formData.totalPrice)" />
         </wd-cell-group>
       </wd-form>
 
+      <!-- 底部安全区域 -->
       <view class="h-160rpx" />
     </scroll-view>
 
@@ -57,7 +56,6 @@
         保存
       </wd-button>
     </view>
-
     <PurchaseOrderReturnPicker ref="orderSelectorRef" @success="handlePurchaseOrderChange" />
   </view>
 </template>
@@ -66,24 +64,22 @@
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { PurchaseOrder } from '@/api/erp/purchase/order'
 import type { PurchaseReturn } from '@/api/erp/purchase/return'
-import type { Supplier } from '@/api/erp/purchase/supplier'
 import type { Warehouse } from '@/api/erp/stock/warehouse'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { getSupplierSimpleList } from '@/api/erp/purchase/supplier'
 import { createPurchaseReturn, getPurchaseReturn, updatePurchaseReturn } from '@/api/erp/purchase/return'
 import { getWarehouseSimpleList } from '@/api/erp/stock/warehouse'
 import { delay, navigateBackPlus } from '@/utils'
 import { formatDate } from '@/utils/date'
-import { createFormSchema, getWotPickerFormValue } from '@/utils/wot'
-import ErpPicker from '@/pages-erp/components/erp-picker.vue'
-import { applyDefaultAccount } from '@/pages-erp/finance/account/components/use-default-account'
+import { createFormSchema } from '@/utils/wot'
+import AccountFormPicker from '@/pages-erp/finance/account/components/account-form-picker.vue'
+import SupplierFormPicker from '@/pages-erp/purchase/supplier/components/supplier-form-picker.vue'
 import PurchaseOrderReturnPicker from '../components/purchase-order-return-picker.vue'
 import ReturnItemForm from '../components/return-item-form.vue'
-import { formatMoney, roundPrice, toNumber } from '@/pages-erp/utils/erp'
+import { roundPrice } from '@/pages-erp/utils/format'
+import { formatMoney, toNumber } from '@/utils/format'
 
-const props = defineProps<{ id?: number | any }>()
-
+const props = defineProps<{ id?: number }>()
 definePage({
   style: {
     navigationBarTitleText: '',
@@ -112,14 +108,12 @@ const formData = ref<PurchaseReturn>({
 const formRef = ref<FormInstance>()
 const itemEditorRef = ref<InstanceType<typeof ReturnItemForm>>()
 const orderSelectorRef = ref<InstanceType<typeof PurchaseOrderReturnPicker>>()
-const supplierOptions = ref<Supplier[]>([])
 const warehouseOptions = ref<Warehouse[]>([])
 const dateVisible = reactive({ returnTime: false })
 const formSchema = createFormSchema({
   supplierId: [{ required: true, message: '供应商不能为空，请先选择采购订单' }],
   returnTime: [{ required: true, message: '退货时间不能为空' }],
 })
-const supplierDisplayValue = computed(() => getWotPickerFormValue(supplierOptions.value, formData.value.supplierId, { valueKey: 'id', labelKey: 'name' }))
 const preOtherPrice = computed(() => Number(formData.value.totalPrice || 0) - Number(formData.value.otherPrice || 0))
 
 /** 返回上一页 */
@@ -140,12 +134,7 @@ function refreshAmount() {
 
 /** 加载基础选项 */
 async function loadOptions() {
-  const [suppliers, warehouses] = await Promise.all([
-    getSupplierSimpleList(),
-    getWarehouseSimpleList(),
-    applyDefaultAccount(formData.value),
-  ])
-  supplierOptions.value = suppliers || []
+  const warehouses = await getWarehouseSimpleList()
   warehouseOptions.value = warehouses || []
 }
 
@@ -156,20 +145,19 @@ async function getDetail() {
   }
   try {
     toast.loading('加载中...')
-    formData.value = {
-      ...formData.value,
-      ...await getPurchaseReturn(props.id),
-    }
+    formData.value = await getPurchaseReturn(props.id)
   } finally {
     toast.close()
   }
   refreshAmount()
 }
 
+/** 打开采购订单选择器 */
 function openOrderSelector() {
   orderSelectorRef.value?.open()
 }
 
+/** 选择采购订单后回填 */
 function handlePurchaseOrderChange(order: PurchaseOrder) {
   formData.value.orderId = order.id
   formData.value.orderNo = order.no
@@ -199,6 +187,7 @@ async function handleSubmit() {
   if (!valid || !itemEditorRef.value?.validate()) {
     return
   }
+
   refreshAmount()
   formLoading.value = true
   try {
@@ -216,8 +205,10 @@ async function handleSubmit() {
   }
 }
 
+/** 明细变更后刷新金额 */
 watch(() => [formData.value.items, formData.value.discountPercent, formData.value.otherPrice], refreshAmount, { deep: true })
 
+/** 初始化 */
 onMounted(async () => {
   await loadOptions()
   await getDetail()

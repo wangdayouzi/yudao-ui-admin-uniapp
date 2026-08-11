@@ -33,19 +33,7 @@
           clearable
         />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          状态
-        </view>
-        <wd-radio-group v-model="formData.status" type="button">
-          <wd-radio :value="-1">
-            全部
-          </wd-radio>
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <yd-search-picker v-model="formData.status" label="状态" :dict-type="DICT_TYPE.COMMON_STATUS" all-option />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -59,23 +47,21 @@
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——wd-radio-group 状态/类型筛选改 yd-search-picker（配 dict-kind + all-option）
-import type { AutoCodeRuleQueryParams } from '@/api/mes/md/autocode/rule'
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 
 const emit = defineEmits<{
-  search: [data: AutoCodeRuleQueryParams]
+  search: [data: Record<string, any>]
   reset: []
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const formData = reactive<AutoCodeRuleQueryParams>({
+const formData = reactive<Record<string, any>>({
   code: undefined,
   name: undefined,
-  status: -1,
+  status: undefined,
 }) // 搜索表单数据
 
 /** 搜索条件 placeholder 拼接 */
@@ -87,8 +73,8 @@ const placeholder = computed(() => {
   if (formData.name !== undefined && formData.name !== '') {
     conditions.push(`规则名称:${formData.name}`)
   }
-  if (formData.status !== undefined && formData.status !== -1) {
-    conditions.push(`状态:${getDictLabel(DICT_TYPE.COMMON_STATUS, formData.status) || formData.status}`)
+  if (formData.status !== undefined) {
+    conditions.push(`状态:${getDictLabel(DICT_TYPE.COMMON_STATUS, formData.status)}`)
   }
   return conditions.length > 0 ? conditions.join(' | ') : '搜索编码规则'
 })
@@ -96,18 +82,18 @@ const placeholder = computed(() => {
 /** 搜索按钮操作 */
 function handleSearch() {
   visible.value = false
-  const data: AutoCodeRuleQueryParams = { ...formData }
-  if (data.status === -1) {
-    delete data.status
-  }
-  emit('search', data)
+  emit('search', {
+    code: formData.code || undefined,
+    name: formData.name || undefined,
+    status: formData.status,
+  })
 }
 
 /** 重置按钮操作 */
 function handleReset() {
   formData.code = undefined
   formData.name = undefined
-  formData.status = -1
+  formData.status = undefined
   visible.value = false
   emit('reset')
 }

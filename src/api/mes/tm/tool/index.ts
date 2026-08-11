@@ -1,72 +1,46 @@
 import type { PageParam, PageResult } from '@/http/types'
 import { http } from '@/http/http'
 
-export interface TmToolQueryParams extends PageParam {
-  code?: string
-  name?: string
+/** MES 工具台账 */
+export interface TmTool {
+  id?: number
+  code: string
+  name: string
   brand?: string
   specification?: string
   toolTypeId?: number
-  status?: number
-}
-
-export interface TmToolVO {
-  id: number
-  code: string
-  name: string
-  brand?: string | null
-  specification?: string | null
-  toolTypeId: number
   toolTypeName?: string
-  quantity: number
-  availableQuantity: number
-  maintenType?: number | null
-  nextMaintenPeriod?: number | null
-  nextMaintenDate?: string | number | null
-  status: number
-  remark?: string | null
-  createTime?: string | number
-}
-
-export interface TmToolCreateReqVO {
-  code: string
-  name: string
-  brand?: string
-  specification?: string
-  toolTypeId: number
   quantity: number
   availableQuantity: number
   maintenType?: number
   nextMaintenPeriod?: number
-  nextMaintenDate?: string | number
+  nextMaintenDate?: string | Date
   status: number
   remark?: string
+  createTime?: Date
 }
 
-export interface TmToolUpdateReqVO extends TmToolCreateReqVO {
-  id: number
+/** 查询工具分页 */
+export function getToolPage(params: PageParam) {
+  return http.get<PageResult<TmTool>>(`/mes/tm/tool/page`, params)
 }
 
-export function getToolPage(params: TmToolQueryParams) {
-  return http.get<PageResult<TmToolVO>>(`/mes/tm/tool/page`, params)
-}
-
+/** 查询工具详情 */
 export function getTool(id: number) {
-  return http.get<TmToolVO>(`/mes/tm/tool/get?id=${id}`)
+  return http.get<TmTool>(`/mes/tm/tool/get?id=${id}`)
 }
 
-export function exportTool(params: TmToolQueryParams) {
-  return http.get<Blob>(`/mes/tm/tool/export-excel`, params)
-}
-
-export function createTool(data: TmToolCreateReqVO) {
+/** 新增工具 */
+export function createTool(data: TmTool) {
   return http.post<number>(`/mes/tm/tool/create`, data)
 }
 
-export function updateTool(data: TmToolUpdateReqVO) {
+/** 修改工具 */
+export function updateTool(data: TmTool) {
   return http.put<boolean>(`/mes/tm/tool/update`, data)
 }
 
+/** 删除工具 */
 export function deleteTool(id: number) {
   return http.delete<boolean>(`/mes/tm/tool/delete?id=${id}`)
 }

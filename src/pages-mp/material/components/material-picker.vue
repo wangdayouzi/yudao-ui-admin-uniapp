@@ -1,8 +1,8 @@
 <!-- 素材选择弹层：按 type（图片 / 语音 / 视频 / 图文）从素材库 / 草稿 / 已发布分页选择素材 -->
 <template>
   <wd-popup v-model="innerVisible" position="bottom" safe-area-inset-bottom>
-    <view class="h-[80vh] bg-white">
-      <view class="flex items-center justify-between border-b border-[#f0f0f0] px-24rpx py-20rpx">
+    <view class="h-[80vh] bg-[#f5f5f5]">
+      <view class="flex items-center justify-between border-b border-[#f0f0f0] bg-white px-24rpx py-20rpx">
         <view class="text-32rpx text-[#333] font-semibold">
           选择{{ typeLabel }}
         </view>
@@ -39,7 +39,7 @@
                 radius="8rpx"
                 mode="aspectFit"
               />
-              <view class="text-28rpx text-[#333]">
+              <view class="text-30rpx text-[#333] font-semibold">
                 {{ item.name || item.mediaId || '图片素材' }}
               </view>
             </template>
@@ -143,7 +143,7 @@ function getItemKey(item: any) {
 
 /** 获取图文列表 */
 function getNewsArticles(item: any) {
-  return item.content?.newsItem || item.articles || []
+  return item?.content?.newsItem || item?.articles || []
 }
 
 /** 选择素材 */

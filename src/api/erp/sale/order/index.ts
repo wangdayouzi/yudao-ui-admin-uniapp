@@ -4,6 +4,9 @@ import { http } from '@/http/http'
 /** ERP 销售订单明细 */
 export interface SaleOrderItem {
   id?: number
+  orderItemId?: number
+  warehouseId?: number
+  productUnitId?: number
   productId?: number
   productName?: string
   productUnitName?: string
@@ -11,6 +14,9 @@ export interface SaleOrderItem {
   productPrice?: number
   stockCount?: number
   count?: number
+  totalCount?: number
+  outCount?: number
+  returnCount?: number
   totalProductPrice?: number
   taxPercent?: number
   taxPrice?: number
@@ -23,15 +29,24 @@ export interface SaleOrder {
   id?: number // 订单工单编号
   no?: string // 销售订单号
   customerId?: number // 客户编号
+  customerName?: string // 客户名称
   accountId?: number // 结算账户编号
+  accountName?: string // 结算账户名称
   saleUserId?: number // 销售人员编号
-  orderTime?: string | number | Date // 订单时间
+  saleUserName?: string // 销售人员名称
+  orderTime?: Date | string | number // 订单时间
   discountPercent?: number // 优惠率
   discountPrice?: number // 收款优惠
+  totalProductPrice?: number // 合计产品金额
+  totalTaxPrice?: number // 合计税额
   totalPrice?: number // 优惠后金额
   depositPrice?: number // 收取订金
   totalCount?: number // 合计数量
   status?: number // 状态
+  creator?: string // 创建人
+  creatorName?: string // 创建人名称
+  createTime?: Date // 创建时间
+  productNames?: string // 产品信息
   remark?: string // 备注
   fileUrl?: string // 附件地址
   outCount?: number // 销售出库数量

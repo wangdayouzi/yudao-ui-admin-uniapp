@@ -11,6 +11,7 @@ export interface ImFriendRequestRespVO {
   addSource?: number
   handleTime?: string
   createTime: string
+  updateTime?: number
   fromNickname?: string
   fromAvatar?: string
   toNickname?: string
@@ -18,7 +19,7 @@ export interface ImFriendRequestRespVO {
 }
 
 /** IM 好友申请发起 */
-export interface ImFriendRequestApplyReqVO {
+export interface ImFriendRequestApplyReq {
   toUserId: number
   applyContent?: string
   displayName?: string
@@ -26,7 +27,7 @@ export interface ImFriendRequestApplyReqVO {
 }
 
 /** 发起好友申请 */
-export function applyFriendRequest(data: ImFriendRequestApplyReqVO) {
+export function applyFriendRequest(data: ImFriendRequestApplyReq) {
   return http.post<number | null>('/im/friend-request/apply', data)
 }
 
@@ -47,6 +48,11 @@ export function getMyFriendRequestList(limit: number, maxId?: number) {
     params.maxId = maxId
   }
   return http.get<ImFriendRequestRespVO[]>('/im/friend-request/list', params)
+}
+
+/** 增量拉取当前用户相关的好友申请 */
+export function pullMyFriendRequestList(params: { lastUpdateTime?: number, lastId?: number, limit: number }) {
+  return http.get<ImFriendRequestRespVO[]>('/im/friend-request/pull', params)
 }
 
 /** 获得我相关的好友申请详情 */

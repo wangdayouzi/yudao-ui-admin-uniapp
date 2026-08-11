@@ -31,9 +31,59 @@ export function formatDate(time?: FormatDate, format: Format = 'YYYY-MM-DD') {
   }
 }
 
+/** 格式化可选日期 */
+export function formatOptionalDate(time?: FormatDate, format: Format = 'YYYY-MM-DD') {
+  return formatDate(time, format) || undefined
+}
+
 /** 格式化日期时间 */
 export function formatDateTime(time?: FormatDate) {
   return formatDate(time, 'YYYY-MM-DD HH:mm:ss')
+}
+
+/** 格式化可选日期时间 */
+export function formatOptionalDateTime(time?: FormatDate) {
+  return formatOptionalDate(time, 'YYYY-MM-DD HH:mm:ss')
+}
+
+/** 提取日期文本 */
+function getDateText(time?: FormatDate) {
+  if (typeof time === 'string') {
+    const matched = time.match(/^\d{4}-\d{2}-\d{2}/)
+    return matched ? matched[0] : formatDate(time)
+  }
+  return formatDate(time)
+}
+
+/** 格式化为日期文本（yyyy-MM-dd） */
+export function formatDateOnly(time?: FormatDate) {
+  return getDateText(time)
+}
+
+/** 日期转当天开始时间 */
+export function formatDateStartTime(time?: FormatDate) {
+  const date = formatDateOnly(time)
+  return date ? `${date} 00:00:00` : ''
+}
+
+/** 日期转当天结束时间 */
+export function formatDateEndTime(time?: FormatDate) {
+  const date = formatDateOnly(time)
+  return date ? `${date} 23:59:59` : ''
+}
+
+/** 格式化趋势日期 */
+export function formatTrendDate(time?: FormatDate) {
+  if (!time) {
+    return '-'
+  }
+  if (typeof time === 'string') {
+    const matched = time.match(/(\d{1,2})-(\d{1,2})$/)
+    if (matched) {
+      return `${matched[1]}-${matched[2]}`
+    }
+  }
+  return formatDate(time, 'MM-DD') || String(time)
 }
 
 /** HH:mm 补秒为 HH:mm:ss（对齐后端 LocalTime；time 选择器只产出 HH:mm） */

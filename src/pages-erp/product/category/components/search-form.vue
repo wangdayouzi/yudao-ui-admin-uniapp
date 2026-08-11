@@ -23,7 +23,12 @@
           clearable
         />
       </view>
-      <yd-search-picker v-model="formData.status" label="状态" :dict-type="DICT_TYPE.COMMON_STATUS" all-option />
+      <yd-search-picker
+        v-model="formData.status"
+        label="状态"
+        :dict-type="DICT_TYPE.COMMON_STATUS"
+        all-option
+      />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -50,7 +55,7 @@ const emit = defineEmits<{
 const visible = ref(false) // 搜索弹窗显示状态
 const formData = reactive({
   name: undefined as string | undefined,
-  status: -1, // -1 表示全部
+  status: undefined as number | undefined,
 }) // 搜索表单数据
 
 /** 搜索条件 placeholder 拼接 */
@@ -59,7 +64,7 @@ const placeholder = computed(() => {
   if (formData.name) {
     conditions.push(`名称:${formData.name}`)
   }
-  if (formData.status !== -1) {
+  if (formData.status !== undefined) {
     conditions.push(`状态:${getDictLabel(DICT_TYPE.COMMON_STATUS, formData.status)}`)
   }
   return conditions.length > 0 ? conditions.join(' | ') : '搜索产品分类'
@@ -70,22 +75,15 @@ function handleSearch() {
   visible.value = false
   emit('search', {
     name: formData.name || undefined,
-    status: formData.status === -1 ? undefined : formData.status,
+    status: formData.status,
   })
 }
 
 /** 重置按钮操作 */
 function handleReset() {
-  resetFields()
+  formData.name = undefined
+  formData.status = undefined
   visible.value = false
   emit('reset')
 }
-
-/** 重置搜索字段 */
-function resetFields() {
-  formData.name = undefined
-  formData.status = -1
-}
-
-defineExpose({ resetFields })
 </script>

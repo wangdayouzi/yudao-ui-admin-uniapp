@@ -1,4 +1,5 @@
-type DecimalValue = number | string | null | undefined
+export type DecimalValue = number | string | null | undefined
+export type InputNumberValue = number | string | undefined
 
 /** 数量小数位 */
 export const QUANTITY_PRECISION = 2
@@ -25,6 +26,11 @@ function toFiniteDecimal(value: DecimalValue) {
     return undefined
   }
   return decimalValue
+}
+
+/** 转换为接口可选数字 */
+export function toOptionalNumber(value?: DecimalValue) {
+  return toFiniteDecimal(value)
 }
 
 function sumDecimal<T>(list: T[], getter: (item: T) => DecimalValue) {
@@ -58,19 +64,23 @@ export function getLossClass(value?: number | string | null) {
 }
 
 /** 数量 * 单价，计算金额 */
-export function multiplyPrice(quantity?: number, price?: number) {
-  if (quantity === undefined || quantity === null || price === undefined || price === null) {
+export function multiplyPrice(quantity?: DecimalValue, price?: DecimalValue) {
+  const quantityValue = toFiniteDecimal(quantity)
+  const priceValue = toFiniteDecimal(price)
+  if (quantityValue === undefined || priceValue === undefined) {
     return undefined
   }
-  return roundPrice(Number(quantity) * Number(price))
+  return roundPrice(quantityValue * priceValue)
 }
 
 /** 金额 / 数量，反算单价 */
-export function dividePrice(totalPrice?: number, quantity?: number) {
-  if (totalPrice === undefined || totalPrice === null || !quantity) {
+export function dividePrice(totalPrice?: DecimalValue, quantity?: DecimalValue) {
+  const totalPriceValue = toFiniteDecimal(totalPrice)
+  const quantityValue = toFiniteDecimal(quantity)
+  if (totalPriceValue === undefined || !quantityValue) {
     return undefined
   }
-  return roundPrice(Number(totalPrice) / Number(quantity))
+  return roundPrice(totalPriceValue / quantityValue)
 }
 
 /** 汇总数量 */

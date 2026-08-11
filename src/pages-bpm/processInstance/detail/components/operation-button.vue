@@ -45,6 +45,30 @@
       取消
     </wd-button>
   </view>
+
+  <!-- 评论弹窗 -->
+  <wd-popup v-model="commentVisible" position="bottom" safe-area-inset-bottom custom-style="border-radius: 24rpx 24rpx 0 0;">
+    <view class="p-24rpx">
+      <view class="mb-24rpx text-center text-32rpx text-[#333] font-semibold">
+        评论
+      </view>
+      <wd-textarea
+        v-model="commentForm.message"
+        placeholder="请输入评论内容"
+        :maxlength="500"
+        show-word-limit
+        clearable
+      />
+      <view class="mt-24rpx flex gap-16rpx">
+        <wd-button class="flex-1" variant="plain" @click="closeComment">
+          取消
+        </wd-button>
+        <wd-button class="flex-1" type="primary" :loading="commentSubmitting" @click="handleCommentSubmit">
+          确定
+        </wd-button>
+      </view>
+    </view>
+  </wd-popup>
 </template>
 
 <script lang="ts" setup>
@@ -53,6 +77,7 @@ import type { ButtonType, ButtonVariant } from '@wot-ui/ui/components/wd-button/
 import type { ProcessInstance } from '@/api/bpm/processInstance'
 import type { Task } from '@/api/bpm/task'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
+import { createComment } from '@/api/bpm/comment'
 import { useUserStore } from '@/store'
 import {
   BpmProcessInstanceStatus,
@@ -85,6 +110,7 @@ interface RightOperationType {
   variant: ButtonVariant
 }
 const operationIconsMap: Record<number, string> = {
+  [BpmTaskOperationButtonTypeEnum.COMMENT]: 'message',
   [BpmTaskOperationButtonTypeEnum.TRANSFER]: 'swap',
   [BpmTaskOperationButtonTypeEnum.ADD_SIGN]: 'user-add',
   [BpmTaskOperationButtonTypeEnum.DELEGATE]: 'send',
@@ -94,6 +120,7 @@ const operationIconsMap: Record<number, string> = {
   [BpmTaskOperationButtonTypeEnum.PROCESS_START_CANCEL]: 'close-circle',
 }
 const optionalOperationTypes = [
+  BpmTaskOperationButtonTypeEnum.COMMENT,
   BpmTaskOperationButtonTypeEnum.TRANSFER,
   BpmTaskOperationButtonTypeEnum.COPY,
   BpmTaskOperationButtonTypeEnum.DELEGATE,
@@ -109,6 +136,9 @@ const moreOperations = ref<MoreOperationType[]>([]) // 更多操作
 const runningTask = ref<Task>()
 const processInstance = ref<ProcessInstance>()
 const reasonRequire = ref<boolean>(false)
+const commentVisible = ref(false) // 评论弹窗是否显示
+const commentSubmitting = ref(false) // 评论提交中
+const commentForm = reactive({ message: '' }) // 评论表单
 
 /** 初始化 */
 function init(theProcessInstance: ProcessInstance, task: Task) {
@@ -157,6 +187,8 @@ function resetOperations() {
   rightOperations.value = []
   moreOperations.value = []
   reasonRequire.value = false
+  commentVisible.value = false
+  commentForm.message = ''
 }
 
 /** 添加右侧操作按钮 */
@@ -208,6 +240,9 @@ async function handleOperation(operationType: number) {
     }
     case BpmTaskOperationButtonTypeEnum.REJECT:
       uni.navigateTo({ url: `/pages-bpm/processInstance/detail/audit/index?processInstanceId=${processInstance.value.id}&taskId=${runningTask.value?.id}&pass=false` })
+      break
+    case BpmTaskOperationButtonTypeEnum.COMMENT:
+      openComment()
       break
     case BpmTaskOperationButtonTypeEnum.DELEGATE:
       uni.navigateTo({
@@ -288,10 +323,11 @@ function handleMoreAction(action: { item: MoreOperationType }) {
 }
 
 /** 获取按钮的显示名称 */
-function getButtonDisplayName(btnType: BpmTaskOperationButtonTypeEnum) {
+function getButtonDisplayName(btnType: number) {
   let displayName = OPERATION_BUTTON_NAME.get(btnType)
   if (
-    runningTask.value?.buttonsSetting
+    btnType !== BpmTaskOperationButtonTypeEnum.COMMENT
+    && runningTask.value?.buttonsSetting
     && runningTask.value?.buttonsSetting[btnType]
   ) {
     displayName = runningTask.value.buttonsSetting[btnType].displayName
@@ -300,7 +336,10 @@ function getButtonDisplayName(btnType: BpmTaskOperationButtonTypeEnum) {
 }
 
 /** 是否显示按钮 */
-function isShowButton(btnType: BpmTaskOperationButtonTypeEnum): boolean {
+function isShowButton(btnType: number): boolean {
+  if (btnType === BpmTaskOperationButtonTypeEnum.COMMENT) {
+    return true
+  }
   let isShow = true
   if (
     runningTask.value?.buttonsSetting
@@ -350,6 +389,40 @@ function isShowDeleteSign() {
 /** 是否显示流程发起人取消 */
 function isShowProcessStartCancel() {
   return isProcessStartUser() && !isEndProcessStatus(processInstance.value?.status)
+}
+
+/** 打开评论弹窗 */
+function openComment() {
+  commentForm.message = ''
+  commentVisible.value = true
+}
+
+/** 关闭评论弹窗 */
+function closeComment() {
+  commentVisible.value = false
+  commentForm.message = ''
+}
+
+/** 提交流程评论 */
+async function handleCommentSubmit() {
+  const content = commentForm.message.trim()
+  if (!content) {
+    toast.show('评论内容不能为空')
+    return
+  }
+  if (!runningTask.value?.id) {
+    toast.show('当前任务不存在')
+    return
+  }
+  commentSubmitting.value = true
+  try {
+    await createComment(runningTask.value.id, content)
+    toast.success('评论成功')
+    closeComment()
+    uni.$emit('bpm:processInstance:reload')
+  } finally {
+    commentSubmitting.value = false
+  }
 }
 
 /** 暴露方法 */

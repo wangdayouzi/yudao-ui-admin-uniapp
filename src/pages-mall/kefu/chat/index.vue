@@ -1,6 +1,7 @@
 <template>
   <view class="yd-page-container yd-page-container-paging">
-    <!-- 顶部导航栏：标题为会员昵称，右侧进入会员资料 -->
+    <!-- 顶部导航栏：标题为会员昵称，并提供会员资料入口 -->
+    <!-- #ifndef MP-WEIXIN -->
     <wd-navbar
       :title="nickname || '会话'"
       left-arrow placeholder safe-area-inset-top fixed
@@ -8,6 +9,17 @@
       @click-left="handleBack"
       @click-right="handleMember"
     />
+    <!-- #endif -->
+    <!-- #ifdef MP-WEIXIN -->
+    <wd-navbar :title="nickname || '会话'" placeholder safe-area-inset-top fixed>
+      <template #left>
+        <view class="flex items-center gap-26rpx pl-4rpx">
+          <wd-icon name="arrow-left" size="38rpx" color="#333" @click="handleBack" />
+          <wd-icon name="user" size="40rpx" color="#333" @click="handleMember" />
+        </view>
+      </template>
+    </wd-navbar>
+    <!-- #endif -->
 
     <!-- 消息列表：z-paging 聊天记录模式（最新在底部，下拉加载更早） -->
     <z-paging
@@ -189,6 +201,8 @@ const messageContent = ref('') // 输入内容
 const sending = ref(false) // 发送状态
 const historyCursor = ref<string>() // 历史游标（已加载最早一条 createTime）
 const emojiVisible = ref(false) // 表情面板是否展开
+const firstPageLoading = ref(true) // 首屏消息加载状态
+const pendingLatestMessages = ref<PromotionKefuMessage[]>([]) // 首屏加载期间待追加消息
 
 /** 毫秒时间戳，解析失败按 0（用于时间间隔比较） */
 function toMs(time?: string | number) {
@@ -230,8 +244,16 @@ async function markRead() {
 
 /** 分页查询：pageNo===1 取最新（无游标），更多按 createTime 游标向更早翻页 */
 async function queryList(pageNo: number) {
+  const isFirstPage = pageNo === 1
+  let querySucceeded = false
+  if (isFirstPage) {
+    firstPageLoading.value = true
+  }
   if (!conversationId.value) {
-    pagingRef.value?.complete([])
+    await pagingRef.value?.complete([])
+    if (isFirstPage) {
+      flushPendingLatestMessages()
+    }
     return
   }
   try {
@@ -241,9 +263,14 @@ async function queryList(pageNo: number) {
     if (list.length) {
       historyCursor.value = formatDateTime(list.at(-1)!.createTime)
     }
-    pagingRef.value?.complete(list)
+    await pagingRef.value?.complete(list)
+    querySucceeded = true
   } catch {
-    pagingRef.value?.complete(false)
+    await pagingRef.value?.complete(false).catch(() => undefined)
+  } finally {
+    if (isFirstPage && querySucceeded) {
+      flushPendingLatestMessages()
+    }
   }
 }
 
@@ -253,10 +280,9 @@ async function syncLatest() {
     return
   }
   const res = await getPromotionKefuMessageList({ conversationId: conversationId.value })
-  const fresh = (res || []).filter(item => !messages.value.some(exist => exist.id === item.id))
   // 倒序逐条插入，使最新消息落在最底部
-  for (const item of [...fresh].reverse()) {
-    pagingRef.value?.addChatRecordData(item)
+  for (const item of [...(res || [])].reverse()) {
+    addLatestMessage(item)
   }
 }
 
@@ -318,14 +344,38 @@ function appendEmoji(emoji: string) {
   messageContent.value += emoji
 }
 
-/** 收到新消息：属于当前会话且未存在则插入底部，并标记已读 */
+/** 去重后追加最新消息并滚动到底部 */
+function addLatestMessage(message: PromotionKefuMessage) {
+  if (message.id && (messages.value.some(item => item.id === message.id)
+    || pendingLatestMessages.value.some(item => item.id === message.id))) {
+    return
+  }
+  if (firstPageLoading.value) {
+    pendingLatestMessages.value.push(message)
+    return
+  }
+  if (pagingRef.value) {
+    pagingRef.value.addChatRecordData(message)
+  } else {
+    messages.value = [message, ...messages.value]
+  }
+}
+
+/** 追加首屏加载期间收到的新消息 */
+function flushPendingLatestMessages() {
+  firstPageLoading.value = false
+  const pending = [...pendingLatestMessages.value]
+    .sort((left, right) => (left.id || 0) - (right.id || 0))
+  pendingLatestMessages.value = []
+  pending.forEach(message => addLatestMessage(message))
+}
+
+/** 收到新消息：属于当前会话时追加底部，并标记已读 */
 function handleWsMessage(message: PromotionKefuMessage) {
   if (!message || message.conversationId !== conversationId.value) {
     return
   }
-  if (!messages.value.some(item => item.id === message.id)) {
-    pagingRef.value?.addChatRecordData(message)
-  }
+  addLatestMessage(message)
   markRead()
 }
 

@@ -12,10 +12,9 @@ export interface CheckOrderDetail {
   inventoryId?: number
   warehouseId?: number
   warehouseName?: string
-  receiptTime?: Date | string
+  receiptTime?: string | number | Date
   quantity?: number
   checkQuantity?: number
-  availableQuantity?: number
   price?: number
-  createTime?: Date | string
+  createTime?: Date
 }

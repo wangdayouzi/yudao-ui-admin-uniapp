@@ -132,6 +132,10 @@ export enum BpmNodeTypeEnum {
  */
 export enum BpmTaskOperationButtonTypeEnum {
   /**
+   * 评论，前端操作，不参与后端按钮配置
+   */
+  COMMENT = 0,
+  /**
    * 加签
    */
   ADD_SIGN = 5,
@@ -288,6 +292,7 @@ export const BpmAutoApproveType = {
  * 审批操作按钮名称
  */
 export const OPERATION_BUTTON_NAME = new Map<number, string>()
+OPERATION_BUTTON_NAME.set(BpmTaskOperationButtonTypeEnum.COMMENT, '评论')
 OPERATION_BUTTON_NAME.set(BpmTaskOperationButtonTypeEnum.APPROVE, '通过')
 OPERATION_BUTTON_NAME.set(BpmTaskOperationButtonTypeEnum.REJECT, '拒绝')
 OPERATION_BUTTON_NAME.set(BpmTaskOperationButtonTypeEnum.TRANSFER, '转办')

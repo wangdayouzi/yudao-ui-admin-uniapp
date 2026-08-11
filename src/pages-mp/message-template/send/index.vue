@@ -10,31 +10,21 @@
     <!-- 表单区域 -->
     <view>
       <wd-form ref="formRef" :model="formData" :schema="formSchema">
-        <wd-cell-group border>
+        <wd-cell-group title="模板信息" value="固定参数" border>
           <wd-cell title="模板标题" :value="templateTitle || '-'" />
-          <wd-form-item
-            title="用户"
-            title-width="220rpx"
-            prop="userId"
-            is-link
-            :value="selectedUserLabel"
-            placeholder="请选择用户"
-            @click="userPickerVisible = true"
-          />
-          <wd-select-picker
+          <MpUserFormPicker
             v-model="formData.userId"
-            v-model:visible="userPickerVisible"
-            title="请选择用户"
-            :columns="userList"
-            value-key="id"
-            label-key="nickname"
-            type="radio"
-            filterable
-            @confirm="handleUserConfirm"
+            :account-id="accountId"
+            prop="userId"
           />
-          <wd-cell v-if="template?.content" title="模板内容">
-            <text class="whitespace-pre-wrap break-all text-26rpx text-[#666]">{{ template.content }}</text>
+          <wd-cell v-if="templateContent" title="模板内容" layout="vertical" value-align="left">
+            <view class="mt-12rpx whitespace-pre-wrap break-all text-26rpx text-[#666] leading-40rpx">
+              {{ templateContent }}
+            </view>
           </wd-cell>
+        </wd-cell-group>
+
+        <wd-cell-group title="模板数据" value="模板变量" border class="mt-24rpx">
           <wd-form-item
             v-for="param in templateParams"
             :key="param"
@@ -43,7 +33,10 @@
           >
             <wd-input v-model="paramValues[param]" clearable :placeholder="`请输入「${param}」的值`" />
           </wd-form-item>
-          <wd-cell v-if="template && !templateParams.length" title="模板数据" value="该模板无需填写参数" />
+          <wd-cell v-if="template && !templateParams.length" title="模板变量" value="该模板无需填写参数" />
+        </wd-cell-group>
+
+        <wd-cell-group title="跳转配置" value="固定参数，选填" border class="mt-24rpx">
           <wd-form-item title="跳转链接" title-width="220rpx" prop="url">
             <wd-input v-model="formData.url" clearable placeholder="请输入跳转链接" />
           </wd-form-item>
@@ -69,22 +62,17 @@
 <script lang="ts" setup>
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { MsgTemplate, MsgTemplateSend } from '@/api/mp/messageTemplate'
-import type { MpUser } from '@/api/mp/user'
-import { onLoad } from '@dcloudio/uni-app'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { getMessageTemplate, sendMessageTemplate } from '@/api/mp/messageTemplate'
-import { getUserPage } from '@/api/mp/user'
-import { delay, navigateBackPlus } from '@/utils'
+import MpUserFormPicker from '@/pages-mp/user/components/user-form-picker.vue'
+import { delay, navigateBackPlus, normalizeEscapedNewlines } from '@/utils'
 import { createFormSchema } from '@/utils/wot'
-import { getMpRouteNumber, getMpRouteString, useMpRouteParams } from '../../utils/route'
 
 const props = defineProps<{
   id?: number | any
   accountId?: number | any
-  title?: string
 }>()
-const { routeParams, syncRouteParams } = useMpRouteParams(props)
 
 definePage({
   style: {
@@ -94,27 +82,15 @@ definePage({
 })
 
 const toast = useToast()
-const id = computed(() => getMpRouteNumber(routeParams.id))
-const accountId = computed(() => getMpRouteNumber(routeParams.accountId))
+const accountId = computed(() => props.accountId ? Number(props.accountId) : undefined)
 const template = ref<MsgTemplate>() // 模板详情
-const templateParams = ref<string[]>([]) // 模板内容里的参数名（{{xxx.DATA}}）
+const templateParams = ref<string[]>([]) // 模板变量名
 const paramValues = reactive<Record<string, string>>({}) // 各参数填写值
-const templateTitle = computed(() => {
-  if (template.value?.title) {
-    return template.value.title
-  }
-  const title = getMpRouteString(routeParams.title)
-  try {
-    return decodeURIComponent(title)
-  } catch {
-    return title
-  }
-})
+const templateContent = computed(() => normalizeEscapedNewlines(template.value?.content || '')) // 模板内容展示文案
+const templateTitle = computed(() => template.value?.title || '') // 模板标题展示文案
 const loading = ref(false) // 发送状态
-const userPickerVisible = ref(false) // 用户选择弹窗
-const userList = ref<MpUser[]>([]) // 用户列表
 const formData = ref<MsgTemplateSend>({
-  id: id.value,
+  id: props.id ? Number(props.id) : undefined,
   userId: undefined!,
   data: {},
   url: '',
@@ -126,54 +102,29 @@ const formSchema = createFormSchema({
 })
 const formRef = ref<FormInstance>() // 表单组件引用
 
-const selectedUserLabel = computed(() => {
-  const user = userList.value.find(item => item.id === formData.value.userId)
-  return user?.nickname || user?.openid || ''
-})
-
 /** 返回上一页 */
 function handleBack() {
   navigateBackPlus('/pages-mp/message-template/index')
 }
 
-/** 加载模板详情：解析内容里的参数占位 {{xxx.DATA}} */
+/** 解析模板变量 */
+function parseTemplateParams(content: string) {
+  const names = Array.from(content.matchAll(/\{\{\s*(\w+)\s*\.\s*DATA\s*\}\}/g), match => match[1])
+  return Array.from(new Set(names))
+}
+
+/** 加载模板详情 */
 async function loadTemplate() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
-  template.value = await getMessageTemplate(id.value)
-  const content = template.value?.content || ''
-  const names = Array.from(content.matchAll(/\{\{(\w+)\.DATA\}\}/g), match => match[1])
-  const params = Array.from(new Set(names))
+  const id = Number(props.id)
+  template.value = await getMessageTemplate(id)
+  const params = parseTemplateParams(normalizeEscapedNewlines(template.value.content || ''))
   templateParams.value = params
   params.forEach((param) => {
     paramValues[param] = paramValues[param] || ''
   })
-}
-
-/** 加载用户列表 */
-async function loadUserList() {
-  if (!accountId.value) {
-    return
-  }
-  try {
-    const data = await getUserPage({
-      pageNo: 1,
-      pageSize: 50,
-      accountId: accountId.value,
-    })
-    userList.value = data.list.map(item => ({
-      ...item,
-      nickname: item.nickname || item.openid,
-    }))
-  } catch {
-    userList.value = []
-  }
-}
-
-/** 用户选择 */
-function handleUserConfirm({ value }: { value: number | string }) {
-  formData.value.userId = Number(value)
 }
 
 /** 提交表单 */
@@ -182,12 +133,12 @@ async function handleSubmit() {
   if (!valid) {
     return
   }
-  if (!id.value) {
+  if (!props.id) {
     toast.show('缺少模板编号')
     return
   }
 
-  const data: MsgTemplateSend = { ...formData.value, id: id.value }
+  const data: MsgTemplateSend = { ...formData.value, id: Number(props.id) }
   // 按模板参数构建微信 data：{ 参数名: 参数值 }
   data.data = Object.fromEntries(templateParams.value.map(param => [param, paramValues[param] || '']))
   if (data.miniProgramAppId && data.miniProgramPagePath) {
@@ -208,10 +159,8 @@ async function handleSubmit() {
 }
 
 /** 初始化 */
-onLoad((query) => {
-  syncRouteParams(query)
-  formData.value.id = id.value
+onMounted(() => {
+  formData.value.id = props.id ? Number(props.id) : undefined
   loadTemplate()
-  loadUserList()
 })
 </script>

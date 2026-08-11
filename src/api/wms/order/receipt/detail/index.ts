@@ -14,5 +14,5 @@ export interface ReceiptOrderDetail {
   quantity?: number
   price?: number
   totalPrice?: number
-  createTime?: Date | string
+  createTime?: Date
 }

@@ -6,6 +6,7 @@ export interface ProductUnit {
   id?: number // 单位编号
   name?: string // 单位名字
   status?: number // 单位状态
+  createTime?: Date // 创建时间
 }
 
 /** 获取产品单位分页列表 */

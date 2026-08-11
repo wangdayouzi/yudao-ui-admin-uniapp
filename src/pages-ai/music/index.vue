@@ -27,14 +27,7 @@
               </wd-radio>
             </wd-radio-group>
           </wd-form-item>
-          <wd-form-item
-            title="模型"
-            title-width="170rpx"
-            is-link
-            :value="getWotPickerFormValue(modelOptions, formData.model)"
-            placeholder="请选择模型"
-            @click="pickerVisible.model = true"
-          />
+          <yd-form-picker v-model="formData.model" label="模型" label-width="170rpx" :columns="modelOptions" placeholder="请选择模型" />
 
           <template v-if="formData.generateMode === MusicGenerateModeEnum.DESCRIPTION">
             <wd-form-item title="音乐说明" title-width="170rpx">
@@ -171,33 +164,19 @@
         </view>
       </view>
     </z-paging>
-
-    <wd-picker
-      v-model:visible="pickerVisible.model"
-      :model-value="[formData.model]"
-      :columns="modelOptions"
-      @confirm="handleModelConfirm"
-    />
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { MusicGenerateReqVO, MusicVO } from '@/api/ai/music'
+import type { Music, MusicGenerateReq } from '@/api/ai/music'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { reactive, ref } from 'vue'
 import { deleteMusicMy, generateMusic, getMusicMyPage } from '@/api/ai/music'
 import { navigateBackPlus } from '@/utils'
-import { DICT_TYPE } from '@/utils/constants'
+import { AiPlatformEnum, DICT_TYPE, MusicGenerateModeEnum } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
-import { getWotPickerFormValue } from '@/utils/wot'
-import { AiPlatformEnum } from '@/pages-ai/utils/constants'
-
-const MusicGenerateModeEnum = {
-  DESCRIPTION: 1,
-  LYRIC: 2,
-} as const
-type MusicGenerateMode = typeof MusicGenerateModeEnum[keyof typeof MusicGenerateModeEnum]
+import type { MusicGenerateMode } from '@/utils/constants'
 
 definePage({
   style: {
@@ -209,13 +188,10 @@ definePage({
 const toast = useToast()
 const dialog = useDialog()
 const tabIndex = ref(0)
-const list = ref<MusicVO[]>([]) // 音乐列表
+const list = ref<Music[]>([]) // 音乐列表
 const pagingRef = ref<any>() // 分页组件引用
 const generating = ref(false) // 音乐生成状态
 const customTag = ref('') // 自定义风格
-const pickerVisible = reactive({
-  model: false,
-}) // 选择弹窗显示状态
 const formData = reactive({
   generateMode: MusicGenerateModeEnum.LYRIC as MusicGenerateMode,
   model: 'chirp-v3.5',
@@ -224,19 +200,19 @@ const formData = reactive({
   title: '',
   tags: [] as string[],
 }) // 音乐生成表单
-const modeOptions = [
+const modeOptions = [ // 音乐生成模式
   { label: '描述模式', value: MusicGenerateModeEnum.DESCRIPTION },
   { label: '歌词模式', value: MusicGenerateModeEnum.LYRIC },
 ]
-const modelOptions = [
+const modelOptions = [ // Suno 模型选项
   { label: 'Suno V3.5', value: 'chirp-v3.5' },
   { label: 'Suno V3', value: 'chirp-v3.0' },
 ]
-const styleTags = ['rock', 'punk', 'jazz', 'soul', 'country', 'kidsmusic', 'pop']
+const styleTags = ['rock', 'punk', 'jazz', 'soul', 'country', 'kidsmusic', 'pop'] // 常用音乐风格
 
 /** 返回上一页 */
 function handleBack() {
-  navigateBackPlus('/pages-ai/index/index')
+  navigateBackPlus()
 }
 
 /** Tab 切换 */
@@ -254,11 +230,6 @@ async function queryList(pageNo: number, pageSize: number) {
   } catch {
     pagingRef.value?.complete(false)
   }
-}
-
-/** 确认模型选择 */
-function handleModelConfirm({ value }: { value: Array<number | string> }) {
-  formData.model = String(value[0])
 }
 
 /** 切换音乐风格 */
@@ -296,7 +267,7 @@ async function handleGenerate() {
 
   generating.value = true
   try {
-    const data: MusicGenerateReqVO = {
+    const data: MusicGenerateReq = {
       platform: AiPlatformEnum.SUNO,
       generateMode: formData.generateMode,
       prompt: formData.prompt,
@@ -314,7 +285,7 @@ async function handleGenerate() {
 }
 
 /** 删除音乐记录 */
-async function handleDelete(item: MusicVO) {
+async function handleDelete(item: Music) {
   if (!item.id) {
     return
   }
@@ -348,10 +319,7 @@ function handleCopyUrl(url?: string) {
 }
 
 /** 获取风格文案 */
-function getTagsText(tags?: string | string[]) {
-  if (Array.isArray(tags)) {
-    return tags.length > 0 ? tags.join('、') : '-'
-  }
-  return tags || '-'
+function getTagsText(tags?: string[]) {
+  return tags?.length ? tags.join('、') : '-'
 }
 </script>

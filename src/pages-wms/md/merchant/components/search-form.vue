@@ -25,23 +25,7 @@
         </view>
         <wd-input v-model="formData.code" placeholder="请输入企业编号" clearable />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          企业类型
-        </view>
-        <wd-radio-group v-model="formData.type" type="button">
-          <wd-radio :value="-1">
-            全部
-          </wd-radio>
-          <wd-radio
-            v-for="dict in getIntDictOptions(DICT_TYPE.WMS_MERCHANT_TYPE)"
-            :key="dict.value"
-            :value="dict.value"
-          >
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <yd-search-picker v-model="formData.type" label="企业类型" :dict-type="DICT_TYPE.WMS_MERCHANT_TYPE" all-option />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -56,7 +40,7 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 
@@ -69,7 +53,7 @@ const visible = ref(false) // 搜索弹窗显示状态
 const formData = reactive({
   name: undefined as string | undefined,
   code: undefined as string | undefined,
-  type: -1, // -1 表示全部
+  type: undefined as number | undefined,
 }) // 搜索表单数据
 
 /** 搜索条件 placeholder 拼接 */
@@ -81,7 +65,7 @@ const placeholder = computed(() => {
   if (formData.code) {
     conditions.push(`编号:${formData.code}`)
   }
-  if (formData.type !== -1) {
+  if (formData.type !== undefined) {
     conditions.push(`类型:${getDictLabel(DICT_TYPE.WMS_MERCHANT_TYPE, formData.type)}`)
   }
   return conditions.length > 0 ? conditions.join(' | ') : '搜索往来企业'
@@ -92,7 +76,7 @@ function handleSearch() {
   visible.value = false
   emit('search', {
     ...formData,
-    type: formData.type === -1 ? undefined : formData.type,
+    type: formData.type,
   })
 }
 
@@ -100,7 +84,7 @@ function handleSearch() {
 function handleReset() {
   formData.name = undefined
   formData.code = undefined
-  formData.type = -1
+  formData.type = undefined
   visible.value = false
   emit('reset')
 }

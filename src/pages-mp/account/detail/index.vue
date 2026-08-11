@@ -60,20 +60,17 @@
 
 <script lang="ts" setup>
 import type { Account } from '@/api/mp/account'
-import { onLoad } from '@dcloudio/uni-app'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { clearAccountQuota, deleteAccount, generateAccountQrCode, getAccount } from '@/api/mp/account'
 import { useAccess } from '@/hooks/useAccess'
 import { delay, navigateBackPlus } from '@/utils'
 import { formatDateTime } from '@/utils/date'
-import { getMpRouteNumber, useMpRouteParams } from '../../utils/route'
 
 const props = defineProps<{
   id?: number | any
 }>()
-const { routeParams, syncRouteParams } = useMpRouteParams(props)
 
 definePage({
   style: {
@@ -85,7 +82,6 @@ definePage({
 const { hasAccessByCodes } = useAccess()
 const toast = useToast()
 const dialog = useDialog()
-const id = computed(() => getMpRouteNumber(routeParams.id))
 const formData = ref<Account>() // 详情数据
 const deleting = ref(false) // 删除状态
 const moreActionVisible = ref(false) // 更多操作菜单
@@ -107,23 +103,23 @@ function handleBack() {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
-  formData.value = await getAccount(id.value)
+  formData.value = await getAccount(Number(props.id))
 }
 
 /** 编辑账号 */
 function handleEdit() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
-  uni.navigateTo({ url: `/pages-mp/account/form/index?id=${id.value}` })
+  uni.navigateTo({ url: `/pages-mp/account/form/index?id=${props.id}` })
 }
 
 /** 删除账号 */
 async function handleDelete() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
   try {
@@ -136,7 +132,7 @@ async function handleDelete() {
   }
   deleting.value = true
   try {
-    await deleteAccount(id.value)
+    await deleteAccount(Number(props.id))
     toast.success('删除成功')
     uni.$emit('mp:account:reload')
     delay(handleBack)
@@ -156,7 +152,7 @@ function handleMoreAction({ item }: { item: { value: string } }) {
 
 /** 生成二维码 */
 async function handleGenerateQrCode() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
   try {
@@ -167,14 +163,14 @@ async function handleGenerateQrCode() {
   } catch {
     return
   }
-  await generateAccountQrCode(id.value)
+  await generateAccountQrCode(Number(props.id))
   toast.success('生成成功')
   getDetail()
 }
 
 /** 清空 API 配额 */
 async function handleClearQuota() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
   try {
@@ -185,13 +181,12 @@ async function handleClearQuota() {
   } catch {
     return
   }
-  await clearAccountQuota(id.value)
+  await clearAccountQuota(Number(props.id))
   toast.success('清空成功')
 }
 
 /** 初始化 */
-onLoad((query) => {
-  syncRouteParams(query)
+onMounted(() => {
   getDetail()
 })
 </script>

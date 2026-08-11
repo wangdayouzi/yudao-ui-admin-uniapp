@@ -13,22 +13,20 @@
           <wd-form-item title="固件描述" title-width="220rpx" prop="description">
             <wd-textarea v-model="formData.description" placeholder="请输入固件描述" :maxlength="500" show-word-limit />
           </wd-form-item>
-          <EntityPicker
-            v-if="!editId"
-            v-model="formData.productId"
-            label="所属产品"
-            prop="productId"
-            :columns="productOptions"
-            placeholder="请选择产品"
-            label-width="220rpx"
-          />
+          <ProductFormPicker v-if="!editId" v-model="formData.productId" label="所属产品" label-width="220rpx" prop="productId" />
           <wd-cell v-else title="所属产品" :value="formData.productName || String(formData.productId || '-')" />
           <wd-form-item v-if="!editId" title="版本号" title-width="220rpx" prop="version">
             <wd-input v-model="formData.version" placeholder="请输入版本号" clearable />
           </wd-form-item>
           <wd-cell v-else title="版本号" :value="formData.version || '-'" />
           <wd-form-item v-if="!editId" title="固件文件" title-width="220rpx" prop="fileUrl">
-            <wd-input v-model="formData.fileUrl" placeholder="请输入固件文件 URL" clearable />
+            <yd-upload-file
+              v-model="formData.fileUrl"
+              directory="iot/ota"
+              :limit="1"
+              :file-size="50"
+              :file-type="['bin', 'zip', 'pdf']"
+            />
           </wd-form-item>
           <wd-cell v-else title="固件文件" :value="formData.fileUrl || '-'" />
         </wd-cell-group>
@@ -47,24 +45,26 @@
 <script lang="ts" setup>
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { OtaFirmware } from '@/api/iot/ota/firmware'
-import type { Product } from '@/api/iot/product/product'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { computed, onMounted, ref } from 'vue'
 import { createOtaFirmware, getOtaFirmware, updateOtaFirmware } from '@/api/iot/ota/firmware'
-import { getSimpleProductList } from '@/api/iot/product/product'
-import EntityPicker from '@/pages-iot/components/entity-picker.vue'
 import { delay, navigateBackPlus } from '@/utils'
 import { createFormSchema } from '@/utils/wot'
+import ProductFormPicker from '@/pages-iot/product/product/components/product-form-picker.vue'
 
 const props = defineProps<{ id?: number | any }>()
 
-definePage({ style: { navigationBarTitleText: '', navigationStyle: 'custom' } })
+definePage({
+  style: {
+    navigationBarTitleText: '',
+    navigationStyle: 'custom',
+  },
+})
 
 const toast = useToast()
 const editId = computed(() => props.id ? Number(props.id) : undefined)
 const getTitle = computed(() => editId.value ? '编辑固件' : '新增固件')
 const formLoading = ref(false) // 表单提交状态
-const productOptions = ref<Product[]>([]) // 产品选项
 const formData = ref<OtaFirmware>({
   id: undefined,
   name: '',
@@ -82,20 +82,25 @@ const formSchema = createFormSchema({
 const formRef = ref<FormInstance>() // 表单组件引用
 
 /** 返回上一页 */
-function handleBack() { navigateBackPlus('/pages-iot/ota/firmware/index') }
+function handleBack() {
+  navigateBackPlus('/pages-iot/ota/firmware/index')
+}
 
 /** 加载固件详情 */
 async function getDetail() {
-  if (!editId.value)
+  if (!editId.value) {
     return
+  }
   formData.value = await getOtaFirmware(editId.value)
 }
 
 /** 提交表单 */
 async function handleSubmit() {
   const { valid } = await formRef.value.validate()
-  if (!valid)
+  if (!valid) {
     return
+  }
+
   formLoading.value = true
   try {
     if (editId.value) {
@@ -123,8 +128,7 @@ async function handleSubmit() {
 }
 
 /** 初始化 */
-onMounted(async () => {
-  productOptions.value = await getSimpleProductList()
+onMounted(() => {
   getDetail()
 })
 </script>

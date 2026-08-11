@@ -6,6 +6,7 @@ import { isH5, isMpWeixin } from '@uni-helper/uni-env'
 import { useTokenStore, useUserStore } from '@/store'
 import { getEnvBaseUrl } from '@/utils'
 import { stringifyQuery } from '@/http/tools/queryString'
+import { openSafeUrl } from '@/utils/url'
 
 /** 下载后端接口文件 */
 export async function downloadApiFile(url: string, params?: Record<string, any>, fileName?: string): Promise<void> {
@@ -139,6 +140,31 @@ async function downloadFileH5(url: string, fileName?: string): Promise<void> {
   document.body.removeChild(link)
 }
 
+/** H5 端下载内存文件 */
+export async function downloadBlobH5(blob: Blob, fileName: string): Promise<void> {
+  const objectUrl = URL.createObjectURL(blob)
+  try {
+    await downloadFileH5(objectUrl, fileName)
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
+/** H5 端下载文本文件 */
+export function downloadTextFileH5(content: string, fileName: string, mimeType = 'text/plain;charset=utf-8'): Promise<void> {
+  return downloadBlobH5(new Blob([content], { type: mimeType }), fileName)
+}
+
+/** H5 端下载 SVG 文件 */
+export function downloadSvgFileH5(svg: string, fileName: string): Promise<void> {
+  return downloadTextFileH5(svg, fileName, 'image/svg+xml;charset=utf-8')
+}
+
+/** 清理下载文件名 */
+export function sanitizeFileName(value: string) {
+  return value.replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'content'
+}
+
 /** 构造后端下载地址 */
 function buildApiDownloadUrl(url: string, params?: Record<string, any>) {
   let requestUrl = url
@@ -218,12 +244,98 @@ export function formatFileSize(size?: number): string {
   return `${(size / 1024 / 1024 / 1024).toFixed(2)} GB`
 }
 
+const IMAGE_FILE_EXTENSIONS = ['bmp', 'gif', 'jpeg', 'jpg', 'png', 'webp']
+
+/** 从 URL 中解析文件扩展名 */
+export function getFileExtFromUrl(url?: string): string {
+  const fileName = getFileNameFromUrl(url)
+  const extIndex = fileName.lastIndexOf('.')
+  return extIndex > -1 ? fileName.slice(extIndex + 1).toLowerCase() : ''
+}
+
+/** 判断是否图片文件 */
+export function isImageFile(url?: string): boolean {
+  return IMAGE_FILE_EXTENSIONS.includes(getFileExtFromUrl(url))
+}
+
+/** 从 URL 中解析文件名 */
+export function getFileNameFromUrl(url?: string): string {
+  const cleanUrl = String(url || '').split(/[?#]/)[0]
+  const fileName = cleanUrl.slice(cleanUrl.lastIndexOf('/') + 1)
+  try {
+    return decodeURIComponent(fileName)
+  } catch {
+    return fileName
+  }
+}
+
+/** 打开附件：图片预览，其他文件 H5 新窗口打开，非 H5 下载后用系统能力打开 */
+export function openAttachment(url?: string) {
+  if (!url) {
+    return
+  }
+  const fullUrl = staticUrl(url)
+  if (isImageFile(fullUrl)) {
+    uni.previewImage({
+      urls: [fullUrl],
+      current: fullUrl,
+    })
+    return
+  }
+  // #ifdef H5
+  openSafeUrl(fullUrl)
+  // #endif
+  // #ifndef H5
+  uni.showLoading({
+    title: '打开中...',
+    mask: true,
+  })
+  uni.downloadFile({
+    url: fullUrl,
+    success: (res) => {
+      if (res.statusCode && res.statusCode !== 200) {
+        uni.hideLoading()
+        uni.showToast({
+          icon: 'none',
+          title: '附件下载失败',
+        })
+        return
+      }
+      const fileType = getFileExtFromUrl(fullUrl)
+      uni.openDocument({
+        filePath: res.tempFilePath,
+        ...(fileType ? { fileType } : {}),
+        complete: () => {
+          uni.hideLoading()
+        },
+        fail: () => {
+          uni.showToast({
+            icon: 'none',
+            title: '附件打开失败',
+          })
+        },
+      })
+    },
+    fail: () => {
+      uni.hideLoading()
+      uni.showToast({
+        icon: 'none',
+        title: '附件下载失败',
+      })
+    },
+  })
+  // #endif
+}
+
 /**
  * 获取静态资源完整 URL 地址
  * @param path 资源路径
  * @returns 完整的静态资源 URL 地址
  */
 export function staticUrl(path: string): string {
+  if (/^https?:\/\//.test(path) || path.startsWith('blob:') || path.startsWith('data:')) {
+    return path
+  }
   const baseUrl = import.meta.env.VITE_STATIC_BASEURL || ''
   // 确保 path 以 / 开头
   const normalizedPath = path.startsWith('/') ? path : `/${path}`

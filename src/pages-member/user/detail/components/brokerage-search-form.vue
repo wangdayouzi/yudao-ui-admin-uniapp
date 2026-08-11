@@ -13,20 +13,7 @@
     @close="visible = false"
   >
     <view class="yd-search-form-container">
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          推广层级
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.level = true">
-          {{ getWotPickerDisplay(levelOptions, formData.level, { placeholder: '请选择推广层级' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.level"
-          :model-value="[formData.level]"
-          :columns="levelOptions"
-          @confirm="({ value }) => formData.level = value[0]"
-        />
-      </view>
+      <yd-search-picker v-model="formData.level" label="推广层级" :columns="levelOptions" all-option />
       <yd-search-date-range v-model="formData.bindUserTime" label="绑定时间" />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
@@ -44,7 +31,6 @@
 import { computed, reactive, ref } from 'vue'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { formatDate, formatDateRange } from '@/utils/date'
-import { getWotPickerDisplay } from '@/utils/wot'
 
 const emit = defineEmits<{
   search: [data: Record<string, any>]
@@ -52,21 +38,19 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const pickerVisible = ref<Record<string, boolean>>({})
 const levelOptions = [ // 推广层级选项
-  { label: '全部', value: '' },
   { label: '一级', value: '1' },
   { label: '二级', value: '2' },
 ]
 const formData = reactive({
-  level: '',
+  level: undefined as string | undefined,
   bindUserTime: [undefined, undefined] as [number | undefined, number | undefined],
 }) // 搜索表单数据
 
 /** 搜索条件 placeholder 拼接 */
 const placeholder = computed(() => {
   const conditions: string[] = []
-  if (formData.level) {
+  if (formData.level !== undefined) {
     conditions.push(`层级:${formData.level === '1' ? '一级' : '二级'}`)
   }
   if (formData.bindUserTime[0] && formData.bindUserTime[1]) {
@@ -79,14 +63,14 @@ const placeholder = computed(() => {
 function handleSearch() {
   visible.value = false
   emit('search', {
-    level: formData.level || undefined,
+    level: formData.level,
     bindUserTime: formatDateRange(formData.bindUserTime),
   })
 }
 
 /** 重置按钮操作 */
 function handleReset() {
-  formData.level = ''
+  formData.level = undefined
   formData.bindUserTime = [undefined, undefined]
   visible.value = false
   emit('reset')

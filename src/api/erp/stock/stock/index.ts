@@ -5,7 +5,11 @@ import { http } from '@/http/http'
 export interface Stock {
   id?: number // 编号
   productId?: number // 产品编号
+  productName?: string // 产品名称
+  categoryName?: string // 产品分类名称
+  unitName?: string // 产品单位名称
   warehouseId?: number // 仓库编号
+  warehouseName?: string // 仓库名称
   count?: number // 库存数量
 }
 

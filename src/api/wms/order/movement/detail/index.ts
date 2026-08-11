@@ -14,8 +14,7 @@ export interface MovementOrderDetail {
   targetWarehouseId?: number
   targetWarehouseName?: string
   quantity?: number
-  availableQuantity?: number
   price?: number
   totalPrice?: number
-  createTime?: Date | string
+  createTime?: Date
 }

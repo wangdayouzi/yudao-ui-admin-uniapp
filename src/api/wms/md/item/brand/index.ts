@@ -6,7 +6,7 @@ export interface ItemBrand {
   id?: number
   code?: string
   name?: string
-  createTime?: Date | string
+  createTime?: Date
 }
 
 /** 查询商品品牌分页 */
@@ -15,7 +15,7 @@ export function getItemBrandPage(params: PageParam) {
 }
 
 /** 查询商品品牌精简列表 */
-export function getItemBrandSimpleList() {
+export function getSimpleItemBrandList() {
   return http.get<ItemBrand[]>('/wms/item-brand/simple-list')
 }
 

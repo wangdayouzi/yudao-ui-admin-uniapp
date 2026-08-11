@@ -1,5 +1,5 @@
 <template>
-  <view class="yd-page-container">
+  <view class="yd-page-container yd-page-container-paging">
     <!-- 顶部导航栏 -->
     <wd-navbar
       title="MES 生产报工详情"
@@ -7,8 +7,17 @@
       @click-left="handleBack"
     />
 
-    <!-- 详情内容 -->
-    <scroll-view class="min-h-0 flex-1" scroll-y scroll-with-animation>
+    <!-- Tab 切换 -->
+    <view class="bg-white">
+      <wd-tabs :key="tabsKey" v-model="tabType" shrink>
+        <wd-tab title="基本信息" name="basic" />
+        <wd-tab v-if="showTraceLists" title="物资消耗" name="consume" />
+        <wd-tab v-if="showTraceLists" title="产品产出" name="produce" />
+      </wd-tabs>
+    </view>
+
+    <!-- 基本信息 -->
+    <scroll-view v-if="tabType === 'basic'" class="min-h-0 flex-1" scroll-y scroll-with-animation>
       <wd-cell-group border>
         <wd-cell title="报工单号" :value="formData?.code || '-'" />
         <wd-cell title="报工类型">
@@ -54,41 +63,52 @@
         <wd-cell title="备注" :value="formData?.remark || '-'" />
       </wd-cell-group>
 
-      <ItemConsumeList v-if="showTraceLists" :feedback-id="formData?.id" />
-      <ProductProduceList v-if="showTraceLists" :feedback-id="formData?.id" />
       <view class="h-180rpx" />
     </scroll-view>
 
+    <!-- 物资消耗 -->
+    <scroll-view v-if="tabType === 'consume' && showTraceLists" class="min-h-0 flex-1" scroll-y scroll-with-animation>
+      <ItemConsumeList :feedback-id="formData?.id" :show-title="false" />
+      <view class="h-48rpx" />
+    </scroll-view>
+
+    <!-- 产品产出 -->
+    <scroll-view v-if="tabType === 'produce' && showTraceLists" class="min-h-0 flex-1" scroll-y scroll-with-animation>
+      <ProductProduceList :feedback-id="formData?.id" :show-title="false" />
+      <view class="h-48rpx" />
+    </scroll-view>
+
     <!-- 底部操作按钮 -->
-    <MesFooterActions v-if="showFooter" content-class="yd-detail-footer-actions">
-      <wd-button v-if="canEdit" class="flex-1" type="warning" @click="handleEdit">
-        编辑
-      </wd-button>
-      <wd-button v-if="canSubmit" class="flex-1" type="primary" :loading="submitting" @click="handleSubmitFeedback">
-        提交
-      </wd-button>
-      <wd-button v-if="canApprove" class="flex-1" type="success" @click="handleApprove">
-        审批
-      </wd-button>
-      <wd-button v-if="canDelete" class="flex-1" type="danger" :loading="deleting" @click="handleDelete">
-        删除
-      </wd-button>
-    </MesFooterActions>
+    <view v-if="tabType === 'basic' && showFooter" class="yd-detail-footer">
+      <view class="yd-detail-footer-actions">
+        <wd-button v-if="canEdit" class="flex-1" type="warning" @click="handleEdit">
+          编辑
+        </wd-button>
+        <wd-button v-if="canSubmit" class="flex-1" type="primary" :loading="submitting" @click="handleSubmitFeedback">
+          提交
+        </wd-button>
+        <wd-button v-if="canApprove" class="flex-1" type="success" @click="handleApprove">
+          审批
+        </wd-button>
+        <wd-button v-if="canDelete" class="flex-1" type="danger" :loading="deleting" @click="handleDelete">
+          删除
+        </wd-button>
+      </view>
+    </view>
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { ProFeedbackVO } from '@/api/mes/pro/feedback'
+import type { ProFeedback } from '@/api/mes/pro/feedback'
+import { onShow } from '@dcloudio/uni-app'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { deleteFeedback, getFeedback, submitFeedback } from '@/api/mes/pro/feedback'
 import { useAccess } from '@/hooks/useAccess'
-import { useRouteQuery } from '@/hooks/useRouteQuery'
 import { useUserStore } from '@/store/user'
-import MesFooterActions from '@/pages-mes/components/mes-footer-actions.vue'
-import { navigateBackPlus } from '@/utils'
-import { DICT_TYPE } from '@/utils/constants'
+import { delay, navigateBackPlus } from '@/utils'
+import { DICT_TYPE, MesProFeedbackStatusEnum } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
 import ItemConsumeList from '../components/item-consume-list.vue'
 import ProductProduceList from '../components/product-produce-list.vue'
@@ -96,14 +116,6 @@ import ProductProduceList from '../components/product-produce-list.vue'
 const props = defineProps<{
   id?: number | string
 }>()
-
-const MesProFeedbackStatusEnum = {
-  PREPARE: 0,
-  APPROVING: 2,
-  UNCHECK: 3,
-  FINISHED: 4,
-  CANCELED: 5,
-} as const
 
 definePage({
   style: {
@@ -116,12 +128,9 @@ const { hasAccessByCodes } = useAccess()
 const userStore = useUserStore()
 const dialog = useDialog()
 const toast = useToast()
-const formData = ref<ProFeedbackVO>() // 详情数据
+const formData = ref<ProFeedback>() // 详情数据
 const deleting = ref(false) // 删除状态
 const submitting = ref(false) // 提交状态
-const { getRouteQueryNumber } = useRouteQuery(props, '/pages-mes/pro/feedback/detail/index')
-// TODO @YunaiV：简单 id 参数优先直接用 props.id 接收，不需要 useRouteQuery/getRouteQueryNumber 包一层；多参数页面只保留其它 query 的 helper。
-const currentId = computed(() => getRouteQueryNumber('id'))
 const currentUserId = computed(() => userStore.userInfo?.userId)
 const canEdit = computed(() =>
   hasAccessByCodes(['mes:pro-feedback:update']) && formData.value?.status === MesProFeedbackStatusEnum.PREPARE,
@@ -143,6 +152,8 @@ const showTraceLists = computed(() =>
   && formData.value.status !== MesProFeedbackStatusEnum.PREPARE
   && formData.value.status !== MesProFeedbackStatusEnum.APPROVING,
 )
+const tabType = ref('basic') // 当前 tab 类型
+const tabsKey = computed(() => `${props.id || 'new'}-${showTraceLists.value ? 'trace' : 'basic'}`) // tab 结构标识
 
 /** 返回上一页 */
 function handleBack() {
@@ -156,20 +167,13 @@ function formatNumber(value?: number) {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!currentId.value) {
-    formData.value = undefined
+  if (!props.id || deleting.value) {
     return
   }
+  tabType.value = 'basic'
   try {
     toast.loading('加载中...')
-    const detailData = await getFeedback(currentId.value)
-    if (!detailData) {
-      uni.showToast({ icon: 'none', title: '详情不存在，已返回列表' })
-      // TODO @YunaiV：成功后延迟返回统一改 delay(handleBack)，对齐 system/infra（本文件共 2 处 setTimeout(() => handleBack())）
-      setTimeout(() => handleBack(), 300)
-      return
-    }
-    formData.value = detailData
+    formData.value = await getFeedback(Number(props.id))
   } finally {
     toast.close()
   }
@@ -177,11 +181,11 @@ async function getDetail() {
 
 /** 编辑 */
 function handleEdit() {
-  if (!currentId.value) {
+  if (!props.id) {
     return
   }
   uni.navigateTo({
-    url: `/pages-mes/pro/feedback/form/index?id=${currentId.value}&mode=update`,
+    url: `/pages-mes/pro/feedback/form/index?id=${props.id}&mode=update`,
   })
 }
 
@@ -211,17 +215,17 @@ async function handleSubmitFeedback() {
 
 /** 审批 */
 function handleApprove() {
-  if (!currentId.value) {
+  if (!props.id) {
     return
   }
   uni.navigateTo({
-    url: `/pages-mes/pro/feedback/form/index?id=${currentId.value}&mode=approve`,
+    url: `/pages-mes/pro/feedback/form/index?id=${props.id}&mode=approve`,
   })
 }
 
 /** 删除 */
 async function handleDelete() {
-  if (!formData.value?.id) {
+  if (!props.id || !formData.value?.id) {
     return
   }
   try {
@@ -234,21 +238,17 @@ async function handleDelete() {
   }
   deleting.value = true
   try {
-    await deleteFeedback(formData.value.id)
+    await deleteFeedback(Number(props.id))
     toast.success('删除成功')
     uni.$emit('mes:pro:feedback:reload')
-    setTimeout(() => handleBack(), 500)
+    delay(handleBack)
   } finally {
     deleting.value = false
   }
 }
 
 /** 初始化 */
-onMounted(() => {
-  getDetail()
-})
-
-watch(currentId, () => {
+onShow(() => {
   getDetail()
 })
 </script>

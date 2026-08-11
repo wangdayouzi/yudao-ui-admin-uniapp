@@ -8,8 +8,7 @@ export interface ItemCategory {
   name?: string
   sort?: number
   status?: number
-  createTime?: Date | string
-  children?: ItemCategory[]
+  createTime?: Date
 }
 
 /** 查询商品分类列表 */
@@ -18,7 +17,7 @@ export function getItemCategoryList(params?: Record<string, any>) {
 }
 
 /** 查询商品分类精简列表 */
-export function getItemCategorySimpleList() {
+export function getSimpleItemCategoryList() {
   return http.get<ItemCategory[]>('/wms/item-category/simple-list')
 }
 

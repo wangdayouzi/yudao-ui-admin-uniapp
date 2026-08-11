@@ -11,7 +11,7 @@
     <view>
       <wd-form ref="formRef" :model="formData" :schema="formSchema">
         <wd-cell-group border>
-          <wd-form-item title="标签名称" title-width="180rpx" prop="name">
+          <wd-form-item title="标签名称" title-width="220rpx" prop="name">
             <wd-input v-model="formData.name" clearable placeholder="请输入标签名称" />
           </wd-form-item>
         </wd-cell-group>
@@ -30,19 +30,16 @@
 <script lang="ts" setup>
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { Tag } from '@/api/mp/tag'
-import { onLoad } from '@dcloudio/uni-app'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { createTag, getTag, updateTag } from '@/api/mp/tag'
 import { delay, navigateBackPlus } from '@/utils'
 import { createFormSchema } from '@/utils/wot'
-import { getMpRouteNumber, useMpRouteParams } from '../../utils/route'
 
 const props = defineProps<{
   id?: number | any
   accountId?: number | any
 }>()
-const { routeParams, syncRouteParams } = useMpRouteParams(props)
 
 definePage({
   style: {
@@ -52,9 +49,8 @@ definePage({
 })
 
 const toast = useToast()
-const id = computed(() => getMpRouteNumber(routeParams.id))
-const accountId = computed(() => getMpRouteNumber(routeParams.accountId))
-const getTitle = computed(() => id.value ? '编辑公众号标签' : '新增公众号标签')
+const accountId = computed(() => props.accountId ? Number(props.accountId) : undefined)
+const getTitle = computed(() => props.id ? '编辑公众号标签' : '新增公众号标签')
 const formLoading = ref(false) // 表单提交状态
 const formData = ref<Tag>({
   id: undefined,
@@ -73,11 +69,11 @@ function handleBack() {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
   try {
-    formData.value = await getTag(id.value)
+    formData.value = await getTag(Number(props.id))
   } catch {
     // 请求层已提示错误，保留默认表单
   }
@@ -92,8 +88,8 @@ async function handleSubmit() {
 
   formLoading.value = true
   try {
-    if (id.value) {
-      await updateTag({ ...formData.value, id: id.value, accountId: accountId.value })
+    if (props.id) {
+      await updateTag({ ...formData.value, id: Number(props.id), accountId: accountId.value })
       toast.success('修改成功')
     } else {
       await createTag({ ...formData.value, accountId: accountId.value })
@@ -107,9 +103,8 @@ async function handleSubmit() {
 }
 
 /** 初始化 */
-onLoad((query) => {
-  syncRouteParams(query)
-  if (!id.value) {
+onMounted(() => {
+  if (!props.id) {
     formData.value.accountId = accountId.value
   }
   getDetail()

@@ -13,16 +13,7 @@
     @close="visible = false"
   >
     <view class="yd-search-form-container">
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          业务类型
-        </view>
-        <wd-radio-group v-model="formData.bizType" type="button">
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.MES_WM_BARCODE_BIZ_TYPE)" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <yd-search-picker v-model="formData.bizType" label="业务类型" :dict-type="DICT_TYPE.MES_WM_BARCODE_BIZ_TYPE" all-option />
       <view class="yd-search-form-item">
         <view class="yd-search-form-label">
           业务编码
@@ -66,10 +57,8 @@
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——wd-radio-group 业务类型筛选改 yd-search-picker（bizType，dict-kind=MES_WM_BARCODE_BIZ_TYPE + all-option）
-import type { WmBarcodeQueryParams } from '@/api/mes/wm/barcode'
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 
@@ -81,7 +70,7 @@ interface SearchFormData {
 }
 
 const emit = defineEmits<{
-  search: [data: WmBarcodeQueryParams]
+  search: [data: Record<string, any>]
   reset: []
 }>()
 
@@ -110,46 +99,24 @@ const placeholder = computed(() => { // 搜索条件摘要
   return conditions.length > 0 ? conditions.join(' | ') : '搜索条码'
 })
 
-/** 构造搜索参数 */
-function buildSearchParams(): WmBarcodeQueryParams {
-  return {
-    pageNo: 1,
-    pageSize: 10,
+/** 搜索按钮操作 */
+function handleSearch() {
+  visible.value = false
+  emit('search', {
     bizType: formData.bizType,
     bizCode: formData.bizCode || undefined,
     bizName: formData.bizName || undefined,
     content: formData.content || undefined,
-  }
-}
-
-/** 搜索按钮操作 */
-function handleSearch() {
-  visible.value = false
-  emit('search', buildSearchParams())
+  })
 }
 
 /** 重置按钮操作 */
 function handleReset() {
-  resetFields()
-  visible.value = false
-  emit('reset')
-}
-
-/** 设置搜索条件 */
-function setFields(data: Partial<SearchFormData>) {
-  formData.bizType = data.bizType
-  formData.bizCode = data.bizCode
-  formData.bizName = data.bizName
-  formData.content = data.content
-}
-
-/** 重置搜索条件 */
-function resetFields() {
   formData.bizType = undefined
   formData.bizCode = undefined
   formData.bizName = undefined
   formData.content = undefined
+  visible.value = false
+  emit('reset')
 }
-
-defineExpose({ setFields, resetFields })
 </script>

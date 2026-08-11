@@ -15,7 +15,7 @@ export interface Inventory {
   warehouseName?: string
   quantity?: number
   remark?: string
-  createTime?: Date | string
+  createTime?: Date
 }
 
 /** WMS 库存统计列表查询参数 */

@@ -31,48 +31,9 @@
         </view>
         <wd-input v-model="formData.orderNo" placeholder="请输入订单编号" clearable />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          售后状态
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.status = true">
-          {{ getWotPickerDisplay(statusOptions, formData.status, { placeholder: '请选择售后状态' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.status"
-          :model-value="[formData.status]"
-          :columns="statusOptions"
-          @confirm="({ value }) => formData.status = value[0]"
-        />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          售后方式
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.way = true">
-          {{ getWotPickerDisplay(wayOptions, formData.way, { placeholder: '请选择售后方式' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.way"
-          :model-value="[formData.way]"
-          :columns="wayOptions"
-          @confirm="({ value }) => formData.way = value[0]"
-        />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          售后类型
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.type = true">
-          {{ getWotPickerDisplay(typeOptions, formData.type, { placeholder: '请选择售后类型' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.type"
-          :model-value="[formData.type]"
-          :columns="typeOptions"
-          @confirm="({ value }) => formData.type = value[0]"
-        />
-      </view>
+      <yd-search-picker v-model="formData.status" label="售后状态" :dict-type="DICT_TYPE.TRADE_AFTER_SALE_STATUS" all-option />
+      <yd-search-picker v-model="formData.way" label="售后方式" :dict-type="DICT_TYPE.TRADE_AFTER_SALE_WAY" all-option />
+      <yd-search-picker v-model="formData.type" label="售后类型" :dict-type="DICT_TYPE.TRADE_AFTER_SALE_TYPE" all-option />
       <yd-search-date-range v-model="formData.createTime" label="创建时间" />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
@@ -88,11 +49,10 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDate, formatDateRange } from '@/utils/date'
-import { getWotPickerDisplay } from '@/utils/wot'
 
 const emit = defineEmits<{
   search: [data: Record<string, any>]
@@ -100,26 +60,13 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const pickerVisible = ref<Record<string, boolean>>({})
-const statusOptions = computed(() => [
-  { label: '全部', value: -1 },
-  ...getIntDictOptions(DICT_TYPE.TRADE_AFTER_SALE_STATUS),
-])
-const wayOptions = computed(() => [
-  { label: '全部', value: -1 },
-  ...getIntDictOptions(DICT_TYPE.TRADE_AFTER_SALE_WAY),
-])
-const typeOptions = computed(() => [
-  { label: '全部', value: -1 },
-  ...getIntDictOptions(DICT_TYPE.TRADE_AFTER_SALE_TYPE),
-])
 const formData = reactive({
   spuName: undefined as string | undefined,
   no: undefined as string | undefined,
   orderNo: undefined as string | undefined,
-  status: -1,
-  way: -1,
-  type: -1,
+  status: undefined as number | undefined,
+  way: undefined as number | undefined,
+  type: undefined as number | undefined,
   createTime: [undefined, undefined] as [number | undefined, number | undefined],
 }) // 搜索表单数据
 
@@ -135,13 +82,13 @@ const placeholder = computed(() => {
   if (formData.orderNo) {
     conditions.push(`订单:${formData.orderNo}`)
   }
-  if (formData.status !== -1) {
+  if (formData.status !== undefined) {
     conditions.push(`状态:${getDictLabel(DICT_TYPE.TRADE_AFTER_SALE_STATUS, formData.status)}`)
   }
-  if (formData.way !== -1) {
+  if (formData.way !== undefined) {
     conditions.push(`方式:${getDictLabel(DICT_TYPE.TRADE_AFTER_SALE_WAY, formData.way)}`)
   }
-  if (formData.type !== -1) {
+  if (formData.type !== undefined) {
     conditions.push(`类型:${getDictLabel(DICT_TYPE.TRADE_AFTER_SALE_TYPE, formData.type)}`)
   }
   if (formData.createTime[0] && formData.createTime[1]) {
@@ -155,9 +102,9 @@ function handleSearch() {
   visible.value = false
   emit('search', {
     ...formData,
-    status: formData.status === -1 ? undefined : formData.status,
-    way: formData.way === -1 ? undefined : formData.way,
-    type: formData.type === -1 ? undefined : formData.type,
+    status: formData.status,
+    way: formData.way,
+    type: formData.type,
     createTime: formatDateRange(formData.createTime),
   })
 }
@@ -167,9 +114,9 @@ function handleReset() {
   formData.spuName = undefined
   formData.no = undefined
   formData.orderNo = undefined
-  formData.status = -1
-  formData.way = -1
-  formData.type = -1
+  formData.status = undefined
+  formData.way = undefined
+  formData.type = undefined
   formData.createTime = [undefined, undefined]
   visible.value = false
   emit('reset')

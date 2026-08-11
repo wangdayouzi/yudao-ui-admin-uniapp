@@ -148,43 +148,50 @@
     </scroll-view>
 
     <!-- 保存按钮（仅 edit 模式） -->
-    <MesFooterActions v-if="isEdit && canUpdate">
-      <wd-button type="primary" block :loading="saving" @click="handleSave">
-        保存批次属性
-      </wd-button>
-    </MesFooterActions>
+    <view v-if="isEdit && hasAccessByCodes(['mes:md-item:update'])" class="yd-detail-footer">
+      <view class="yd-detail-footer-actions">
+        <wd-button type="primary" block :loading="saving" @click="handleSave">
+          保存批次属性
+        </wd-button>
+      </view>
+    </view>
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { MdItemBatchConfigSaveReqVO, MdItemBatchConfigVO } from '@/api/mes/md/item/batchConfig'
-import type { MdItemVO } from '@/api/mes/md/item'
+import type { MdItemBatchConfig } from '@/api/mes/md/item/batchConfig'
+import type { MdItem } from '@/api/mes/md/item'
+import { useDialog } from '@wot-ui/ui/components/wd-dialog'
+import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { computed, onMounted, ref } from 'vue'
 import { getItem } from '@/api/mes/md/item'
 import { getBatchConfigByItemId, saveBatchConfig } from '@/api/mes/md/item/batchConfig'
 import { useAccess } from '@/hooks/useAccess'
-import MesFooterActions from '@/pages-mes/components/mes-footer-actions.vue'
-import { navigateBackPlus } from '@/utils'
+import { delay, navigateBackPlus } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 
 const props = defineProps<{ itemId?: number | string, mode?: string }>()
 
 definePage({
-  style: { navigationBarTitleText: '', navigationStyle: 'custom' },
+  style: {
+    navigationBarTitleText: '',
+    navigationStyle: 'custom',
+  },
 })
 
 const { hasAccessByCodes } = useAccess()
-const isEdit = computed(() => props.mode === 'edit')
-const canUpdate = computed(() => hasAccessByCodes(['mes:md-item:update']))
-const item = ref<MdItemVO>()
-const itemOrProduct = computed(() => String(item.value?.itemOrProduct || '').toUpperCase())
-const isItem = computed(() => itemOrProduct.value === 'ITEM')
-const isProduct = computed(() => itemOrProduct.value === 'PRODUCT')
-const loading = ref(false)
-const saving = ref(false)
+const dialog = useDialog()
+const toast = useToast()
+const isEdit = computed(() => props.mode === 'edit') // 是否编辑模式
+const item = ref<MdItem>() // 物料信息
+const itemOrProduct = computed(() => String(item.value?.itemOrProduct || '').toUpperCase()) // 物料产品标识
+const isItem = computed(() => itemOrProduct.value === 'ITEM') // 是否物料
+const isProduct = computed(() => itemOrProduct.value === 'PRODUCT') // 是否产品
+const loading = ref(false) // 页面加载状态
+const saving = ref(false) // 保存状态
 
 /** 所有属性字段默认 false */
-function defaultForm(): MdItemBatchConfigSaveReqVO {
+function defaultForm(): MdItemBatchConfig {
   return {
     itemId: Number(props.itemId) || 0,
     produceDateFlag: false,
@@ -204,12 +211,13 @@ function defaultForm(): MdItemBatchConfigSaveReqVO {
   }
 }
 
-const formData = ref<MdItemBatchConfigSaveReqVO>(defaultForm())
+const formData = ref<MdItemBatchConfig>(defaultForm()) // 表单数据
 
-/** 历史配置中的可空布尔统一按关闭处理，避免覆盖本地默认值为 undefined/null。 */
-function hydrateConfig(config: MdItemBatchConfigVO | null): MdItemBatchConfigSaveReqVO {
-  if (!config)
+/** 接口可空布尔统一按关闭处理，避免覆盖本地默认值。 */
+function hydrateConfig(config: MdItemBatchConfig | null): MdItemBatchConfig {
+  if (!config) {
     return defaultForm()
+  }
   return {
     itemId: Number(props.itemId),
     produceDateFlag: Boolean(config.produceDateFlag),
@@ -229,13 +237,16 @@ function hydrateConfig(config: MdItemBatchConfigVO | null): MdItemBatchConfigSav
   }
 }
 
+/** 返回上一页 */
 function handleBack() {
   navigateBackPlus()
 }
 
+/** 加载页面数据 */
 async function loadAll() {
-  if (!props.itemId)
+  if (!props.itemId) {
     return
+  }
   loading.value = true
   try {
     const [itemData, config] = await Promise.all([
@@ -244,9 +255,8 @@ async function loadAll() {
     ])
     item.value = itemData
     if (!itemData.batchFlag) {
-      uni.showToast({ icon: 'none', title: '该物料未启用批次管理' })
-      // TODO @YunaiV：成功后延迟返回统一改 delay(handleBack)，对齐 system/infra（本文件共 2 处 setTimeout(() => handleBack())）
-      setTimeout(() => handleBack(), 1500)
+      toast.warning('该物料未启用批次管理')
+      delay(handleBack)
       return
     }
     formData.value = hydrateConfig(config)
@@ -268,43 +278,25 @@ function hasAnyChecked(): boolean {
   return common
 }
 
+/** 保存配置 */
 async function handleSave() {
   if (!hasAnyChecked()) {
-    uni.showToast({ icon: 'none', title: '至少选择一个批次属性' })
+    toast.warning('至少选择一个批次属性')
     return
   }
   try {
-    await new Promise<void>((resolve, reject) => {
-      uni.showModal({
-        title: '提示',
-        content: '确认保存批次属性配置吗？',
-        success: res => res.confirm ? resolve() : reject(new Error('cancelled')),
-        fail: () => reject(new Error('cancelled')),
-      })
+    await dialog.confirm({
+      title: '提示',
+      msg: '确认保存批次属性配置吗？',
     })
-  } catch { return }
+  } catch {
+    return
+  }
 
   saving.value = true
   try {
-    const request: MdItemBatchConfigSaveReqVO = {
-      itemId: Number(props.itemId),
-      produceDateFlag: formData.value.produceDateFlag,
-      expireDateFlag: formData.value.expireDateFlag,
-      receiptDateFlag: formData.value.receiptDateFlag,
-      vendorFlag: formData.value.vendorFlag,
-      clientFlag: formData.value.clientFlag,
-      salesOrderCodeFlag: formData.value.salesOrderCodeFlag,
-      purchaseOrderCodeFlag: formData.value.purchaseOrderCodeFlag,
-      workorderFlag: formData.value.workorderFlag,
-      taskFlag: formData.value.taskFlag,
-      workstationFlag: formData.value.workstationFlag,
-      toolFlag: formData.value.toolFlag,
-      moldFlag: formData.value.moldFlag,
-      lotNumberFlag: formData.value.lotNumberFlag,
-      qualityStatusFlag: formData.value.qualityStatusFlag,
-    }
-    await saveBatchConfig(request)
-    uni.showToast({ icon: 'success', title: '保存成功' })
+    await saveBatchConfig(formData.value)
+    toast.success('保存成功')
     // 重新加载，展示后端实际保存结果
     const config = await getBatchConfigByItemId(Number(props.itemId))
     formData.value = hydrateConfig(config)
@@ -313,10 +305,11 @@ async function handleSave() {
   }
 }
 
+/** 初始化 */
 onMounted(() => {
   if (!props.itemId) {
-    uni.showToast({ icon: 'none', title: '缺少物料编号' })
-    setTimeout(() => handleBack(), 1000)
+    toast.warning('缺少物料编号')
+    delay(handleBack)
     return
   }
   loadAll()

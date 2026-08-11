@@ -13,52 +13,15 @@
     @close="visible = false"
   >
     <view class="yd-search-form-container">
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          发起人
-        </view>
-        <UserPicker ref="fromPickerRef" v-model="formData.fromUserId" type="radio" placeholder="请选择发起人" />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          接收人
-        </view>
-        <UserPicker ref="toPickerRef" v-model="formData.toUserId" type="radio" placeholder="请选择接收人" />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          处理结果
-        </view>
-        <wd-radio-group v-model="formData.handleResult" type="button">
-          <wd-radio :value="-1">
-            全部
-          </wd-radio>
-          <wd-radio
-            v-for="dict in getIntDictOptions(DICT_TYPE.IM_FRIEND_REQUEST_HANDLE_RESULT)"
-            :key="dict.value"
-            :value="dict.value"
-          >
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          添加来源
-        </view>
-        <wd-radio-group v-model="formData.addSource" type="button">
-          <wd-radio :value="-1">
-            全部
-          </wd-radio>
-          <wd-radio
-            v-for="dict in getIntDictOptions(DICT_TYPE.IM_FRIEND_ADD_SOURCE)"
-            :key="dict.value"
-            :value="dict.value"
-          >
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <UserSearchPicker ref="fromPickerRef" v-model="formData.fromUserId" label="发起人" placeholder="请选择发起人" />
+      <UserSearchPicker ref="toPickerRef" v-model="formData.toUserId" label="接收人" placeholder="请选择接收人" />
+      <yd-search-picker
+        v-model="formData.handleResult"
+        label="处理结果"
+        :dict-type="DICT_TYPE.IM_FRIEND_REQUEST_HANDLE_RESULT"
+        all-option
+      />
+      <yd-search-picker v-model="formData.addSource" label="添加来源" :dict-type="DICT_TYPE.IM_FRIEND_ADD_SOURCE" all-option />
       <yd-search-date-range v-model="formData.createTime" label="申请时间" />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
@@ -74,8 +37,8 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref } from 'vue'
-import UserPicker from '@/components/system-select/user-picker.vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import UserSearchPicker from '@/components/system-select/user-search-picker.vue'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDate, formatDateRange } from '@/utils/date'
@@ -91,8 +54,8 @@ const toPickerRef = ref<any>() // 接收人选择器引用
 const formData = reactive({
   fromUserId: undefined as number | undefined,
   toUserId: undefined as number | undefined,
-  handleResult: -1, // -1 表示全部
-  addSource: -1, // -1 表示全部
+  handleResult: undefined as number | undefined,
+  addSource: undefined as number | undefined,
   createTime: [undefined, undefined] as [number | undefined, number | undefined],
 }) // 搜索表单数据
 
@@ -100,15 +63,15 @@ const formData = reactive({
 const placeholder = computed(() => {
   const conditions: string[] = []
   if (formData.fromUserId) {
-    conditions.push(`发起人:${fromPickerRef.value?.getUserNickname(formData.fromUserId) || formData.fromUserId}`)
+    conditions.push(`发起人:${fromPickerRef.value?.format(formData.fromUserId) || formData.fromUserId}`)
   }
   if (formData.toUserId) {
-    conditions.push(`接收人:${toPickerRef.value?.getUserNickname(formData.toUserId) || formData.toUserId}`)
+    conditions.push(`接收人:${toPickerRef.value?.format(formData.toUserId) || formData.toUserId}`)
   }
-  if (formData.handleResult !== -1) {
+  if (formData.handleResult !== undefined) {
     conditions.push(`结果:${getDictLabel(DICT_TYPE.IM_FRIEND_REQUEST_HANDLE_RESULT, formData.handleResult)}`)
   }
-  if (formData.addSource !== -1) {
+  if (formData.addSource !== undefined) {
     conditions.push(`来源:${getDictLabel(DICT_TYPE.IM_FRIEND_ADD_SOURCE, formData.addSource)}`)
   }
   if (formData.createTime?.[0] && formData.createTime?.[1]) {
@@ -123,8 +86,8 @@ function handleSearch() {
   emit('search', {
     fromUserId: formData.fromUserId,
     toUserId: formData.toUserId,
-    handleResult: formData.handleResult === -1 ? undefined : formData.handleResult,
-    addSource: formData.addSource === -1 ? undefined : formData.addSource,
+    handleResult: formData.handleResult,
+    addSource: formData.addSource,
     createTime: formatDateRange(formData.createTime),
   })
 }
@@ -133,8 +96,8 @@ function handleSearch() {
 function handleReset() {
   formData.fromUserId = undefined
   formData.toUserId = undefined
-  formData.handleResult = -1
-  formData.addSource = -1
+  formData.handleResult = undefined
+  formData.addSource = undefined
   formData.createTime = [undefined, undefined]
   visible.value = false
   emit('reset')

@@ -13,7 +13,12 @@
     @close="visible = false"
   >
     <view class="yd-search-form-container">
-      <yd-search-picker v-model="formData.channelId" label="所属频道" :columns="channelColumns" :all-value="0" />
+      <ChannelSearchPicker ref="channelPickerRef" v-model="formData.channelId" />
+      <MaterialSearchPicker
+        ref="materialPickerRef"
+        v-model="formData.materialId"
+        :channel-id="formData.channelId"
+      />
       <yd-search-date-range v-model="formData.sendTime" label="发送时间" />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
@@ -28,11 +33,11 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { getSimpleChannelList } from '@/api/im/manager/channel'
+import { computed, reactive, ref } from 'vue'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { formatDate, formatDateRange } from '@/utils/date'
-import { getWotPickerDisplay } from '@/utils/wot'
+import ChannelSearchPicker from '../../components/channel-search-picker.vue'
+import MaterialSearchPicker from '../../material/components/material-search-picker.vue'
 
 const emit = defineEmits<{
   search: [data: Record<string, any>]
@@ -40,17 +45,22 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const channelColumns = ref<{ label: string, value: number }[]>([{ label: '全部', value: 0 }]) // 频道选项（0 表示全部）
+const channelPickerRef = ref<InstanceType<typeof ChannelSearchPicker>>() // 频道选择器
+const materialPickerRef = ref<InstanceType<typeof MaterialSearchPicker>>() // 素材选择器
 const formData = reactive({
-  channelId: 0, // 0 表示全部
+  channelId: undefined as number | undefined,
+  materialId: undefined as number | undefined,
   sendTime: [undefined, undefined] as [number | undefined, number | undefined],
 }) // 搜索表单数据
 
 /** 搜索条件 placeholder 拼接 */
 const placeholder = computed(() => {
   const conditions: string[] = []
-  if (formData.channelId) {
-    conditions.push(`频道:${getWotPickerDisplay(channelColumns.value, formData.channelId, { valueKey: 'value', labelKey: 'label', placeholder: '' })}`)
+  if (formData.channelId !== undefined) {
+    conditions.push(`频道:${channelPickerRef.value?.format(formData.channelId) || formData.channelId}`)
+  }
+  if (formData.materialId !== undefined) {
+    conditions.push(`素材:${materialPickerRef.value?.format(formData.materialId) || formData.materialId}`)
   }
   if (formData.sendTime?.[0] && formData.sendTime?.[1]) {
     conditions.push(`发送时间:${formatDate(formData.sendTime[0])}~${formatDate(formData.sendTime[1])}`)
@@ -58,34 +68,22 @@ const placeholder = computed(() => {
   return conditions.length > 0 ? conditions.join(' | ') : '搜索频道消息'
 })
 
-/** 加载频道选项 */
-async function loadChannelOptions() {
-  const list = await getSimpleChannelList()
-  channelColumns.value = [
-    { label: '全部', value: 0 },
-    ...list.map(item => ({ label: item.name, value: item.id })),
-  ]
-}
-
 /** 搜索按钮操作 */
 function handleSearch() {
   visible.value = false
   emit('search', {
-    channelId: formData.channelId || undefined,
+    channelId: formData.channelId,
+    materialId: formData.materialId,
     sendTime: formatDateRange(formData.sendTime),
   })
 }
 
 /** 重置按钮操作 */
 function handleReset() {
-  formData.channelId = 0
+  formData.channelId = undefined
+  formData.materialId = undefined
   formData.sendTime = [undefined, undefined]
   visible.value = false
   emit('reset')
 }
-
-/** 初始化 */
-onMounted(() => {
-  loadChannelOptions()
-})
 </script>

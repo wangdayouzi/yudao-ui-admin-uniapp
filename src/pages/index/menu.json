@@ -1213,6 +1213,22 @@
               "permission": "crm:statistics-performance:query"
             },
             {
+              "key": "crmStatisticsProduct",
+              "name": "产品分析",
+              "icon": "dashboard",
+              "iconColor": "#2f54eb",
+              "url": "/pages-statistics/crm/product/index",
+              "permission": "crm:statistics-product:query"
+            },
+            {
+              "key": "crmStatisticsPerformanceTarget",
+              "name": "业绩达成",
+              "icon": "dashboard",
+              "iconColor": "#13c2c2",
+              "url": "/pages-statistics/crm/performance-target/index",
+              "permission": "crm:statistics-performance-target:query"
+            },
+            {
               "key": "crmStatisticsPortrait",
               "name": "客户画像",
               "icon": "dashboard",
@@ -1273,6 +1289,14 @@
               "iconColor": "#ffc53d",
               "url": "/pages-crm/contract/config/index",
               "permission": "crm:contract-config:query"
+            },
+            {
+              "key": "crmPerformanceConfig",
+              "name": "业绩目标设置",
+              "icon": "settings",
+              "iconColor": "#73d13d",
+              "url": "/pages-crm/performance/config/index",
+              "permission": "crm:performance-config:query"
             }
           ]
         }
@@ -1282,6 +1306,20 @@
       "key": "erp",
       "name": "ERP 系统",
       "subGroups": [
+        {
+          "key": "overview",
+          "name": "概览",
+          "menus": [
+            {
+              "key": "erpHome",
+              "name": "ERP 首页",
+              "icon": "dashboard",
+              "iconColor": "#1677ff",
+              "url": "/pages-statistics/erp/home/index",
+              "permission": "erp:statistics:query"
+            }
+          ]
+        },
         {
           "key": "product",
           "name": "产品管理",
@@ -1495,7 +1533,7 @@
               "name": "MES 工作台",
               "icon": "dashboard",
               "iconColor": "#1677ff",
-              "url": "/pages-mes/home/index"
+              "url": "/pages-statistics/mes/home/index"
             },
             {
               "key": "mesMdAutocode",
@@ -1630,14 +1668,6 @@
               "iconColor": "#fa8c16",
               "url": "/pages-mes/pro/andon/record/index",
               "permission": "mes:pro-andon-record:query"
-            },
-            {
-              "key": "mesProAndonConfig",
-              "name": "安灯配置",
-              "icon": "settings",
-              "iconColor": "#faad14",
-              "url": "/pages-mes/pro/andon/config/index",
-              "permission": "mes:pro-andon-config:query"
             }
           ]
         },
@@ -1827,22 +1857,6 @@
               "icon": "home",
               "iconColor": "#fa8c16",
               "url": "/pages-mes/wm/warehouse/index",
-              "permission": "mes:wm-warehouse:query"
-            },
-            {
-              "key": "mesWmWarehouseArea",
-              "name": "库区管理",
-              "icon": "folder",
-              "iconColor": "#faad14",
-              "url": "/pages-mes/wm/warehouse/area/index",
-              "permission": "mes:wm-warehouse:query"
-            },
-            {
-              "key": "mesWmWarehouseLocation",
-              "name": "库位管理",
-              "icon": "location",
-              "iconColor": "#13c2c2",
-              "url": "/pages-mes/wm/warehouse/location/index",
               "permission": "mes:wm-warehouse:query"
             }
           ]
@@ -2059,10 +2073,10 @@
           "menus": [
             {
               "key": "wmsHome",
-              "name": "WMS 工作台",
+              "name": "WMS 首页",
               "icon": "dashboard",
               "iconColor": "#1677ff",
-              "url": "/pages-wms/home/index",
+              "url": "/pages-statistics/wms/home/index",
               "permission": "wms:home:query"
             }
           ]
@@ -2184,13 +2198,6 @@
           "name": "AI 工具",
           "menus": [
             {
-              "key": "aiWorkbench",
-              "name": "AI 工作台",
-              "icon": "message",
-              "iconColor": "#1677ff",
-              "url": "/pages-ai/index/index"
-            },
-            {
               "key": "aiChat",
               "name": "AI 对话",
               "icon": "message",
@@ -2205,13 +2212,6 @@
               "url": "/pages-ai/image/index"
             },
             {
-              "key": "aiMusic",
-              "name": "AI 音乐",
-              "icon": "sound",
-              "iconColor": "#f5222d",
-              "url": "/pages-ai/music/index"
-            },
-            {
               "key": "aiWrite",
               "name": "AI 写作",
               "icon": "edit",
@@ -2219,29 +2219,15 @@
               "url": "/pages-ai/write/index"
             },
             {
-              "key": "aiMindMap",
-              "name": "思维导图",
-              "icon": "share-alt",
-              "iconColor": "#52c41a",
-              "url": "/pages-ai/mindmap/index"
-            }
-          ]
-        },
-        {
-          "key": "config",
-          "name": "配置与数据",
-          "menus": [
-            {
-              "key": "aiModel",
-              "name": "模型配置",
-              "icon": "settings",
-              "iconColor": "#eb2f96",
-              "url": "/pages-ai/model/index",
-              "permission": "ai:model:query"
+              "key": "aiMusic",
+              "name": "AI 音乐",
+              "icon": "sound",
+              "iconColor": "#f5222d",
+              "url": "/pages-ai/music/index"
             },
             {
               "key": "aiKnowledge",
-              "name": "知识库",
+              "name": "AI 知识库",
               "icon": "folder",
               "iconColor": "#2f54eb",
               "url": "/pages-ai/knowledge/index",
@@ -2256,11 +2242,89 @@
               "permission": "ai:workflow:query"
             },
             {
-              "key": "aiContent",
-              "name": "生成记录",
-              "icon": "list",
+              "key": "aiMindMap",
+              "name": "思维导图",
+              "icon": "share-alt",
+              "iconColor": "#52c41a",
+              "url": "/pages-ai/mindmap/index"
+            }
+          ]
+        },
+        {
+          "key": "console",
+          "name": "控制台",
+          "menus": [
+            {
+              "key": "aiApiKey",
+              "name": "API 密钥",
+              "icon": "lock",
+              "iconColor": "#1677ff",
+              "url": "/pages-ai/model/apiKey/index",
+              "permission": "ai:api-key:query"
+            },
+            {
+              "key": "aiModelConfig",
+              "name": "模型配置",
+              "icon": "settings",
+              "iconColor": "#13c2c2",
+              "url": "/pages-ai/model/model/index",
+              "permission": "ai:model:query"
+            },
+            {
+              "key": "aiChatRole",
+              "name": "聊天角色",
+              "icon": "user",
+              "iconColor": "#722ed1",
+              "url": "/pages-ai/model/chatRole/index",
+              "permission": "ai:chat-role:query"
+            },
+            {
+              "key": "aiTool",
+              "name": "工具管理",
+              "icon": "tool",
+              "iconColor": "#fa8c16",
+              "url": "/pages-ai/model/tool/index",
+              "permission": "ai:tool:query"
+            },
+            {
+              "key": "aiChatManager",
+              "name": "聊天管理",
+              "icon": "message",
+              "iconColor": "#2f54eb",
+              "url": "/pages-ai/chat/manager/index",
+              "permission": "ai:chat-conversation:query"
+            },
+            {
+              "key": "aiImageManager",
+              "name": "绘图管理",
+              "icon": "image",
+              "iconColor": "#eb2f96",
+              "url": "/pages-ai/image/manager/index",
+              "permission": "ai:image:query"
+            },
+            {
+              "key": "aiMusicManager",
+              "name": "音乐管理",
+              "icon": "sound",
+              "iconColor": "#f5222d",
+              "url": "/pages-ai/music/manager/index",
+              "permission": "ai:music:query"
+            },
+            {
+              "key": "aiWriteManager",
+              "name": "写作管理",
+              "icon": "edit",
               "iconColor": "#faad14",
-              "url": "/pages-ai/content/index"
+              "url": "/pages-ai/write/manager/index",
+              "permission": "ai:write:query"
+            },
+            {
+              "key": "aiMindMapManager",
+              "name": "导图管理",
+              "icon": "share-alt",
+              "iconColor": "#52c41a",
+              "url": "/pages-ai/mindmap/manager/index",
+              "permission": "ai:mind-map:query"
             }
           ]
         }
@@ -2279,7 +2343,7 @@
               "name": "IoT 首页",
               "icon": "dashboard",
               "iconColor": "#1677ff",
-              "url": "/pages-iot/home/index"
+              "url": "/pages-statistics/iot/home/index"
             }
           ]
         },
@@ -2339,23 +2403,15 @@
               "icon": "sound",
               "iconColor": "#5cdbd3",
               "url": "/pages-iot/rule/scene/index",
-              "permission": "iot:scene-rule:query"
+              "permissions": ["iot:scene-rule:query", "iot:rule-scene:query"]
             },
             {
-              "key": "iotDataSink",
-              "name": "数据流转目的",
+              "key": "iotDataFlow",
+              "name": "数据流转",
               "icon": "link",
               "iconColor": "#eb2f96",
-              "url": "/pages-iot/rule/data/sink/index",
-              "permission": "iot:data-sink:query"
-            },
-            {
-              "key": "iotDataRule",
-              "name": "数据流转规则",
-              "icon": "code",
-              "iconColor": "#f759ab",
-              "url": "/pages-iot/rule/data/rule/index",
-              "permission": "iot:data-rule:query"
+              "url": "/pages-iot/rule/data/index",
+              "permissions": ["iot:data-sink:query", "iot:data-rule:query"]
             }
           ]
         },
@@ -2392,14 +2448,6 @@
               "iconColor": "#faad14",
               "url": "/pages-iot/ota/firmware/index",
               "permission": "iot:ota-firmware:query"
-            },
-            {
-              "key": "iotOtaTask",
-              "name": "OTA 任务",
-              "icon": "clock-circle",
-              "iconColor": "#ffc53d",
-              "url": "/pages-iot/ota/task/index",
-              "permission": "iot:ota-task:query"
             }
           ]
         }
@@ -2418,20 +2466,13 @@
               "name": "聊天",
               "icon": "message",
               "iconColor": "#1677ff",
-              "url": "/pages-im/home/index/index"
-            },
-            {
-              "key": "imStatistics",
-              "name": "数据统计",
-              "icon": "dashboard",
-              "iconColor": "#722ed1",
-              "url": "/pages-statistics/im/index"
+              "url": "/pages-im/home/conversation/index"
             }
           ]
         },
         {
           "key": "friend",
-          "name": "好友",
+          "name": "好友管理",
           "menus": [
             {
               "key": "imFriend",
@@ -2458,7 +2499,7 @@
         },
         {
           "key": "group",
-          "name": "群聊",
+          "name": "群聊管理",
           "menus": [
             {
               "key": "imGroup",
@@ -2485,7 +2526,7 @@
         },
         {
           "key": "channel",
-          "name": "频道",
+          "name": "频道管理",
           "menus": [
             {
               "key": "imChannel",
@@ -2512,8 +2553,15 @@
         },
         {
           "key": "other",
-          "name": "通话与内容",
+          "name": "其他管理",
           "menus": [
+            {
+              "key": "imStatistics",
+              "name": "数据统计",
+              "icon": "dashboard",
+              "iconColor": "#722ed1",
+              "url": "/pages-statistics/im/index"
+            },
             {
               "key": "imRtc",
               "name": "通话记录",

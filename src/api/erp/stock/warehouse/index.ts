@@ -13,6 +13,7 @@ export interface Warehouse {
   truckagePrice?: number // 搬运费，单位：元
   status?: number // 开启状态
   defaultStatus?: boolean // 是否默认
+  createTime?: Date // 创建时间
 }
 
 /** 获取仓库分页列表 */

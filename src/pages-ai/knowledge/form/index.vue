@@ -17,20 +17,15 @@
           <wd-form-item title="描述" title-width="230rpx">
             <wd-textarea v-model="formData.description" placeholder="请输入知识库描述" clearable />
           </wd-form-item>
-          <wd-form-item
-            title="嵌入模型"
-            title-width="230rpx"
-            prop="embeddingModelId"
-            is-link
-            :value="getWotPickerFormValue(embeddingModelOptions, formData.embeddingModelId, { labelKey: 'name', valueKey: 'id' })"
-            placeholder="请选择嵌入模型"
-            @click="embeddingModelPickerVisible = true"
-          />
+          <ModelFormPicker v-model="formData.embeddingModelId" label="嵌入模型" label-width="230rpx" prop="embeddingModelId" placeholder="请选择嵌入模型" :model-type="AiModelTypeEnum.EMBEDDING" />
           <wd-form-item title="TopK" title-width="230rpx" prop="topK">
             <wd-input-number v-model="formData.topK" :min="0" :max="10" />
           </wd-form-item>
           <wd-form-item title="相似度阈值" title-width="230rpx" prop="similarityThreshold">
-            <wd-input-number v-model="formData.similarityThreshold" :min="0" :max="1" :step="0.01" />
+            <wd-input-number
+              v-model="formData.similarityThreshold"
+              :min="0" :max="1" :step="0.01" :precision="2"
+            />
           </wd-form-item>
           <wd-form-item title="状态" title-width="230rpx" prop="status" center>
             <wd-radio-group v-model="formData.status" type="button">
@@ -46,16 +41,6 @@
         </wd-cell-group>
       </wd-form>
     </view>
-
-    <!-- 嵌入模型选择器 -->
-    <wd-picker
-      v-model:visible="embeddingModelPickerVisible"
-      :model-value="[formData.embeddingModelId]"
-      :columns="embeddingModelOptions"
-      label-key="name"
-      value-key="id"
-      @confirm="({ value }) => formData.embeddingModelId = Number(value[0])"
-    />
 
     <!-- 底部保存按钮 -->
     <view class="yd-detail-footer">
@@ -73,16 +58,15 @@
 
 <script lang="ts" setup>
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
-import type { KnowledgeVO } from '@/api/ai/knowledge/knowledge'
+import type { Knowledge } from '@/api/ai/knowledge/knowledge'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { computed, onMounted, ref } from 'vue'
 import { createKnowledge, getKnowledge, updateKnowledge } from '@/api/ai/knowledge/knowledge'
-import { getModelSimpleList } from '@/api/ai/model/model'
 import { getIntDictOptions } from '@/hooks/useDict'
 import { delay, navigateBackPlus } from '@/utils'
-import { CommonStatusEnum, DICT_TYPE } from '@/utils/constants'
-import { createFormSchema, getWotPickerFormValue } from '@/utils/wot'
-import { AiModelTypeEnum } from '@/pages-ai/utils/constants'
+import { AiModelTypeEnum, CommonStatusEnum, DICT_TYPE } from '@/utils/constants'
+import { createFormSchema } from '@/utils/wot'
+import ModelFormPicker from '@/pages-ai/model/model/components/model-form-picker.vue'
 
 const props = defineProps<{
   id?: number | any
@@ -98,9 +82,7 @@ definePage({
 const toast = useToast()
 const getTitle = computed(() => props.id ? '编辑知识库' : '新增知识库')
 const formLoading = ref(false) // 表单提交状态
-const embeddingModelPickerVisible = ref(false) // 嵌入模型选择器状态
-const embeddingModelOptions = ref<any[]>([]) // 嵌入模型选项
-const formData = ref<KnowledgeVO>({
+const formData = ref<Knowledge>({
   id: undefined,
   name: '',
   description: '',
@@ -140,15 +122,15 @@ async function handleSubmit() {
 
   formLoading.value = true
   try {
-    const data = { ...formData.value }
     if (props.id) {
-      await updateKnowledge(data)
+      await updateKnowledge(formData.value)
       toast.success('修改成功')
     } else {
-      await createKnowledge(data)
+      await createKnowledge(formData.value)
       toast.success('新增成功')
     }
     uni.$emit('ai:knowledge:reload')
+    uni.$emit('ai:knowledge:detail-reload')
     delay(handleBack)
   } finally {
     formLoading.value = false
@@ -156,8 +138,7 @@ async function handleSubmit() {
 }
 
 /** 初始化 */
-onMounted(async () => {
-  embeddingModelOptions.value = await getModelSimpleList(AiModelTypeEnum.EMBEDDING)
-  await getDetail()
+onMounted(() => {
+  getDetail()
 })
 </script>

@@ -1,123 +1,115 @@
 <template>
-  <view class="mt-24rpx bg-white">
-    <view class="flex items-center justify-between border-b border-b-[#f0f0f0] px-24rpx py-20rpx">
-      <view>
-        <view class="text-30rpx text-[#333] font-semibold">
-          销售出库记录
-        </view>
-        <view class="mt-6rpx text-24rpx text-[#999]">
-          共 {{ total }} 条
-        </view>
+  <view class="min-h-0 flex flex-1 flex-col bg-white">
+    <view class="flex items-center border-b border-b-[#f0f0f0] px-24rpx py-20rpx" :class="showTitle ? 'justify-between' : 'justify-end'">
+      <view v-if="showTitle" class="text-30rpx text-[#333] font-semibold">
+        销售出库记录
       </view>
       <view class="text-24rpx text-[#999]">
-        只读
+        共 {{ total }} 条
       </view>
     </view>
 
-    <view v-if="loading && list.length === 0" class="px-24rpx py-32rpx text-center text-26rpx text-[#999]">
-      加载中...
-    </view>
-    <view v-else-if="list.length === 0" class="px-24rpx py-32rpx text-center text-26rpx text-[#999]">
-      暂无销售出库记录
-    </view>
-    <view v-else class="px-24rpx py-8rpx">
-      <view
-        v-for="item in list"
-        :key="item.id"
-        class="border-b border-b-[#f5f5f5] py-20rpx last:border-b-0"
-      >
-        <view class="mb-12rpx flex items-start justify-between gap-16rpx">
-          <view class="min-w-0 flex-1">
-            <view class="truncate text-28rpx text-[#1677ff] font-medium" @click="handleDetail(item)">
-              {{ item.code || `出库单 #${item.id}` }}
+    <z-paging
+      ref="pagingRef"
+      v-model="list"
+      :fixed="false"
+      class="min-h-0 flex-1"
+      :default-page-size="5"
+      :refresher-enabled="false"
+      :inside-more="true"
+      :loading-more-default-as-loading="true"
+      empty-view-text="暂无销售出库记录"
+      @query="queryList"
+    >
+      <view class="px-24rpx py-8rpx pb-160rpx">
+        <view
+          v-for="item in list"
+          :key="item.id"
+          class="border-b border-b-[#f5f5f5] py-20rpx last:border-b-0"
+          @click="handleDetail(item)"
+        >
+          <view class="mb-12rpx flex items-start justify-between gap-16rpx">
+            <view class="min-w-0 flex-1">
+              <view class="truncate text-28rpx text-[#333] font-medium">
+                {{ item.code || `出库单 #${item.id}` }}
+              </view>
+              <view class="mt-4rpx truncate text-26rpx text-[#666]">
+                {{ item.name || '-' }}
+              </view>
             </view>
-            <view class="mt-4rpx truncate text-26rpx text-[#666]">
-              {{ item.name || '-' }}
-            </view>
+            <dict-tag v-if="item.status != null" :type="DICT_TYPE.MES_WM_PRODUCT_SALES_STATUS" :value="item.status" />
+            <text v-else class="shrink-0 text-24rpx text-[#999]">-</text>
           </view>
-          <dict-tag v-if="item.status != null" :type="DICT_TYPE.MES_WM_PRODUCT_SALES_STATUS" :value="item.status" />
-          <text v-else class="shrink-0 text-24rpx text-[#999]">-</text>
-        </view>
-        <view class="mb-8rpx flex text-26rpx text-[#666]">
-          <text class="mr-8rpx shrink-0 text-[#999]">销售订单：</text>
-          <text class="min-w-0 flex-1 truncate">{{ item.salesOrderCode || '-' }}</text>
-        </view>
-        <view class="mb-8rpx flex text-26rpx text-[#666]">
-          <text class="mr-8rpx shrink-0 text-[#999]">出库日期：</text>
-          <text class="min-w-0 flex-1 truncate">{{ formatDate(item.salesDate || item.shipmentDate) || '-' }}</text>
-        </view>
-        <view class="flex text-26rpx text-[#666]">
-          <text class="mr-8rpx shrink-0 text-[#999]">创建时间：</text>
-          <text class="min-w-0 flex-1 truncate">{{ formatDateTime(item.createTime) || '-' }}</text>
+          <view class="mb-8rpx flex text-26rpx text-[#666]">
+            <text class="mr-8rpx shrink-0 text-[#999]">销售订单：</text>
+            <text class="min-w-0 flex-1 truncate">{{ item.salesOrderCode || '-' }}</text>
+          </view>
+          <view class="mb-8rpx flex text-26rpx text-[#666]">
+            <text class="mr-8rpx shrink-0 text-[#999]">出库日期：</text>
+            <text class="min-w-0 flex-1 truncate">{{ formatDate(item.salesDate) || '-' }}</text>
+          </view>
+          <view class="flex text-26rpx text-[#666]">
+            <text class="mr-8rpx shrink-0 text-[#999]">创建时间：</text>
+            <text class="min-w-0 flex-1 truncate">{{ formatDateTime(item.createTime) || '-' }}</text>
+          </view>
         </view>
       </view>
-
-      <view v-if="hasMore" class="py-20rpx text-center text-26rpx text-[#1677ff]" @click="loadMore">
-        {{ loading ? '加载中...' : '加载更多' }}
-      </view>
-    </view>
+    </z-paging>
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { WmProductSalesVO } from '@/api/mes/wm/productsales'
-import { ref, watch } from 'vue'
+import type { WmProductSales } from '@/api/mes/wm/productsales'
+import { nextTick, ref, watch } from 'vue'
 import { getProductSalesPage } from '@/api/mes/wm/productsales'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDate, formatDateTime } from '@/utils/date'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   clientId?: number
-}>()
+  showTitle?: boolean
+}>(), {
+  showTitle: true,
+})
 
-const list = ref<WmProductSalesVO[]>([]) // 销售出库单
+const list = ref<WmProductSales[]>([]) // 销售出库单
 const total = ref(0) // 总条数
-const pageNo = ref(1) // 当前页码
-const pageSize = 5 // 移动端详情页内每次加载条数
-const loading = ref(false) // 加载状态
-const hasMore = ref(false) // 是否还有更多
+const pagingRef = ref<ZPagingRef<WmProductSales>>() // 分页组件引用
 
 /** 查询销售出库记录 */
-async function getList(reset = true) {
-  if (!props.clientId || loading.value) {
+async function queryList(currentPageNo: number, currentPageSize: number) {
+  if (!props.clientId) {
+    total.value = 0
+    pagingRef.value?.completeByTotal([], 0)
     return
   }
-  loading.value = true
   try {
-    if (reset) {
-      pageNo.value = 1
-      list.value = []
-    }
     const data = await getProductSalesPage({
-      pageNo: pageNo.value,
-      pageSize,
+      pageNo: currentPageNo,
+      pageSize: currentPageSize,
       clientId: props.clientId,
     })
-    list.value = reset ? data.list : [...list.value, ...data.list]
     total.value = data.total
-    hasMore.value = list.value.length < total.value
-  } finally {
-    loading.value = false
+    pagingRef.value?.completeByTotal(data.list, data.total)
+  } catch {
+    pagingRef.value?.complete(false)
   }
-}
-
-/** 加载更多 */
-function loadMore() {
-  if (!hasMore.value || loading.value) {
-    return
-  }
-  pageNo.value += 1
-  getList(false)
 }
 
 /** 查看销售出库详情 */
-function handleDetail(item: WmProductSalesVO) {
+function handleDetail(item: WmProductSales) {
   uni.navigateTo({ url: `/pages-mes/wm/productsales/detail/index?id=${item.id}` })
 }
 
+/** 监听客户编号变化 */
 watch(
   () => props.clientId,
-  () => getList(true),
+  async () => {
+    total.value = 0
+    list.value = []
+    await nextTick()
+    pagingRef.value?.reload()
+  },
   { immediate: true },
 )
 </script>

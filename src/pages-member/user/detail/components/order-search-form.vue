@@ -19,76 +19,11 @@
         </view>
         <wd-input v-model="formData.no" placeholder="请输入订单号" clearable />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          订单状态
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.status = true">
-          {{ getWotPickerDisplay(statusOptions, formData.status, { placeholder: '请选择订单状态' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.status"
-          :model-value="[formData.status]"
-          :columns="statusOptions"
-          @confirm="({ value }) => formData.status = value[0]"
-        />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          支付方式
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.payChannelCode = true">
-          {{ getWotPickerDisplay(payChannelCodeOptions, formData.payChannelCode, { placeholder: '请选择支付方式' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.payChannelCode"
-          :model-value="[formData.payChannelCode]"
-          :columns="payChannelCodeOptions"
-          @confirm="({ value }) => formData.payChannelCode = value[0]"
-        />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          订单来源
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.terminal = true">
-          {{ getWotPickerDisplay(terminalOptions, formData.terminal, { placeholder: '请选择订单来源' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.terminal"
-          :model-value="[formData.terminal]"
-          :columns="terminalOptions"
-          @confirm="({ value }) => formData.terminal = value[0]"
-        />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          订单类型
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.type = true">
-          {{ getWotPickerDisplay(typeOptions, formData.type, { placeholder: '请选择订单类型' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.type"
-          :model-value="[formData.type]"
-          :columns="typeOptions"
-          @confirm="({ value }) => formData.type = value[0]"
-        />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          配送方式
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.deliveryType = true">
-          {{ getWotPickerDisplay(deliveryTypeOptions, formData.deliveryType, { placeholder: '请选择配送方式' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.deliveryType"
-          :model-value="[formData.deliveryType]"
-          :columns="deliveryTypeOptions"
-          @confirm="({ value }) => formData.deliveryType = value[0]"
-        />
-      </view>
+      <yd-search-picker v-model="formData.status" label="订单状态" :dict-type="DICT_TYPE.TRADE_ORDER_STATUS" all-option />
+      <yd-search-picker v-model="formData.payChannelCode" label="支付方式" :dict-type="DICT_TYPE.PAY_CHANNEL_CODE" dict-kind="str" all-option />
+      <yd-search-picker v-model="formData.terminal" label="订单来源" :dict-type="DICT_TYPE.TERMINAL" all-option />
+      <yd-search-picker v-model="formData.type" label="订单类型" :dict-type="DICT_TYPE.TRADE_ORDER_TYPE" all-option />
+      <yd-search-picker v-model="formData.deliveryType" label="配送方式" :dict-type="DICT_TYPE.TRADE_DELIVERY_TYPE" all-option />
       <yd-search-date-range v-model="formData.createTime" label="下单时间" />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
@@ -104,11 +39,10 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions, getStrDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDate, formatDateRange } from '@/utils/date'
-import { getWotPickerDisplay } from '@/utils/wot'
 
 const emit = defineEmits<{
   search: [data: Record<string, any>]
@@ -116,34 +50,13 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const pickerVisible = ref<Record<string, boolean>>({})
-const statusOptions = computed(() => [
-  { label: '全部', value: -1 },
-  ...getIntDictOptions(DICT_TYPE.TRADE_ORDER_STATUS),
-])
-const typeOptions = computed(() => [
-  { label: '全部', value: -1 },
-  ...getIntDictOptions(DICT_TYPE.TRADE_ORDER_TYPE),
-])
-const deliveryTypeOptions = computed(() => [
-  { label: '全部', value: -1 },
-  ...getIntDictOptions(DICT_TYPE.TRADE_DELIVERY_TYPE),
-])
-const payChannelCodeOptions = computed(() => [
-  { label: '全部', value: '' },
-  ...getStrDictOptions(DICT_TYPE.PAY_CHANNEL_CODE),
-])
-const terminalOptions = computed(() => [
-  { label: '全部', value: -1 },
-  ...getIntDictOptions(DICT_TYPE.TERMINAL),
-])
 const formData = reactive({
   no: undefined as string | undefined,
-  status: -1,
-  type: -1,
-  deliveryType: -1,
-  payChannelCode: '' as string,
-  terminal: -1,
+  status: undefined as number | undefined,
+  type: undefined as number | undefined,
+  deliveryType: undefined as number | undefined,
+  payChannelCode: undefined as string | undefined,
+  terminal: undefined as number | undefined,
   createTime: [undefined, undefined] as [number | undefined, number | undefined],
 }) // 搜索表单数据
 
@@ -153,19 +66,19 @@ const placeholder = computed(() => {
   if (formData.no) {
     conditions.push(`订单:${formData.no}`)
   }
-  if (formData.status !== -1) {
+  if (formData.status !== undefined) {
     conditions.push(`状态:${getDictLabel(DICT_TYPE.TRADE_ORDER_STATUS, formData.status)}`)
   }
-  if (formData.type !== -1) {
+  if (formData.type !== undefined) {
     conditions.push(`类型:${getDictLabel(DICT_TYPE.TRADE_ORDER_TYPE, formData.type)}`)
   }
-  if (formData.deliveryType !== -1) {
+  if (formData.deliveryType !== undefined) {
     conditions.push(`配送:${getDictLabel(DICT_TYPE.TRADE_DELIVERY_TYPE, formData.deliveryType)}`)
   }
-  if (formData.payChannelCode) {
+  if (formData.payChannelCode !== undefined) {
     conditions.push(`支付:${getDictLabel(DICT_TYPE.PAY_CHANNEL_CODE, formData.payChannelCode)}`)
   }
-  if (formData.terminal !== -1) {
+  if (formData.terminal !== undefined) {
     conditions.push(`来源:${getDictLabel(DICT_TYPE.TERMINAL, formData.terminal)}`)
   }
   if (formData.createTime[0] && formData.createTime[1]) {
@@ -179,11 +92,11 @@ function handleSearch() {
   visible.value = false
   emit('search', {
     ...formData,
-    status: formData.status === -1 ? undefined : formData.status,
-    type: formData.type === -1 ? undefined : formData.type,
-    deliveryType: formData.deliveryType === -1 ? undefined : formData.deliveryType,
-    payChannelCode: formData.payChannelCode || undefined,
-    terminal: formData.terminal === -1 ? undefined : formData.terminal,
+    status: formData.status,
+    type: formData.type,
+    deliveryType: formData.deliveryType,
+    payChannelCode: formData.payChannelCode,
+    terminal: formData.terminal,
     createTime: formatDateRange(formData.createTime),
   })
 }
@@ -191,11 +104,11 @@ function handleSearch() {
 /** 重置按钮操作 */
 function handleReset() {
   formData.no = undefined
-  formData.status = -1
-  formData.type = -1
-  formData.deliveryType = -1
-  formData.payChannelCode = ''
-  formData.terminal = -1
+  formData.status = undefined
+  formData.type = undefined
+  formData.deliveryType = undefined
+  formData.payChannelCode = undefined
+  formData.terminal = undefined
   formData.createTime = [undefined, undefined]
   visible.value = false
   emit('reset')

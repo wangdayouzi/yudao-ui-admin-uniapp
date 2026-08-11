@@ -1,6 +1,5 @@
-import type { Dept } from '@/api/system/dept'
 import { getDictLabel } from '@/hooks/useDict'
-import { formatMoney } from '@/utils/format'
+import { formatMoney, toNumber } from '@/utils/format'
 import { isEmptyValue } from '@/utils/is'
 
 export const DEFAULT_VISIBLE_ROWS = 10 // 默认展示行数（折叠态）
@@ -43,6 +42,7 @@ export interface StatisticsSection {
   columns?: StatisticsColumn[]
   chart?: StatisticsChart
   load?: (params: Record<string, any>) => Promise<any>
+  transform?: (rows: Record<string, any>[]) => Record<string, any>[]
 }
 
 /** 统一转换统计结果（数组原样返回，对象包成单元素数组） */
@@ -103,10 +103,21 @@ export function formatEntries(row: Record<string, any>) {
     .map(([label, value]) => ({ label, value: isEmptyValue(value) ? '-' : String(value) }))
 }
 
-/** 转换为数字（空值 / 非数字回退 0） */
-export function toNumber(value: any) {
-  const numberValue = Number(value || 0)
-  return Number.isNaN(numberValue) ? 0 : numberValue
+/** 格式化统计金额 */
+export function formatStatisticsAmount(value: unknown, prefix = '￥') {
+  return `${prefix}${toNumber(value).toFixed(2)}`
+}
+
+/** 格式化统计时间标签（去除年份，仅展示月日 / 月份） */
+export function formatStatisticsTimeLabel(time?: string) {
+  if (!time) {
+    return '-'
+  }
+  const matched = time.match(/(\d{1,2})-(\d{1,2})$/) // 匹配 月-日
+  if (matched) {
+    return `${matched[1]}-${matched[2]}`
+  }
+  return time.replace(/^\d{4}-?/, '') || time
 }
 
 /** 图表配色 */
@@ -254,18 +265,4 @@ export function buildFunnelOption(items: StatisticsFunnelItem[], name = '转化�
 export function getDefaultDeptId(userInfo: Record<string, any> | undefined) {
   const deptId = Number(userInfo?.deptId)
   return deptId > 0 ? deptId : undefined
-}
-
-/** 获取第一个可用部门编号 */
-export function getFirstDeptId(list: Dept[]): number | undefined {
-  for (const item of list) {
-    if (item.id) {
-      return item.id
-    }
-    const childId = getFirstDeptId(item.children || [])
-    if (childId) {
-      return childId
-    }
-  }
-  return undefined
 }

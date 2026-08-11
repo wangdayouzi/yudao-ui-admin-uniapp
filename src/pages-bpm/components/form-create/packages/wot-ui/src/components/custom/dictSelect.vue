@@ -11,8 +11,8 @@
     />
 
     <wd-select-picker
+      ref="pickerRef"
       v-model="pickerValue"
-      v-model:visible="visible"
       :title="rule.title || '选择选项'"
       :columns="options"
       :type="isMultiple ? 'checkbox' : 'radio'"
@@ -23,6 +23,8 @@
       filterable
       label-key="label"
       value-key="value"
+      @open="emit('open')"
+      @close="emit('close')"
       @cancel="emit('cancel')"
       @confirm="handleConfirm"
     />
@@ -30,8 +32,9 @@
 </template>
 
 <script lang="ts" setup>
+import type { SelectPickerInstance } from '@wot-ui/ui/components/wd-select-picker/types'
 import type { NormalizedFormCreateRule } from '../../../../../types/typing'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useDictStore } from '@/store/dict'
 import { getPlaceholder } from '../../core/utils'
 import { loadDictOptions } from './api'
@@ -59,7 +62,7 @@ const loading = ref(false)
 const loadError = ref('')
 const options = ref<any[]>([])
 const pickerValue = ref<any>([])
-const visible = ref(false)
+const pickerRef = ref<SelectPickerInstance>() // 字典选择器
 
 const isMultiple = computed(() => isMultipleSelect(props.rule))
 const placeholder = computed(() => getPlaceholder(props.rule, '请选择'))
@@ -90,14 +93,6 @@ watch(
   { deep: true, immediate: true },
 )
 
-watch(visible, (value) => {
-  if (value) {
-    emit('open')
-  } else {
-    emit('close')
-  }
-})
-
 async function open() {
   if (props.disabled) {
     return
@@ -112,7 +107,8 @@ async function open() {
     }
   }
   pickerValue.value = normalizeSelectValue(props.modelValue, isMultiple.value)
-  visible.value = true
+  await nextTick()
+  pickerRef.value?.open()
 }
 
 function handleConfirm({ value }: { value: any }) {

@@ -25,32 +25,20 @@
         </view>
         <wd-input v-model="formData.name" placeholder="请输入方案名称" clearable />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          盘点类型
-        </view>
-        <wd-radio-group v-model="formData.type" type="button">
-          <wd-radio :value="undefined">
-            全部
-          </wd-radio>
-          <wd-radio v-for="dict in stockTakingTypeOptions" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          状态
-        </view>
-        <wd-radio-group v-model="formData.status" type="button">
-          <wd-radio :value="undefined">
-            全部
-          </wd-radio>
-          <wd-radio v-for="dict in statusOptions" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <yd-search-picker
+        ref="typeSearchPickerRef"
+        v-model="formData.type"
+        label="盘点类型"
+        :dict-type="DICT_TYPE.MES_WM_STOCK_TAKING_TYPE"
+        all-option
+      />
+      <yd-search-picker
+        ref="statusSearchPickerRef"
+        v-model="formData.status"
+        label="状态"
+        :dict-type="DICT_TYPE.COMMON_STATUS"
+        all-option
+      />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -64,27 +52,25 @@
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——wd-radio-group 类型/状态筛选改 yd-search-picker（type/status，配 dict-kind + all-option）
-import type { StockTakingPlanQueryParams } from '@/api/mes/wm/stocktaking/plan'
+import type { YdSearchPickerExpose } from '@/components/yudao-ui'
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 
 const emit = defineEmits<{
-  search: [data: Partial<StockTakingPlanQueryParams>]
+  search: [data: Record<string, any>]
   reset: []
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const formData = reactive<Partial<StockTakingPlanQueryParams>>({
+const typeSearchPickerRef = ref<YdSearchPickerExpose>() // 类型搜索选择器
+const statusSearchPickerRef = ref<YdSearchPickerExpose>() // 状态搜索选择器
+const formData = reactive<Record<string, any>>({
   code: undefined,
   name: undefined,
   type: undefined,
   status: undefined,
 }) // 搜索表单数据
-const stockTakingTypeOptions = computed(() => getIntDictOptions(DICT_TYPE.MES_WM_STOCK_TAKING_TYPE))
-const statusOptions = computed(() => getIntDictOptions(DICT_TYPE.COMMON_STATUS))
 
 /** 搜索条件 placeholder 拼接 */
 const placeholder = computed(() => {
@@ -96,10 +82,10 @@ const placeholder = computed(() => {
     conditions.push(`名称:${formData.name}`)
   }
   if (formData.type != null) {
-    conditions.push(`类型:${getDictLabel(DICT_TYPE.MES_WM_STOCK_TAKING_TYPE, formData.type)}`)
+    conditions.push(`类型:${typeSearchPickerRef.value?.format(formData.type) || formData.type}`)
   }
   if (formData.status != null) {
-    conditions.push(`状态:${getDictLabel(DICT_TYPE.COMMON_STATUS, formData.status)}`)
+    conditions.push(`状态:${statusSearchPickerRef.value?.format(formData.status) || formData.status}`)
   }
   return conditions.length > 0 ? conditions.join(' | ') : '搜索盘点方案'
 })
@@ -107,7 +93,11 @@ const placeholder = computed(() => {
 /** 搜索按钮操作 */
 function handleSearch() {
   visible.value = false
-  emit('search', { ...formData })
+  emit('search', {
+    ...formData,
+    type: formData.type,
+    status: formData.status,
+  })
 }
 
 /** 重置按钮操作 */

@@ -8,7 +8,7 @@ export interface Warehouse {
   name?: string
   remark?: string
   sort?: number
-  createTime?: Date | string
+  createTime?: Date
 }
 
 /** 查询仓库分页 */
@@ -17,7 +17,7 @@ export function getWarehousePage(params: PageParam) {
 }
 
 /** 查询仓库精简列表 */
-export function getWarehouseSimpleList() {
+export function getSimpleWarehouseList() {
   return http.get<Warehouse[]>('/wms/warehouse/simple-list')
 }
 

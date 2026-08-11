@@ -12,8 +12,7 @@ export interface ShipmentOrderDetail {
   warehouseId?: number
   warehouseName?: string
   quantity?: number
-  availableQuantity?: number
   price?: number
   totalPrice?: number
-  createTime?: Date | string
+  createTime?: Date
 }

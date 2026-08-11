@@ -4,6 +4,7 @@ import { http } from '@/http/http'
 /** ERP 采购订单明细 */
 export interface PurchaseOrderItem {
   id?: number
+  productUnitId?: number
   productId?: number
   productName?: string
   productUnitName?: string
@@ -11,6 +12,8 @@ export interface PurchaseOrderItem {
   productPrice?: number
   stockCount?: number
   count?: number
+  inCount?: number
+  returnCount?: number
   totalProductPrice?: number
   taxPercent?: number
   taxPrice?: number
@@ -23,14 +26,22 @@ export interface PurchaseOrder {
   id?: number // 订单工单编号
   no?: string // 采购订单号
   supplierId?: number // 供应商编号
+  supplierName?: string // 供应商名称
   accountId?: number // 结算账户编号
-  orderTime?: string | number | Date // 订单时间
+  accountName?: string // 结算账户名称
+  orderTime?: Date | string | number // 订单时间
   discountPercent?: number // 优惠率
   discountPrice?: number // 付款优惠
+  totalProductPrice?: number // 合计产品金额
+  totalTaxPrice?: number // 合计税额
   totalPrice?: number // 优惠后金额
   depositPrice?: number // 支付订金
   totalCount?: number // 合计数量
   status?: number // 状态
+  creator?: string // 创建人
+  creatorName?: string // 创建人名称
+  createTime?: Date // 创建时间
+  productNames?: string // 产品信息
   remark?: string // 备注
   fileUrl?: string // 附件地址
   inCount?: number // 采购入库数量

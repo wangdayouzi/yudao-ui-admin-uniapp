@@ -1,6 +1,6 @@
 import { http } from '@/http/http'
 
-/** ERP 销售全局统计 */
+/** ERP 销售全局统计响应 */
 export interface ErpSaleSummaryResp {
   todayPrice: number // 今日销售金额
   yesterdayPrice: number // 昨日销售金额
@@ -8,7 +8,7 @@ export interface ErpSaleSummaryResp {
   yearPrice: number // 今年销售金额
 }
 
-/** ERP 销售时间段统计 */
+/** ERP 销售时间段统计响应 */
 export interface ErpSaleTimeSummaryResp {
   time: string // 时间
   price: number // 销售金额

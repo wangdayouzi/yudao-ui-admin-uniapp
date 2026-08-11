@@ -57,6 +57,11 @@
           <view class="text-26rpx text-[#666]">
             <text class="text-[#999]">生成时间：</text>{{ formatDateTime(item.createTime) || '-' }}
           </view>
+          <view v-if="item.id" class="mt-16rpx flex justify-end">
+            <wd-button size="small" type="primary" variant="plain" @click="handleBarcode(item)">
+              条码
+            </wd-button>
+          </view>
         </view>
         <wd-button
           v-if="hasMoreDetails"
@@ -70,16 +75,37 @@
           已显示全部 {{ detailList.length }} 条 SN 码
         </view>
       </template>
+      <view v-if="canDelete" class="h-180rpx" />
     </view>
+
+    <!-- 底部操作按钮 -->
+    <view v-if="canDelete" class="yd-detail-footer">
+      <view class="yd-detail-footer-actions">
+        <wd-button
+          v-if="canDelete"
+          class="flex-1" type="danger" :loading="deleting" @click="handleDelete"
+        >
+          删除
+        </wd-button>
+      </view>
+    </view>
+
+    <!-- 条码详情弹窗 -->
+    <BarcodeDetailPopup ref="barcodeDetailPopupRef" />
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { WmSnGroupVO, WmSnVO } from '@/api/mes/wm/sn'
-import { computed, onMounted, ref, watch } from 'vue'
-import { getSnGroupPage, getSnListByUuid } from '@/api/mes/wm/sn'
-import { useRouteQuery } from '@/hooks/useRouteQuery'
-import { navigateBackPlus } from '@/utils'
+import { onShow } from '@dcloudio/uni-app'
+import type { WmSn, WmSnGroup } from '@/api/mes/wm/sn'
+import { useDialog } from '@wot-ui/ui/components/wd-dialog'
+import { useToast } from '@wot-ui/ui/components/wd-toast'
+import { computed, ref, watch } from 'vue'
+import { deleteSnBatch, getSnGroupPage, getSnListByUuid } from '@/api/mes/wm/sn'
+import { useAccess } from '@/hooks/useAccess'
+import BarcodeDetailPopup from '@/pages-mes/wm/barcode/components/barcode-detail-popup.vue'
+import { delay, navigateBackPlus } from '@/utils'
+import { BarcodeBizTypeEnum } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
 
 const props = defineProps<{
@@ -93,19 +119,24 @@ definePage({
   },
 })
 
-const groupData = ref<WmSnGroupVO>() // 批次概要
-const detailList = ref<WmSnVO[]>([]) // SN 明细列表
+const { hasAccessByCodes } = useAccess()
+const dialog = useDialog()
+const toast = useToast()
+const groupData = ref<WmSnGroup>() // 批次概要
+const detailList = ref<WmSn[]>([]) // SN 明细列表
 const loading = ref(false) // 明细加载状态
+const deleting = ref(false) // 删除状态
+const barcodeDetailPopupRef = ref<InstanceType<typeof BarcodeDetailPopup>>() // 条码弹窗
 const initialVisibleSize = 20 // 首屏展示条数
 const visibleSize = ref(initialVisibleSize) // 当前展示条数
 const firstDetail = computed(() => detailList.value[0])
-const { getRouteQueryValue } = useRouteQuery(props, '/pages-mes/wm/sn/detail/index')
 const currentUuid = computed(() => {
-  const uuid = getRouteQueryValue('id')
+  const uuid = props.id
   return uuid ? String(uuid) : undefined
 })
 const visibleDetailList = computed(() => detailList.value.slice(0, visibleSize.value))
 const hasMoreDetails = computed(() => visibleDetailList.value.length < detailList.value.length)
+const canDelete = computed(() => Boolean(currentUuid.value) && hasAccessByCodes(['mes:wm-sn:delete']))
 
 /** 返回上一页 */
 function handleBack() {
@@ -117,22 +148,27 @@ async function getDetail() {
   if (!currentUuid.value) {
     return
   }
-  loading.value = true
-  visibleSize.value = initialVisibleSize
-  const uuid = currentUuid.value
   try {
-    const [groupPage, detailRows] = await Promise.all([
-      getSnGroupPage({
-        uuid,
-        pageNo: 1,
-        pageSize: 1,
-      }),
-      getSnListByUuid(uuid),
-    ])
-    groupData.value = groupPage.list?.[0] || { uuid, count: detailRows.length }
-    detailList.value = detailRows
+    toast.loading('加载中...')
+    loading.value = true
+    visibleSize.value = initialVisibleSize
+    const uuid = currentUuid.value
+    try {
+      const [groupPage, detailRows] = await Promise.all([
+        getSnGroupPage({
+          uuid,
+          pageNo: 1,
+          pageSize: 1,
+        }),
+        getSnListByUuid(uuid),
+      ])
+      groupData.value = groupPage.list?.[0] || { uuid, count: detailRows.length }
+      detailList.value = detailRows
+    } finally {
+      loading.value = false
+    }
   } finally {
-    loading.value = false
+    toast.close()
   }
 }
 
@@ -141,11 +177,49 @@ function loadMoreDetails() {
   visibleSize.value = Math.min(visibleSize.value + initialVisibleSize, detailList.value.length)
 }
 
+/** 查看条码 */
+function handleBarcode(item: WmSn) {
+  if (!item.id) {
+    return
+  }
+  barcodeDetailPopupRef.value?.openByBusiness(
+    item.id,
+    BarcodeBizTypeEnum.SN,
+    item.code,
+    item.itemName,
+  )
+}
+
+/** 删除批次 */
+async function handleDelete() {
+  if (!currentUuid.value) {
+    return
+  }
+  try {
+    await dialog.confirm({
+      title: '提示',
+      msg: `确定要删除批次「${groupData.value?.batchCode || groupData.value?.itemCode || currentUuid.value}」的全部 SN 码吗？`,
+    })
+  } catch {
+    return
+  }
+  deleting.value = true
+  try {
+    await deleteSnBatch(currentUuid.value)
+    toast.success('删除成功')
+    uni.$emit('mes:wm:sn:reload')
+    delay(handleBack)
+  } finally {
+    deleting.value = false
+  }
+}
+
 /** 初始化 */
-onMounted(() => {
+onShow(() => {
   getDetail()
 })
 
+/** 监听序列号变化 */
 watch(currentUuid, () => {
   getDetail()
 })

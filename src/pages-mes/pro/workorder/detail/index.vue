@@ -1,10 +1,19 @@
 <template>
-  <view class="yd-page-container">
+  <view class="yd-page-container yd-page-container-paging">
     <!-- 顶部导航栏 -->
     <wd-navbar title="生产工单详情" left-arrow placeholder safe-area-inset-top fixed @click-left="handleBack" />
 
-    <!-- 详情内容 -->
-    <scroll-view class="min-h-0 flex-1" scroll-y scroll-with-animation>
+    <!-- Tab 切换 -->
+    <view class="bg-white">
+      <wd-tabs v-model="tabType" shrink>
+        <wd-tab title="基本信息" name="basic" />
+        <wd-tab title="工单 BOM" name="bom" />
+        <wd-tab title="物料需求" name="items" />
+      </wd-tabs>
+    </view>
+
+    <!-- 基本信息 -->
+    <scroll-view v-if="tabType === 'basic'" class="min-h-0 flex-1" scroll-y scroll-with-animation>
       <wd-cell-group border>
         <wd-cell title="工单编码" :value="formData?.code || '-'" />
         <wd-cell title="工单名称" :value="formData?.name || '-'" />
@@ -39,57 +48,75 @@
         <wd-cell title="备注" :value="formData?.remark || '-'" />
       </wd-cell-group>
 
-      <WorkOrderBomList :work-order-id="workOrderId" mode="bom" />
-      <WorkOrderBomList :work-order-id="workOrderId" mode="item" />
+      <view class="h-180rpx" />
+    </scroll-view>
+
+    <!-- 工单 BOM -->
+    <scroll-view v-if="tabType === 'bom'" class="min-h-0 flex-1" scroll-y scroll-with-animation>
+      <WorkOrderBomList
+        :work-order-id="workOrderId"
+        :work-order="formData"
+        readonly
+        :show-title="false"
+        @generate-work-order="handleGenerateWorkOrder"
+      />
+      <view class="h-48rpx" />
+    </scroll-view>
+
+    <!-- 物料需求 -->
+    <scroll-view v-if="tabType === 'items'" class="min-h-0 flex-1" scroll-y scroll-with-animation>
+      <WorkOrderItemList :work-order-id="workOrderId" :show-title="false" />
       <view class="h-180rpx" />
     </scroll-view>
 
     <!-- 底部操作按钮 -->
-    <MesFooterActions content-class="yd-detail-footer-actions">
-      <wd-button v-if="canEdit" class="flex-1" type="warning" @click="handleEdit">
-        编辑
-      </wd-button>
-      <wd-button v-if="canDelete" class="flex-1" type="danger" :loading="deleting" @click="handleDelete">
-        删除
-      </wd-button>
-      <wd-button v-if="canAddChild" class="flex-1" type="primary" @click="handleAddChild">
-        子工单
-      </wd-button>
-      <wd-button v-if="canFinish" class="flex-1" type="success" @click="handleFinish">
-        完成
-      </wd-button>
-      <wd-button v-if="canFinish" class="flex-1" type="warning" @click="handleCancel">
-        取消
-      </wd-button>
-    </MesFooterActions>
+    <view v-if="tabType === 'basic' && formData" class="yd-detail-footer">
+      <view class="yd-detail-footer-actions">
+        <wd-button v-if="formData" class="flex-1" variant="plain" @click="handleBarcode">
+          条码
+        </wd-button>
+        <wd-button v-if="canEdit" class="flex-1" type="warning" @click="handleEdit">
+          编辑
+        </wd-button>
+        <wd-button v-if="canDelete" class="flex-1" type="danger" :loading="deleting" @click="handleDelete">
+          删除
+        </wd-button>
+        <wd-button v-if="canAddChild" class="flex-1" type="primary" @click="handleAddChild">
+          子工单
+        </wd-button>
+        <wd-button v-if="canFinish" class="flex-1" type="success" @click="handleFinish">
+          完成
+        </wd-button>
+        <wd-button v-if="canFinish" class="flex-1" type="warning" @click="handleCancel">
+          取消
+        </wd-button>
+      </view>
+    </view>
+
+    <!-- 条码详情弹窗 -->
+    <BarcodeDetailPopup ref="barcodeDetailPopupRef" />
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { ProWorkOrderVO } from '@/api/mes/pro/workorder'
+import type { ProWorkOrder } from '@/api/mes/pro/workorder'
+import type { ProWorkOrderBom } from '@/api/mes/pro/workorder/bom'
+import { onShow } from '@dcloudio/uni-app'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { cancelWorkOrder, deleteWorkOrder, finishWorkOrder, getWorkOrder } from '@/api/mes/pro/workorder'
 import { useAccess } from '@/hooks/useAccess'
-import { useRouteQuery } from '@/hooks/useRouteQuery'
-import MesFooterActions from '@/pages-mes/components/mes-footer-actions.vue'
-import { navigateBackPlus } from '@/utils'
-import { DICT_TYPE } from '@/utils/constants'
+import BarcodeDetailPopup from '@/pages-mes/wm/barcode/components/barcode-detail-popup.vue'
+import { delay, navigateBackPlus } from '@/utils'
+import { BarcodeBizTypeEnum, DICT_TYPE, MesProWorkOrderStatusEnum, MesProWorkOrderTypeEnum } from '@/utils/constants'
 import { formatDate, formatDateTime } from '@/utils/date'
 import WorkOrderBomList from '../components/workorder-bom-list.vue'
+import WorkOrderItemList from '../components/workorder-item-list.vue'
 
 const props = defineProps<{
   id?: number | string
 }>()
-const MesProWorkOrderStatusEnum = {
-  PREPARE: 0,
-  CONFIRMED: 1,
-} as const
-const MesProWorkOrderTypeEnum = {
-  SELF: 1,
-} as const
-
 definePage({
   style: {
     navigationBarTitleText: '',
@@ -100,12 +127,11 @@ definePage({
 const { hasAccessByCodes } = useAccess()
 const dialog = useDialog()
 const toast = useToast()
-const formData = ref<ProWorkOrderVO>() // 详情数据
+const formData = ref<ProWorkOrder>() // 详情数据
 const deleting = ref(false) // 删除状态
-const { getRouteQueryNumber } = useRouteQuery(props, '/pages-mes/pro/workorder/detail/index')
-// TODO @YunaiV：简单 id 参数优先直接用 props.id 接收，不需要 useRouteQuery/getRouteQueryNumber 包一层；多参数页面只保留其它 query 的 helper。
-const currentId = computed(() => getRouteQueryNumber('id'))
+const barcodeDetailPopupRef = ref<InstanceType<typeof BarcodeDetailPopup>>() // 条码弹窗
 const workOrderId = computed(() => formData.value?.id)
+const tabType = ref('basic') // 当前 tab 类型
 const canEdit = computed(() =>
   hasAccessByCodes(['mes:pro-work-order:update']) && formData.value?.status === MesProWorkOrderStatusEnum.PREPARE,
 )
@@ -140,26 +166,23 @@ function handleBack() {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!currentId.value) {
-    formData.value = undefined
+  if (!props.id || deleting.value) {
     return
   }
-  const detailData = await getWorkOrder(currentId.value)
-    if (!detailData) {
-      uni.showToast({ icon: 'none', title: '详情不存在，已返回列表' })
-      // TODO @YunaiV：成功后延迟返回统一改 delay(handleBack)，对齐 system/infra（本文件共 2 处 setTimeout(() => handleBack())）
-      setTimeout(() => handleBack(), 300)
-      return
-    }
-    formData.value = detailData
+  try {
+    toast.loading('加载中...')
+    formData.value = await getWorkOrder(Number(props.id))
+  } finally {
+    toast.close()
+  }
 }
 
 /** 编辑 */
 function handleEdit() {
-  if (!formData.value?.id) {
+  if (!props.id) {
     return
   }
-  uni.navigateTo({ url: `/pages-mes/pro/workorder/form/index?id=${formData.value.id}` })
+  uni.navigateTo({ url: `/pages-mes/pro/workorder/form/index?id=${props.id}` })
 }
 
 /** 新增子工单 */
@@ -168,6 +191,31 @@ function handleAddChild() {
     return
   }
   uni.navigateTo({ url: `/pages-mes/pro/workorder/form/index?parentId=${formData.value.id}` })
+}
+
+/** 从 BOM 行生成子工单 */
+function handleGenerateWorkOrder(row: ProWorkOrderBom) {
+  if (!formData.value?.id || !row.id) {
+    return
+  }
+  const query = [
+    `parentId=${formData.value.id}`,
+    `bomId=${row.id}`,
+  ].join('&')
+  uni.navigateTo({ url: `/pages-mes/pro/workorder/form/index?${query}` })
+}
+
+/** 查看条码 */
+function handleBarcode() {
+  if (!formData.value?.id) {
+    return
+  }
+  barcodeDetailPopupRef.value?.openByBusiness(
+    formData.value.id,
+    BarcodeBizTypeEnum.WORKORDER,
+    formData.value.code,
+    formData.value.name,
+  )
 }
 
 /** 完成工单 */
@@ -204,7 +252,7 @@ async function handleCancel() {
 
 /** 删除 */
 async function handleDelete() {
-  if (!formData.value?.id) {
+  if (!props.id || !formData.value?.id) {
     return
   }
   try {
@@ -217,20 +265,17 @@ async function handleDelete() {
   }
   deleting.value = true
   try {
-    await deleteWorkOrder(formData.value.id)
+    await deleteWorkOrder(Number(props.id))
     toast.success('删除成功')
     uni.$emit('mes:pro:workorder:reload')
-    setTimeout(() => handleBack(), 500)
+    delay(handleBack)
   } finally {
     deleting.value = false
   }
 }
 
-onMounted(() => {
-  getDetail()
-})
-
-watch(currentId, () => {
+/** 初始化 */
+onShow(() => {
   getDetail()
 })
 </script>

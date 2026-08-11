@@ -1,24 +1,12 @@
 import type { PageParam, PageResult } from '@/http/types'
 import { http } from '@/http/http'
 
-/** MES 领料出库单分页参数 */
-export interface WmProductIssueQueryParams extends PageParam {
+/** MES 领料出库单 */
+export interface WmProductIssue {
+  id?: number
   code?: string
   name?: string
-  workstationId?: number
   workOrderId?: number
-  taskId?: number
-  clientId?: number
-  status?: number
-  issueDate?: [string, string]
-}
-
-/** MES 领料出库单 VO */
-export interface WmProductIssueVO {
-  id: number
-  code: string
-  name: string
-  workOrderId: number
   workOrderCode?: string
   workstationId?: number
   workstationCode?: string
@@ -26,45 +14,30 @@ export interface WmProductIssueVO {
   clientCode?: string
   clientName?: string
   taskId?: number
-  issueDate?: string | number
-  requiredTime: string | number
-  status: number
+  issueDate?: string | number | Date
+  requiredTime?: string | number | Date
+  status?: number
   remark?: string
-  createTime?: string
-}
-
-/** MES 领料出库单创建参数 */
-export interface WmProductIssueCreateReqVO {
-  code: string
-  name: string
-  workOrderId: number
-  workstationId?: number
-  requiredTime: string | number
-  remark?: string
-}
-
-/** MES 领料出库单更新参数 */
-export interface WmProductIssueUpdateReqVO extends WmProductIssueCreateReqVO {
-  id: number
+  createTime?: Date
 }
 
 /** 查询领料出库单分页 */
-export function getProductIssuePage(params: WmProductIssueQueryParams) {
-  return http.get<PageResult<WmProductIssueVO>>('/mes/wm/product-issue/page', params)
+export function getProductIssuePage(params: PageParam) {
+  return http.get<PageResult<WmProductIssue>>('/mes/wm/product-issue/page', params)
 }
 
 /** 查询领料出库单详情 */
 export function getProductIssue(id: number) {
-  return http.get<WmProductIssueVO>(`/mes/wm/product-issue/get?id=${id}`)
+  return http.get<WmProductIssue>(`/mes/wm/product-issue/get?id=${id}`)
 }
 
 /** 新增领料出库单 */
-export function createProductIssue(data: WmProductIssueCreateReqVO) {
+export function createProductIssue(data: WmProductIssue) {
   return http.post<number>('/mes/wm/product-issue/create', data)
 }
 
 /** 修改领料出库单 */
-export function updateProductIssue(data: WmProductIssueUpdateReqVO) {
+export function updateProductIssue(data: WmProductIssue) {
   return http.put<boolean>('/mes/wm/product-issue/update', data)
 }
 
@@ -96,23 +69,4 @@ export function finishProductIssue(id: number) {
 /** 校验领料出库单数量（每行明细数量之和是否等于行领料数量） */
 export function checkProductIssueQuantity(id: number) {
   return http.get<boolean>(`/mes/wm/product-issue/check-quantity?id=${id}`)
-}
-
-/** 导出领料出库单 Excel */
-export function exportProductIssue(params: WmProductIssueQueryParams) {
-  return http.get<Blob>('/mes/wm/product-issue/export-excel', params)
-}
-
-export const WmProductIssueApi = {
-  getProductIssuePage,
-  getProductIssue,
-  createProductIssue,
-  updateProductIssue,
-  deleteProductIssue,
-  submitProductIssue,
-  stockProductIssue,
-  cancelProductIssue,
-  finishProductIssue,
-  checkProductIssueQuantity,
-  exportProductIssue,
 }

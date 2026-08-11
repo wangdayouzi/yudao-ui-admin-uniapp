@@ -56,17 +56,81 @@ export const ImMessageType = {
 export const ImMessageStatus = {
   FAILED: -2,
   SENDING: -1,
-  UNREAD: 0,
+  NORMAL: 0,
   RECALL: 2,
-  READ: 3,
 } as const
+
+/** IM 消息回执状态 */
+export const ImMessageReceiptStatus = {
+  NO_RECEIPT: 0,
+  PENDING: 1,
+  DONE: 2,
+} as const
+
+/** IM 频道素材类型 */
+export const ImChannelMaterialType = {
+  CONTENT: 1,
+  LINK: 2,
+} as const
+
+/** IM 频道消息接收范围 */
+export const ImChannelMessageReceiverType = {
+  ALL: 'all',
+  USERS: 'users',
+} as const
+
+export type ImChannelMessageReceiverTypeValue
+  = (typeof ImChannelMessageReceiverType)[keyof typeof ImChannelMessageReceiverType]
 
 /** IM 会话类型枚举 */
 export const ImConversationType = {
+  NONE: 0,
   PRIVATE: 1,
   GROUP: 2,
   CHANNEL: 3,
 } as const
+
+/** IM 通话媒体类型 */
+export const ImRtcCallMediaType = {
+  VOICE: 1,
+  VIDEO: 2,
+} as const
+
+/** IM 通话结束原因 */
+export const ImRtcCallEndReason = {
+  HANGUP: 1,
+  REJECT: 2,
+  CANCEL: 3,
+  NO_ANSWER: 4,
+  BUSY: 5,
+  ERROR: 9,
+} as const
+
+/** IM 通话状态 */
+export const ImRtcCallStatus = {
+  CREATED: 10,
+  RUNNING: 20,
+  ENDED: 30,
+} as const
+
+/** IM 通话参与者状态 */
+export const ImRtcParticipantStatus = {
+  INVITING: 10,
+  JOINED: 20,
+  REJECTED: 30,
+  NO_ANSWER: 40,
+  LEFT: 50,
+} as const
+
+/** IM 通话页面阶段 */
+export const ImRtcCallStage = {
+  IDLE: 'idle',
+  INVITING: 'inviting',
+  INCOMING: 'incoming',
+  RUNNING: 'running',
+} as const
+
+export type ImRtcCallStageValue = (typeof ImRtcCallStage)[keyof typeof ImRtcCallStage]
 
 /** IM 群成员角色 */
 export const ImGroupMemberRole = {
@@ -111,6 +175,17 @@ export const IM_AT_ALL_USER_ID = -1
 /** @全体成员的展示名 */
 export const IM_AT_ALL_NICKNAME = '所有人'
 
+/** IM WebSocket 外层帧类型 */
+export const ImWebSocketMessageType = {
+  NOTIFICATION: 'im-notification',
+} as const
+
+/** IM 转发模式 */
+export const ImForwardMode = {
+  SINGLE: 'single',
+  MERGE: 'merge',
+} as const
+
 /** 判断是否群广播事件 */
 export function isGroupNotification(type: number): boolean {
   return type >= ImMessageType.GROUP_CREATE
@@ -126,4 +201,21 @@ export function isFriendChatTip(type: number): boolean {
 /** 判断是否通话提示 */
 export function isRtcCallTip(type: number): boolean {
   return type === ImMessageType.RTC_CALL_START || type === ImMessageType.RTC_CALL_END
+}
+
+const IM_NORMAL_MESSAGE_TYPES: number[] = [ // 用户主动发送、需要计入未读的普通消息类型
+  ImMessageType.TEXT,
+  ImMessageType.IMAGE,
+  ImMessageType.VOICE,
+  ImMessageType.VIDEO,
+  ImMessageType.FILE,
+  ImMessageType.MERGE,
+  ImMessageType.CARD,
+  ImMessageType.FACE,
+  ImMessageType.MATERIAL,
+]
+
+/** 判断是否普通消息 */
+export function isNormalMessage(type: number): boolean {
+  return IM_NORMAL_MESSAGE_TYPES.includes(type)
 }

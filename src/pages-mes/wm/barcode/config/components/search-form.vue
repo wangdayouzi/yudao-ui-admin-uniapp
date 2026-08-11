@@ -13,26 +13,8 @@
     @close="visible = false"
   >
     <view class="yd-search-form-container">
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          条码格式
-        </view>
-        <wd-radio-group v-model="formData.format" type="button">
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.MES_WM_BARCODE_FORMAT)" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          业务类型
-        </view>
-        <wd-radio-group v-model="formData.bizType" type="button">
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.MES_WM_BARCODE_BIZ_TYPE)" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <yd-search-picker v-model="formData.format" label="条码格式" :dict-type="DICT_TYPE.MES_WM_BARCODE_FORMAT" all-option />
+      <yd-search-picker v-model="formData.bizType" label="业务类型" :dict-type="DICT_TYPE.MES_WM_BARCODE_BIZ_TYPE" all-option />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -46,10 +28,8 @@
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——wd-radio-group 条码格式/业务类型筛选改 yd-search-picker（format/bizType，配 dict-kind + all-option）
-import type { WmBarcodeConfigQueryParams } from '@/api/mes/wm/barcode/config'
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 
@@ -59,7 +39,7 @@ interface SearchFormData {
 }
 
 const emit = defineEmits<{
-  search: [data: WmBarcodeConfigQueryParams]
+  search: [data: Record<string, any>]
   reset: []
 }>()
 
@@ -80,20 +60,13 @@ const placeholder = computed(() => { // 搜索条件摘要
   return conditions.length > 0 ? conditions.join(' | ') : '搜索条码配置'
 })
 
-/** 构造搜索参数 */
-function buildSearchParams(): WmBarcodeConfigQueryParams {
-  return {
-    pageNo: 1,
-    pageSize: 10,
-    format: formData.format,
-    bizType: formData.bizType,
-  }
-}
-
 /** 搜索按钮操作 */
 function handleSearch() {
   visible.value = false
-  emit('search', buildSearchParams())
+  emit('search', {
+    format: formData.format,
+    bizType: formData.bizType,
+  })
 }
 
 /** 重置按钮操作 */

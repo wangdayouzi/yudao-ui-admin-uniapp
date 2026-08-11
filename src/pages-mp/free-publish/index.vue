@@ -29,9 +29,9 @@
           :key="item.articleId || item.mediaId"
           class="mb-24rpx overflow-hidden rounded-12rpx bg-white shadow-sm"
         >
-          <NewsCard :articles="getArticles(item)" />
+          <NewsCard :articles="getArticles(item)" @article-click="article => openUrl(article.url)" />
           <view class="p-24rpx">
-            <view class="mb-20rpx break-all text-26rpx text-[#666]">
+            <view class="mb-20rpx break-all text-24rpx text-[#999]">
               Article ID：{{ item.articleId || '-' }}
             </view>
             <wd-button
@@ -58,6 +58,7 @@ import { ref } from 'vue'
 import { deleteFreePublish, getFreePublishPage } from '@/api/mp/freePublish'
 import { useAccess } from '@/hooks/useAccess'
 import { navigateBackPlus } from '@/utils'
+import { openUrl } from '@/utils/url'
 import AccountPicker from '@/pages-mp/account/components/account-picker.vue'
 import NewsCard from '../components/news-card.vue'
 

@@ -29,13 +29,13 @@
           :key="item.mediaId"
           class="mb-24rpx overflow-hidden rounded-12rpx bg-white shadow-sm"
         >
-          <NewsCard :articles="getArticles(item)" />
+          <NewsCard :articles="getArticles(item)" @article-click="article => openUrl(article.url)" />
           <view class="p-24rpx">
-            <view class="mb-12rpx break-all text-26rpx text-[#666]">
-              Media ID：{{ item.mediaId || '-' }}
-            </view>
-            <view class="mb-20rpx text-24rpx text-[#999]">
+            <view class="mb-12rpx text-24rpx text-[#999]">
               更新时间：{{ item.updateTime ? formatDateTime(item.updateTime * 1000) : '-' }}
+            </view>
+            <view class="mb-20rpx break-all text-24rpx text-[#999]">
+              Media ID：{{ item.mediaId || '-' }}
             </view>
             <view class="flex gap-16rpx">
               <wd-button
@@ -84,6 +84,7 @@ import { submitFreePublish } from '@/api/mp/freePublish'
 import { useAccess } from '@/hooks/useAccess'
 import { navigateBackPlus } from '@/utils'
 import { formatDateTime } from '@/utils/date'
+import { openUrl } from '@/utils/url'
 import AccountPicker from '@/pages-mp/account/components/account-picker.vue'
 import NewsCard from '../components/news-card.vue'
 

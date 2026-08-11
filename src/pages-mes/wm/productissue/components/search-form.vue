@@ -8,8 +8,6 @@
   <wd-popup
     v-model="visible"
     position="top"
-    transition="fade"
-    :duration="0"
     :custom-style="getTopPopupStyle()"
     :modal-style="getTopPopupModalStyle()"
     @close="visible = false"
@@ -27,25 +25,8 @@
         </view>
         <wd-input v-model="formData.name" placeholder="请输入领料单名称" clearable />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          领料日期
-        </view>
-        <wd-calendar v-model="issueDateRange" type="daterange" placeholder="请选择领料日期范围" />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          单据状态
-        </view>
-        <wd-picker
-          v-model="formData.status"
-          :columns="statusOptions"
-          label-key="label"
-          value-key="value"
-          placeholder="请选择单据状态"
-          clearable
-        />
-      </view>
+      <yd-search-date-range v-model="issueDateRange" label="领料日期" />
+      <yd-search-picker v-model="formData.status" label="单据状态" :dict-type="DICT_TYPE.MES_WM_PRODUCT_ISSUE_STATUS" all-option />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -59,26 +40,23 @@
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——① wd-picker（工作站）改 yd-search-picker（:columns + all-option）；② wd-calendar 日期范围改全局 yd-search-date-range；③ wd-popup 去掉 transition="fade" :duration="0"
-import type { WmProductIssueQueryParams } from '@/api/mes/wm/productissue'
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDateRange } from '@/utils/date'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 
 const emit = defineEmits<{
-  search: [data: WmProductIssueQueryParams]
+  search: [data: Record<string, any>]
   reset: []
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const issueDateRange = ref<[string, string]>() // 领料日期范围
-const statusOptions = getIntDictOptions(DICT_TYPE.MES_WM_PRODUCT_ISSUE_STATUS) // 状态选项
+const issueDateRange = ref<[number | undefined, number | undefined]>() // 领料日期范围
 const formData = reactive({
   code: '',
   name: '',
-  status: undefined as number | undefined,
+  status: undefined,
 }) // 搜索表单数据
 
 /** 搜索条件 placeholder 拼接 */
@@ -99,29 +77,15 @@ const placeholder = computed(() => {
   return conditions.length > 0 ? conditions.join(' | ') : '搜索生产领料'
 })
 
-/** 构造搜索参数 */
-function buildParams() {
-  const params: WmProductIssueQueryParams = {}
-  if (formData.code) {
-    params.code = formData.code
-  }
-  if (formData.name) {
-    params.name = formData.name
-  }
-  if (formData.status != null) {
-    params.status = formData.status
-  }
-  const range = formatDateRange(issueDateRange.value)
-  if (range) {
-    params.issueDate = range
-  }
-  return params
-}
-
 /** 搜索按钮操作 */
 function handleSearch() {
   visible.value = false
-  emit('search', buildParams())
+  emit('search', {
+    code: formData.code || undefined,
+    name: formData.name || undefined,
+    issueDate: formatDateRange(issueDateRange.value),
+    status: formData.status,
+  })
 }
 
 /** 重置按钮操作 */

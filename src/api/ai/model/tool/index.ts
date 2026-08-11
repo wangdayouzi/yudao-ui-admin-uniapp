@@ -2,30 +2,31 @@ import type { PageParam, PageResult } from '@/http/types'
 import { http } from '@/http/http'
 
 /** AI 工具 */
-export interface ToolVO {
+export interface Tool {
   id?: number
   name?: string
   description?: string
   status?: number
+  createTime?: string
 }
 
 /** 查询工具分页 */
 export function getToolPage(params: PageParam) {
-  return http.get<PageResult<ToolVO>>('/ai/tool/page', params)
+  return http.get<PageResult<Tool>>('/ai/tool/page', params)
 }
 
 /** 查询工具详情 */
 export function getTool(id: number) {
-  return http.get<ToolVO>(`/ai/tool/get?id=${id}`)
+  return http.get<Tool>(`/ai/tool/get?id=${id}`)
 }
 
 /** 新增工具 */
-export function createTool(data: ToolVO) {
+export function createTool(data: Tool) {
   return http.post<number>('/ai/tool/create', data)
 }
 
 /** 修改工具 */
-export function updateTool(data: ToolVO) {
+export function updateTool(data: Tool) {
   return http.put<boolean>('/ai/tool/update', data)
 }
 
@@ -36,15 +37,5 @@ export function deleteTool(id: number) {
 
 /** 获取工具简单列表 */
 export function getToolSimpleList() {
-  return http.get<ToolVO[]>('/ai/tool/simple-list')
-}
-
-/** AI 工具 API */
-export const ToolApi = {
-  getToolPage,
-  getTool,
-  createTool,
-  updateTool,
-  deleteTool,
-  getToolSimpleList,
+  return http.get<Tool[]>('/ai/tool/simple-list')
 }

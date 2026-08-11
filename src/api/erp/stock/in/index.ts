@@ -5,6 +5,7 @@ import { http } from '@/http/http'
 export interface StockInItem {
   id?: number
   warehouseId?: number
+  warehouseName?: string
   productId?: number
   productName?: string
   productUnitName?: string
@@ -21,10 +22,15 @@ export interface StockIn {
   id?: number // 入库编号
   no?: string // 入库单号
   supplierId?: number // 供应商编号
-  inTime?: string | number | Date // 入库时间
+  supplierName?: string // 供应商名称
+  inTime?: Date | string | number // 入库时间
   totalCount?: number // 合计数量
   totalPrice?: number // 合计金额，单位：元
   status?: number // 状态
+  creator?: string // 创建人
+  creatorName?: string // 创建人名称
+  createTime?: Date // 创建时间
+  productNames?: string // 产品信息
   remark?: string // 备注
   fileUrl?: string // 附件地址
   items?: StockInItem[] // 入库明细

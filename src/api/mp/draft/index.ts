@@ -7,6 +7,7 @@ export interface DraftArticle {
   digest?: string
   content?: string
   contentSourceUrl?: string
+  url?: string // 图文在微信侧的可访问链接（列表预览用）
   thumbMediaId?: string
   thumbUrl?: string
   showCoverPic?: number

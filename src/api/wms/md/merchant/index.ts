@@ -16,7 +16,7 @@ export interface Merchant {
   contact?: string
   email?: string
   remark?: string
-  createTime?: Date | string
+  createTime?: Date
 }
 
 /** WMS 往来企业精简列表查询参数 */
@@ -30,7 +30,7 @@ export function getMerchantPage(params: PageParam) {
 }
 
 /** 查询往来企业精简列表 */
-export function getMerchantSimpleList(params?: MerchantSimpleListReq) {
+export function getSimpleMerchantList(params?: MerchantSimpleListReq) {
   return http.get<Merchant[]>('/wms/merchant/simple-list', params)
 }
 

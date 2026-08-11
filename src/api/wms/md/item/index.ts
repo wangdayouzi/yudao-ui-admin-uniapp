@@ -14,17 +14,12 @@ export interface Item {
   brandName?: string
   remark?: string
   skus?: ItemSku[]
-  createTime?: Date | string
+  createTime?: Date
 }
 
 /** 查询商品分页 */
 export function getItemPage(params: PageParam) {
   return http.get<PageResult<Item>>('/wms/item/page', params)
-}
-
-/** 查询商品精简列表 */
-export function getItemSimpleList(params?: Record<string, any>) {
-  return http.get<Item[]>('/wms/item/simple-list', params)
 }
 
 /** 查询商品详情 */

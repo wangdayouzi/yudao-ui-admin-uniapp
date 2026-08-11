@@ -31,12 +31,9 @@
         </view>
         <wd-input v-model="formData.orderSourceCode" placeholder="请输入来源单据编号" clearable />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          需求日期
-        </view>
-        <wd-calendar v-model="formData.requestDate" type="daterange" placeholder="请选择需求日期范围" />
-      </view>
+      <ItemSearchPicker ref="itemSearchPickerRef" v-model="formData.productId" label="产品" placeholder="请选择产品" item-or-product="PRODUCT" title="选择产品" />
+      <ClientSearchPicker ref="clientSearchPickerRef" v-model="formData.clientId" label="客户" placeholder="请选择客户" />
+      <yd-search-date-range v-model="formData.requestDate" label="需求日期" />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -50,30 +47,36 @@
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——wd-calendar 日期范围改全局 yd-search-date-range
-import type { ProWorkOrderQueryParams } from '@/api/mes/pro/workorder'
 import { computed, reactive, ref } from 'vue'
-import { formatDateRange } from '@/utils/date'
+import { formatDate, formatDateRange } from '@/utils/date'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
+import ClientSearchPicker from '@/pages-mes/md/client/components/client-search-picker.vue'
+import ItemSearchPicker from '@/pages-mes/md/item/components/item-search-picker.vue'
 
 interface SearchFormData {
   code?: string
   name?: string
   orderSourceCode?: string
-  requestDate?: [number, number]
+  productId?: number
+  clientId?: number
+  requestDate?: [number | undefined, number | undefined]
 }
 
 const emit = defineEmits<{
-  search: [data: Partial<ProWorkOrderQueryParams>]
+  search: [data: Record<string, any>]
   reset: []
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
+const itemSearchPickerRef = ref<InstanceType<typeof ItemSearchPicker>>() // 产品搜索选择器
+const clientSearchPickerRef = ref<InstanceType<typeof ClientSearchPicker>>() // 客户搜索选择器
 const formData = reactive<SearchFormData>({
   code: undefined,
   name: undefined,
   orderSourceCode: undefined,
-  requestDate: undefined,
+  productId: undefined,
+  clientId: undefined,
+  requestDate: [undefined, undefined],
 })
 
 /** 搜索条件 placeholder 拼接 */
@@ -88,8 +91,14 @@ const placeholder = computed(() => {
   if (formData.orderSourceCode) {
     conditions.push(`来源:${formData.orderSourceCode}`)
   }
-  if (formData.requestDate?.length === 2) {
-    conditions.push('需求日期:已选')
+  if (formData.productId) {
+    conditions.push(`产品:${itemSearchPickerRef.value?.format(formData.productId) || formData.productId}`)
+  }
+  if (formData.clientId) {
+    conditions.push(`客户:${clientSearchPickerRef.value?.format(formData.clientId) || formData.clientId}`)
+  }
+  if (formData.requestDate?.[0] && formData.requestDate?.[1]) {
+    conditions.push(`需求日期:${formatDate(formData.requestDate[0])}~${formatDate(formData.requestDate[1])}`)
   }
   return conditions.length > 0 ? conditions.join(' | ') : '搜索待排产工单'
 })
@@ -101,6 +110,8 @@ function handleSearch() {
     code: formData.code || undefined,
     name: formData.name || undefined,
     orderSourceCode: formData.orderSourceCode || undefined,
+    productId: formData.productId,
+    clientId: formData.clientId,
     requestDate: formatDateRange(formData.requestDate),
   })
 }
@@ -110,10 +121,10 @@ function handleReset() {
   formData.code = undefined
   formData.name = undefined
   formData.orderSourceCode = undefined
-  formData.requestDate = undefined
+  formData.productId = undefined
+  formData.clientId = undefined
+  formData.requestDate = [undefined, undefined]
   visible.value = false
   emit('reset')
 }
-
-defineExpose({ handleReset })
 </script>

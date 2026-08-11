@@ -5,6 +5,7 @@ import { http } from '@/http/http'
 export interface StockCheckItem {
   id?: number
   warehouseId?: number
+  warehouseName?: string
   productId?: number
   productName?: string
   productUnitName?: string
@@ -21,10 +22,14 @@ export interface StockCheckItem {
 export interface StockCheck {
   id?: number // 盘点编号
   no?: string // 盘点单号
-  checkTime?: string | number | Date // 盘点时间
+  checkTime?: Date | string | number // 盘点时间
   totalCount?: number // 合计数量
   totalPrice?: number // 合计金额，单位：元
   status?: number // 状态
+  creator?: string // 创建人
+  creatorName?: string // 创建人名称
+  createTime?: Date // 创建时间
+  productNames?: string // 产品信息
   remark?: string // 备注
   fileUrl?: string // 附件地址
   items?: StockCheckItem[] // 盘点明细

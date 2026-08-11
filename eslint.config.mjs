@@ -19,6 +19,8 @@ export default uniHelper({
     'src/manifest.json',
     // 忽略自动生成文件
     'src/service/**',
+    // 忽略非项目维护的 lime-echart 组件
+    'src/pages-statistics/components/lime-echart/**',
   ],
   // https://eslint-config.antfu.me/rules
   rules: {
@@ -32,6 +34,7 @@ export default uniHelper({
     'jsdoc/require-returns-description': 'off',
     'ts/no-empty-object-type': 'off',
     'no-extend-native': 'off',
+    'import/no-duplicates': ['error', { 'prefer-inline': false }], // 类型和值允许分开导入
     // uni 条件编译注释可能包裹 import，自动排序会破坏平台条件边界
     'perfectionist/sort-imports': 'off',
     'style/brace-style': 'off', // 参考 https://github.com/antfu/eslint-config/issues/322 帖子：关闭此规则，使用下面的 brace-style 规则

@@ -13,8 +13,8 @@
     @close="visible = false"
   >
     <view class="yd-search-form-container">
-      <AppPicker v-model="formData.appId" @change="name => formData.appName = name" />
-      <yd-search-picker v-model="formData.channelCode" label="退款渠道" :dict-type="DICT_TYPE.PAY_CHANNEL_CODE" dict-kind="str" all-option all-value="" />
+      <AppSearchPicker ref="appPickerRef" v-model="formData.appId" />
+      <yd-search-picker ref="channelPickerRef" v-model="formData.channelCode" label="退款渠道" :dict-type="DICT_TYPE.PAY_CHANNEL_CODE" dict-kind="str" all-option />
       <view class="yd-search-form-item">
         <view class="yd-search-form-label">
           商户支付单号
@@ -39,7 +39,7 @@
         </view>
         <wd-input v-model="formData.channelRefundNo" placeholder="请输入渠道退款单号" clearable />
       </view>
-      <yd-search-picker v-model="formData.status" label="退款状态" :dict-type="DICT_TYPE.PAY_REFUND_STATUS" all-option />
+      <yd-search-picker ref="statusPickerRef" v-model="formData.status" label="退款状态" :dict-type="DICT_TYPE.PAY_REFUND_STATUS" all-option />
       <yd-search-date-range v-model="formData.createTime" label="创建时间" />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
@@ -54,12 +54,12 @@
 </template>
 
 <script lang="ts" setup>
+import type { YdSearchPickerExpose } from '@/components/yudao-ui'
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDate, formatDateRange } from '@/utils/date'
-import AppPicker from '@/pages-pay/app/components/app-picker.vue'
+import AppSearchPicker from '@/pages-pay/app/components/app-search-picker.vue'
 
 const emit = defineEmits<{
   search: [data: Record<string, any>]
@@ -67,26 +67,28 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
+const appPickerRef = ref<InstanceType<typeof AppSearchPicker>>()
+const channelPickerRef = ref<YdSearchPickerExpose>()
+const statusPickerRef = ref<YdSearchPickerExpose>()
 const formData = reactive({
-  appId: 0,
-  appName: '',
-  channelCode: '',
+  appId: undefined as number | undefined,
+  channelCode: undefined as string | undefined,
   merchantOrderId: undefined as string | undefined,
   merchantRefundId: undefined as string | undefined,
   channelOrderNo: undefined as string | undefined,
   channelRefundNo: undefined as string | undefined,
-  status: -1,
+  status: undefined as number | undefined,
   createTime: [undefined, undefined] as [number | undefined, number | undefined],
 }) // 搜索表单数据
 
 /** 搜索条件 placeholder 拼接 */
 const placeholder = computed(() => {
   const conditions: string[] = []
-  if (formData.appId) {
-    conditions.push(`应用:${formData.appName}`)
+  if (formData.appId !== undefined) {
+    conditions.push(`应用:${appPickerRef.value?.format(formData.appId) || formData.appId}`)
   }
-  if (formData.channelCode) {
-    conditions.push(`渠道:${getDictLabel(DICT_TYPE.PAY_CHANNEL_CODE, formData.channelCode)}`)
+  if (formData.channelCode !== undefined) {
+    conditions.push(`渠道:${channelPickerRef.value?.format(formData.channelCode) || formData.channelCode}`)
   }
   if (formData.merchantOrderId) {
     conditions.push(`支付单号:${formData.merchantOrderId}`)
@@ -100,8 +102,8 @@ const placeholder = computed(() => {
   if (formData.channelRefundNo) {
     conditions.push(`渠道退款单:${formData.channelRefundNo}`)
   }
-  if (formData.status !== -1) {
-    conditions.push(`状态:${getDictLabel(DICT_TYPE.PAY_REFUND_STATUS, formData.status)}`)
+  if (formData.status !== undefined) {
+    conditions.push(`状态:${statusPickerRef.value?.format(formData.status) || formData.status}`)
   }
   if (formData.createTime?.[0] && formData.createTime?.[1]) {
     conditions.push(`时间:${formatDate(formData.createTime[0])}~${formatDate(formData.createTime[1])}`)
@@ -113,27 +115,26 @@ const placeholder = computed(() => {
 function handleSearch() {
   visible.value = false
   emit('search', {
-    appId: formData.appId ? Number(formData.appId) : undefined,
-    channelCode: formData.channelCode || undefined,
+    appId: formData.appId,
+    channelCode: formData.channelCode,
     merchantOrderId: formData.merchantOrderId || undefined,
     merchantRefundId: formData.merchantRefundId || undefined,
     channelOrderNo: formData.channelOrderNo || undefined,
     channelRefundNo: formData.channelRefundNo || undefined,
-    status: formData.status === -1 ? undefined : formData.status,
+    status: formData.status,
     createTime: formatDateRange(formData.createTime),
   })
 }
 
 /** 重置按钮操作 */
 function handleReset() {
-  formData.appId = 0
-  formData.appName = ''
-  formData.channelCode = ''
+  formData.appId = undefined
+  formData.channelCode = undefined
   formData.merchantOrderId = undefined
   formData.merchantRefundId = undefined
   formData.channelOrderNo = undefined
   formData.channelRefundNo = undefined
-  formData.status = -1
+  formData.status = undefined
   formData.createTime = [undefined, undefined]
   visible.value = false
   emit('reset')

@@ -1,7 +1,10 @@
 <template>
+  <!-- 搜索框入口 -->
   <view @click="visible = true">
     <wd-search :placeholder="placeholder" hide-cancel disabled />
   </view>
+
+  <!-- 搜索弹窗 -->
   <wd-popup v-model="visible" position="top" :custom-style="getTopPopupStyle()" :modal-style="getTopPopupModalStyle()" @close="visible = false">
     <view class="yd-search-form-container">
       <view class="yd-search-form-item">
@@ -28,16 +31,8 @@
         </view>
         <wd-input v-model="formData.specification" placeholder="请输入型号规格" clearable />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          状态
-        </view>
-        <wd-radio-group v-model="formData.status" type="button">
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.MES_TM_TOOL_STATUS)" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <ToolTypeSearchPicker ref="toolTypeSearchPickerRef" v-model="formData.toolTypeId" label="工具类型" />
+      <yd-search-picker v-model="formData.status" label="状态" :dict-type="DICT_TYPE.MES_TM_TOOL_STATUS" all-option />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -51,74 +46,68 @@
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——wd-radio-group 状态/类型筛选改 yd-search-picker（配 dict-kind + all-option）
-import type { TmToolQueryParams } from '@/api/mes/tm/tool'
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
+import ToolTypeSearchPicker from '@/pages-mes/tm/tool/type/components/tool-type-search-picker.vue'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 
-const emit = defineEmits<{ search: [data: TmToolQueryParams], reset: [] }>()
-const visible = ref(false)
-const formData = reactive<TmToolQueryParams>({ code: '', name: '', brand: '', specification: '', status: undefined })
-const placeholder = computed(() => {
-  const c: string[] = []
+const emit = defineEmits<{ search: [data: Record<string, any>], reset: [] }>()
+const visible = ref(false) // 搜索弹窗显示状态
+const toolTypeSearchPickerRef = ref<InstanceType<typeof ToolTypeSearchPicker>>() // 工具类型搜索选择器
+const formData = reactive({
+  code: undefined as string | undefined,
+  name: undefined as string | undefined,
+  brand: undefined as string | undefined,
+  specification: undefined as string | undefined,
+  toolTypeId: undefined as number | undefined,
+  status: undefined,
+}) // 搜索表单数据
+const placeholder = computed(() => { // 搜索条件展示文案
+  const conditions: string[] = []
   if (formData.code) {
-    c.push(`编码:${formData.code}`)
+    conditions.push(`编码:${formData.code}`)
   }
   if (formData.name) {
-    c.push(`名称:${formData.name}`)
+    conditions.push(`名称:${formData.name}`)
   }
   if (formData.brand) {
-    c.push(`品牌:${formData.brand}`)
+    conditions.push(`品牌:${formData.brand}`)
   }
   if (formData.specification) {
-    c.push(`规格:${formData.specification}`)
+    conditions.push(`规格:${formData.specification}`)
   }
-  if (formData.status != null) {
-    c.push(`状态:${getDictLabel(DICT_TYPE.MES_TM_TOOL_STATUS, formData.status)}`)
+  if (formData.toolTypeId !== undefined) {
+    conditions.push(`类型:${toolTypeSearchPickerRef.value?.format(formData.toolTypeId) || formData.toolTypeId}`)
   }
-  return c.length > 0 ? c.join(' | ') : '搜索工具'
+  if (formData.status !== undefined) {
+    conditions.push(`状态:${getDictLabel(DICT_TYPE.MES_TM_TOOL_STATUS, formData.status)}`)
+  }
+  return conditions.length > 0 ? conditions.join(' | ') : '搜索工具'
 })
 
+/** 搜索按钮操作 */
 function handleSearch() {
   visible.value = false
-  const p: TmToolQueryParams = {}
-  if (formData.code) {
-    p.code = formData.code
-  }
-  if (formData.name) {
-    p.name = formData.name
-  }
-  if (formData.brand) {
-    p.brand = formData.brand
-  }
-  if (formData.specification) {
-    p.specification = formData.specification
-  }
-  if (formData.status != null) {
-    p.status = formData.status
-  }
-  emit('search', p)
+  emit('search', {
+    code: formData.code || undefined,
+    name: formData.name || undefined,
+    brand: formData.brand || undefined,
+    specification: formData.specification || undefined,
+    toolTypeId: formData.toolTypeId,
+    status: formData.status,
+  })
 }
 
+/** 重置按钮操作 */
 function handleReset() {
-  formData.code = ''
-  formData.name = ''
-  formData.brand = ''
-  formData.specification = ''
+  formData.code = undefined
+  formData.name = undefined
+  formData.brand = undefined
+  formData.specification = undefined
+  formData.toolTypeId = undefined
   formData.status = undefined
   visible.value = false
   emit('reset')
 }
-
-function resetFields() {
-  formData.code = ''
-  formData.name = ''
-  formData.brand = ''
-  formData.specification = ''
-  formData.status = undefined
-}
-
-defineExpose({ resetFields })
 </script>

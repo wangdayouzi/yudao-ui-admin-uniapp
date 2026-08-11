@@ -386,7 +386,7 @@ const attachmentUploadMethod: UploadMethod = (file, formData, options) => {
     return
   }
 
-  return uploadFileToServer(filePath, 'bpm/task-attachment')
+  return uploadFileToServer(filePath)
     .then((url) => {
       options.onSuccess({
         data: JSON.stringify({ code: 0, data: url }),

@@ -18,6 +18,7 @@ export interface Supplier {
   bankName?: string // 开户行
   bankAccount?: string // 开户账号
   bankAddress?: string // 开户地址
+  createTime?: Date // 创建时间
 }
 
 /** 获取供应商分页列表 */

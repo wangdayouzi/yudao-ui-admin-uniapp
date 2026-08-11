@@ -15,10 +15,10 @@ export interface CheckOrder {
   totalPrice?: number
   actualPrice?: number
   details?: CheckOrderDetail[]
-  createTime?: Date | string
+  createTime?: Date
   creator?: string
   creatorName?: string
-  updateTime?: Date | string
+  updateTime?: Date
   updater?: string
   updaterName?: string
 }

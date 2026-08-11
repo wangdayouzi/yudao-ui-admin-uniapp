@@ -18,10 +18,10 @@ export interface ShipmentOrder {
   totalQuantity?: number
   totalPrice?: number
   details?: ShipmentOrderDetail[]
-  createTime?: Date | string
+  createTime?: Date
   creator?: string
   creatorName?: string
-  updateTime?: Date | string
+  updateTime?: Date
   updater?: string
   updaterName?: string
 }

@@ -17,29 +17,40 @@
           新增图文
         </wd-button>
       </view>
-      <scroll-view scroll-x>
-        <view class="flex gap-16rpx">
-          <view
-            v-for="(article, index) in articles"
-            :key="index"
-            class="shrink-0 border rounded-8rpx px-20rpx py-12rpx text-26rpx"
-            :class="activeIndex === index ? 'border-[#1677ff] text-[#1677ff]' : 'border-[#eee] text-[#666]'"
-            @click="handleSwitchArticle(index)"
-          >
-            {{ index + 1 }}. {{ article.title || '未命名图文' }}
+      <view class="flex flex-col gap-12rpx">
+        <view
+          v-for="(article, index) in articles"
+          :key="index"
+          class="border rounded-8rpx px-20rpx py-16rpx"
+          :class="activeIndex === index ? 'border-[#1890ff] bg-[#f0f7ff]' : 'border-[#eee] bg-white'"
+          @click="handleSwitchArticle(index)"
+        >
+          <view class="flex items-center gap-16rpx">
+            <view
+              class="h-40rpx w-40rpx flex shrink-0 items-center justify-center rounded-full text-24rpx"
+              :class="activeIndex === index ? 'bg-[#1890ff] text-white' : 'bg-[#f5f5f5] text-[#666]'"
+            >
+              {{ index + 1 }}
+            </view>
+            <view
+              class="min-w-0 flex-1 truncate text-26rpx"
+              :class="activeIndex === index ? 'text-[#1890ff] font-medium' : 'text-[#333]'"
+            >
+              {{ article.title || '未命名图文' }}
+            </view>
+          </view>
+          <view v-if="activeIndex === index" class="mt-16rpx flex gap-12rpx">
+            <wd-button class="flex-1" size="small" variant="plain" :disabled="index === 0" @click.stop="handleMoveArticle(index, -1)">
+              上移
+            </wd-button>
+            <wd-button class="flex-1" size="small" variant="plain" :disabled="index === articles.length - 1" @click.stop="handleMoveArticle(index, 1)">
+              下移
+            </wd-button>
+            <wd-button v-if="isCreating" class="flex-1" size="small" type="danger" :disabled="articles.length <= 1" @click.stop="handleRemoveArticle(index)">
+              删除
+            </wd-button>
           </view>
         </view>
-      </scroll-view>
-      <view class="mt-16rpx flex gap-12rpx">
-        <wd-button class="flex-1" size="small" variant="plain" :disabled="activeIndex === 0" @click="handleMoveArticle(-1)">
-          上移
-        </wd-button>
-        <wd-button class="flex-1" size="small" variant="plain" :disabled="activeIndex === articles.length - 1" @click="handleMoveArticle(1)">
-          下移
-        </wd-button>
-        <wd-button class="flex-1" size="small" type="danger" :disabled="!isCreating || articles.length <= 1" @click="handleRemoveArticle">
-          删除
-        </wd-button>
       </view>
     </view>
 
@@ -107,21 +118,18 @@
 <script lang="ts" setup>
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { NewsItem } from '@/api/mp/draft'
-import { onLoad } from '@dcloudio/uni-app'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { createDraft, createEmptyNewsItem, updateDraft } from '@/api/mp/draft'
 import { delay, navigateBackPlus } from '@/utils'
 import { createFormSchema } from '@/utils/wot'
 import MaterialPicker from '@/pages-mp/material/components/material-picker.vue'
 import { useMaterialUpload } from '@/pages-mp/utils/upload'
-import { getMpRouteNumber, getMpRouteString, useMpRouteParams } from '../../utils/route'
 
 const props = defineProps<{
   accountId?: number | any
   mediaId?: string
 }>()
-const { routeParams, syncRouteParams } = useMpRouteParams(props)
 
 definePage({
   style: {
@@ -131,8 +139,8 @@ definePage({
 })
 
 const toast = useToast()
-const accountId = computed(() => getMpRouteNumber(routeParams.accountId))
-const mediaId = computed(() => getMpRouteString(routeParams.mediaId))
+const accountId = computed(() => props.accountId ? Number(props.accountId) : undefined)
+const mediaId = computed(() => props.mediaId || '')
 const getTitle = computed(() => mediaId.value ? '编辑公众号草稿' : '新增公众号草稿')
 const isCreating = computed(() => !mediaId.value) // 仅新建态可增删图文（编辑走 updateDraft 按 index 改写，增删会保存失败/微信端残留）
 const formLoading = ref(false) // 表单提交状态
@@ -141,8 +149,8 @@ const articles = ref<NewsItem[]>([formData.value]) // 图文列表
 const activeIndex = ref(0) // 当前图文索引
 const formSchema = createFormSchema({
   title: [{ required: true, message: '标题不能为空' }],
-  thumbMediaId: [{ required: true, message: '封面 MediaID 不能为空' }],
   content: [{ required: true, message: '正文不能为空' }],
+  // 注：封面 thumbMediaId 渲染为 wd-cell（无 wd-form-item），不入 schema；缺封面由 handleSubmit 的「第 N 篇未填写完整」守卫提示
 })
 const formRef = ref<FormInstance>() // 表单组件引用
 const materialPickerVisible = ref(false) // 封面素材选择弹窗
@@ -212,24 +220,24 @@ function handleAddArticle() {
 }
 
 /** 移动图文 */
-function handleMoveArticle(offset: number) {
-  const targetIndex = activeIndex.value + offset
+function handleMoveArticle(index: number, offset: number) {
+  const targetIndex = index + offset
   if (targetIndex < 0 || targetIndex >= articles.value.length) {
     return
   }
-  const current = articles.value[activeIndex.value]
-  articles.value[activeIndex.value] = articles.value[targetIndex]
+  const current = articles.value[index]
+  articles.value[index] = articles.value[targetIndex]
   articles.value[targetIndex] = current
   handleSwitchArticle(targetIndex)
 }
 
 /** 删除图文 */
-function handleRemoveArticle() {
-  if (articles.value.length <= 1) {
+function handleRemoveArticle(index = activeIndex.value) {
+  if (!isCreating.value || articles.value.length <= 1) {
     return
   }
-  articles.value.splice(activeIndex.value, 1)
-  handleSwitchArticle(Math.min(activeIndex.value, articles.value.length - 1))
+  articles.value.splice(index, 1)
+  handleSwitchArticle(Math.min(index, articles.value.length - 1))
 }
 
 /** 提交表单 */
@@ -242,7 +250,6 @@ async function handleSubmit() {
     toast.show('缺少公众号编号')
     return
   }
-
   const invalidIndex = articles.value.findIndex(item => !item.title || !item.thumbMediaId || !item.content)
   if (invalidIndex >= 0) {
     handleSwitchArticle(invalidIndex)
@@ -267,8 +274,7 @@ async function handleSubmit() {
 }
 
 /** 初始化 */
-onLoad((query) => {
-  syncRouteParams(query)
+onMounted(() => {
   getDetail()
 })
 </script>

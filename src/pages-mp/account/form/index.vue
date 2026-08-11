@@ -48,18 +48,15 @@
 <script lang="ts" setup>
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { Account } from '@/api/mp/account'
-import { onLoad } from '@dcloudio/uni-app'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { createAccount, getAccount, updateAccount } from '@/api/mp/account'
 import { delay, navigateBackPlus } from '@/utils'
 import { createFormSchema } from '@/utils/wot'
-import { getMpRouteNumber, useMpRouteParams } from '../../utils/route'
 
 const props = defineProps<{
   id?: number | any
 }>()
-const { routeParams, syncRouteParams } = useMpRouteParams(props)
 
 definePage({
   style: {
@@ -69,8 +66,7 @@ definePage({
 })
 
 const toast = useToast()
-const id = computed(() => getMpRouteNumber(routeParams.id))
-const getTitle = computed(() => id.value ? '编辑公众号账号' : '新增公众号账号')
+const getTitle = computed(() => props.id ? '编辑公众号账号' : '新增公众号账号')
 const formLoading = ref(false) // 表单提交状态
 const formData = ref<Account>({
   id: undefined,
@@ -98,11 +94,11 @@ function handleBack() {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!id.value) {
+  if (!props.id) {
     return
   }
   try {
-    formData.value = await getAccount(id.value)
+    formData.value = await getAccount(Number(props.id))
   } catch {
     // 请求层已提示错误，保留默认表单
   }
@@ -117,8 +113,8 @@ async function handleSubmit() {
 
   formLoading.value = true
   try {
-    if (id.value) {
-      await updateAccount({ ...formData.value, id: id.value })
+    if (props.id) {
+      await updateAccount({ ...formData.value, id: Number(props.id) })
       toast.success('修改成功')
     } else {
       await createAccount(formData.value)
@@ -132,8 +128,7 @@ async function handleSubmit() {
 }
 
 /** 初始化 */
-onLoad((query) => {
-  syncRouteParams(query)
+onMounted(() => {
   getDetail()
 })
 </script>

@@ -28,6 +28,7 @@
 import type { ImageMode } from '@wot-ui/ui/components/wd-img/types'
 import type { UploadBeforeUpload, UploadFile, UploadFileItem, UploadFileType, UploadMethod } from '@wot-ui/ui/components/wd-upload/types'
 import { computed, ref, watch } from 'vue'
+import { getFileNameFromUrl } from '@/utils/download'
 import { uploadFileFromPath } from '@/utils/uploadFile'
 
 const props = withDefaults(defineProps<{
@@ -53,7 +54,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: string[]]
-  'uploaded': [value: string]
+  'uploaded': [value: string, name?: string]
   'success': [value: any]
   'fail': [value: any]
   'remove': [value: any]
@@ -63,15 +64,6 @@ const emit = defineEmits<{
 // 避免上传过程中因外部 modelValue 回流而重置列表、打断仍在上传的文件
 const innerFileList = ref<UploadFile[]>([])
 const maxSizeBytes = computed(() => (props.fileSize && props.fileSize > 0 ? props.fileSize * 1024 * 1024 : Number.MAX_VALUE))
-
-/** 解析文件名 */
-function getFileName(url: string) {
-  if (!url) {
-    return ''
-  }
-  const path = url.split('?')[0]
-  return decodeURIComponent(path.slice(Math.max(0, path.lastIndexOf('/') + 1))) || '附件'
-}
 
 /** 解析单个文件的访问地址 */
 function resolveUrl(item: UploadFileItem) {
@@ -104,7 +96,7 @@ watch(
     if (urls.length === current.length && urls.every((url, index) => url === current[index])) {
       return
     }
-    innerFileList.value = urls.map(url => ({ url, name: getFileName(url), status: 'success' }))
+    innerFileList.value = urls.map(url => ({ url, name: getFileNameFromUrl(url) || '附件', status: 'success' }))
   },
   { immediate: true },
 )
@@ -177,7 +169,7 @@ function handleChange({ fileList }: { fileList: UploadFileItem[] }) {
 function handleSuccess(event: { file: UploadFileItem }) {
   const url = resolveUrl(event.file)
   if (url) {
-    emit('uploaded', url)
+    emit('uploaded', url, event.file.name)
   }
   emit('success', event)
 }

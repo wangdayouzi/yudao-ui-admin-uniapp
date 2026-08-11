@@ -72,7 +72,13 @@ function doUploadMaterial(path: string, filePath: string, data: Record<string, a
       },
       formData: data,
       success: (res) => {
-        const result = JSON.parse(res.data)
+        let result: any
+        try {
+          result = JSON.parse(res.data)
+        } catch {
+          reject(new Error('上传响应解析失败'))
+          return
+        }
         if (res.statusCode >= 200 && res.statusCode < 300 && (result.code === 0 || result.code === 200)) {
           resolve(result.data)
         } else {

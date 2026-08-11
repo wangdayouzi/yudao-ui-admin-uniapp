@@ -10,8 +10,8 @@
           <wd-cell title="收款单号" :value="formData.no || '保存时自动生成'" />
           <wd-form-item title="收款时间" title-width="220rpx" prop="receiptTime" is-link :value="formatDate(formData.receiptTime) || ''" placeholder="请选择收款时间" @click="dateVisible.receiptTime = true" />
           <wd-datetime-picker v-model="formData.receiptTime" v-model:visible="dateVisible.receiptTime" title="请选择收款时间" type="date" />
-          <ErpPicker v-model="formData.customerId" label="客户" label-width="220rpx" prop="customerId" source="customer" placeholder="请选择客户" />
-          <ErpPicker v-model="formData.financeUserId" label="财务人员" label-width="220rpx" source="user" placeholder="请选择财务人员" />
+          <CustomerFormPicker v-model="formData.customerId" prop="customerId" />
+          <UserFormPicker v-model="formData.financeUserId" label="财务人员" label-width="220rpx" placeholder="请选择财务人员" />
           <wd-form-item title="备注" title-width="220rpx" prop="remark">
             <wd-textarea v-model="formData.remark" placeholder="请输入备注" :maxlength="500" show-word-limit clearable />
           </wd-form-item>
@@ -20,28 +20,28 @@
           </wd-form-item>
         </wd-cell-group>
 
+        <!-- 收款明细 -->
         <view class="flex items-center justify-between px-24rpx py-16rpx">
           <text class="text-28rpx text-[#333] font-semibold">销售出库、退货单</text>
           <view class="flex gap-12rpx">
-            <wd-button size="small" type="primary" plain @click="itemEditorRef?.openSaleOutPicker()">
+            <wd-button size="small" type="primary" variant="plain" @click="itemEditorRef?.openSaleOutPicker()">
               销售出库
             </wd-button>
-            <wd-button size="small" type="primary" plain @click="itemEditorRef?.openSaleReturnPicker()">
+            <wd-button size="small" type="primary" variant="plain" @click="itemEditorRef?.openSaleReturnPicker()">
               销售退货
             </wd-button>
           </view>
         </view>
-        <wd-cell-group border>
-          <wd-form-item title="收款明细" title-width="220rpx">
-            <ReceiptItemForm ref="itemEditorRef" v-model="formData.items" :customer-id="formData.customerId" />
-          </wd-form-item>
-        </wd-cell-group>
+        <view class="px-24rpx">
+          <ReceiptItemForm ref="itemEditorRef" v-model="formData.items" :customer-id="formData.customerId" />
+        </view>
 
-        <view class="px-24rpx py-16rpx text-28rpx text-[#666]">
-          收款信息
+        <!-- 收款信息 -->
+        <view class="flex items-center justify-between px-24rpx py-16rpx">
+          <text class="text-28rpx text-[#333] font-semibold">收款信息</text>
         </view>
         <wd-cell-group border>
-          <ErpPicker v-model="formData.accountId" label="收款账户" label-width="220rpx" source="account" placeholder="请选择收款账户" />
+          <AccountFormPicker v-model="formData.accountId" label="收款账户" label-width="220rpx" prop="accountId" placeholder="请选择收款账户" :auto-default="!props.id" />
           <wd-cell title="合计收款" :value="formatMoney(formData.totalPrice)" />
           <wd-form-item title="优惠金额" title-width="220rpx" prop="discountPrice" center>
             <wd-input-number v-model="formData.discountPrice" :min="0" :precision="2" />
@@ -50,6 +50,7 @@
         </wd-cell-group>
       </wd-form>
 
+      <!-- 底部安全区域 -->
       <view class="h-160rpx" />
     </scroll-view>
 
@@ -71,13 +72,14 @@ import { createFinanceReceipt, getFinanceReceipt, updateFinanceReceipt } from '@
 import { delay, navigateBackPlus } from '@/utils'
 import { formatDate } from '@/utils/date'
 import { createFormSchema } from '@/utils/wot'
-import ErpPicker from '@/pages-erp/components/erp-picker.vue'
-import { applyDefaultAccount } from '@/pages-erp/finance/account/components/use-default-account'
+import { UserFormPicker } from '@/components/system-select'
+import AccountFormPicker from '@/pages-erp/finance/account/components/account-form-picker.vue'
+import CustomerFormPicker from '@/pages-erp/sale/customer/components/customer-form-picker.vue'
 import ReceiptItemForm from '../components/receipt-item-form.vue'
-import { formatMoney, roundPrice, toNumber } from '@/pages-erp/utils/erp'
+import { roundPrice } from '@/pages-erp/utils/format'
+import { formatMoney, toNumber } from '@/utils/format'
 
-const props = defineProps<{ id?: number | any }>()
-
+const props = defineProps<{ id?: number }>()
 definePage({
   style: {
     navigationBarTitleText: '',
@@ -109,6 +111,7 @@ const dateVisible = reactive({
 }) // 日期选择器状态
 const formSchema = createFormSchema({
   customerId: [{ required: true, message: '客户不能为空' }],
+  accountId: [{ required: true, message: '收款账户不能为空' }],
   receiptTime: [{ required: true, message: '收款时间不能为空' }],
 })
 
@@ -125,11 +128,6 @@ function refreshAmount() {
   formData.value.receiptPrice = roundPrice(totalPrice - toNumber(formData.value.discountPrice))
 }
 
-/** 加载基础选项 */
-async function loadOptions() {
-  await applyDefaultAccount(formData.value)
-}
-
 /** 加载详情 */
 async function getDetail() {
   if (!props.id) {
@@ -137,10 +135,7 @@ async function getDetail() {
   }
   try {
     toast.loading('加载中...')
-    formData.value = {
-      ...formData.value,
-      ...await getFinanceReceipt(props.id),
-    }
+    formData.value = await getFinanceReceipt(props.id)
   } finally {
     toast.close()
   }
@@ -153,6 +148,7 @@ async function handleSubmit() {
   if (!valid || !itemEditorRef.value?.validate()) {
     return
   }
+
   refreshAmount()
   formLoading.value = true
   try {
@@ -170,10 +166,11 @@ async function handleSubmit() {
   }
 }
 
+/** 明细变更后刷新金额 */
 watch(() => [formData.value.items, formData.value.discountPrice], refreshAmount, { deep: true })
 
-onMounted(async () => {
-  await loadOptions()
-  await getDetail()
+/** 初始化 */
+onMounted(() => {
+  getDetail()
 })
 </script>

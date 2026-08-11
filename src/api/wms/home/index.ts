@@ -8,21 +8,21 @@ export interface WmsHomeStatisticsReq {
 }
 
 /** WMS 首页单据状态统计 */
-export interface WmsHomeOrderStatus {
+export interface WmsHomeOrderStatusResp {
   status: number
   count: number
 }
 
 /** WMS 首页单据汇总统计 */
-export interface WmsHomeOrderSummary {
+export interface WmsHomeOrderSummaryResp {
   type: number
   total: number
-  statuses: WmsHomeOrderStatus[]
+  statuses: WmsHomeOrderStatusResp[]
 }
 
 /** WMS 首页单据趋势 */
-export interface WmsHomeOrderTrend {
-  time: string | number
+export interface WmsHomeOrderTrendResp {
+  time: string | Date
   receiptCount: number
   shipmentCount: number
   movementCount: number
@@ -30,37 +30,37 @@ export interface WmsHomeOrderTrend {
 }
 
 /** WMS 首页商品库存排行 */
-export interface WmsHomeInventoryItemRank {
+export interface WmsHomeInventoryItemRankResp {
   id: number
   name: string
   quantity: number
 }
 
 /** WMS 首页仓库库存排行 */
-export interface WmsHomeInventoryWarehouseRank {
+export interface WmsHomeInventoryWarehouseRankResp {
   id: number
   name: string
   quantity: number
 }
 
 /** WMS 首页库存汇总统计 */
-export interface WmsHomeInventorySummary {
+export interface WmsHomeInventorySummaryResp {
   totalQuantity: number
-  goodsShareList: WmsHomeInventoryItemRank[]
-  warehouseDistributionList: WmsHomeInventoryWarehouseRank[]
+  goodsShareList: WmsHomeInventoryItemRankResp[]
+  warehouseDistributionList: WmsHomeInventoryWarehouseRankResp[]
 }
 
 /** 获得首页单据汇总统计 */
 export function getWmsHomeOrderSummary(params?: WmsHomeStatisticsReq) {
-  return http.get<WmsHomeOrderSummary[]>('/wms/home-statistics/order-summary', params)
+  return http.get<WmsHomeOrderSummaryResp[]>('/wms/home-statistics/order-summary', params)
 }
 
 /** 获得首页单据趋势 */
 export function getWmsHomeOrderTrend(days?: number, params?: WmsHomeStatisticsReq) {
-  return http.get<WmsHomeOrderTrend[]>('/wms/home-statistics/order-trend', { ...params, days })
+  return http.get<WmsHomeOrderTrendResp[]>('/wms/home-statistics/order-trend', { ...params, days })
 }
 
 /** 获得首页库存汇总统计 */
 export function getWmsHomeInventorySummary(params?: WmsHomeStatisticsReq) {
-  return http.get<WmsHomeInventorySummary>('/wms/home-statistics/inventory-summary', params)
+  return http.get<WmsHomeInventorySummaryResp>('/wms/home-statistics/inventory-summary', params)
 }

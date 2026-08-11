@@ -8,10 +8,12 @@ export interface ProductCategory {
   code?: string // 分类编码
   sort?: number // 分类排序
   status?: number // 开启状态
+  createTime?: Date // 创建时间
+  children?: ProductCategory[] // 子分类
 }
 
 /** 获取产品分类列表 */
-export function getProductCategoryList(params?: Record<string, any>) {
+export function getProductCategoryList(params?: { name?: string, status?: number }) {
   return http.get<ProductCategory[]>('/erp/product-category/list', params)
 }
 

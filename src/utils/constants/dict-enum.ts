@@ -42,6 +42,7 @@ const INFRA_DICT = {
 
 /** ========== BPM - 工作流模块 ========== */
 const BPM_DICT = {
+  BPM_COMMENT_TYPE: 'bpm_comment_type', // BPM 评论类型
   BPM_MODEL_FORM_TYPE: 'bpm_model_form_type', // BPM 模型表单类型
   BPM_MODEL_TYPE: 'bpm_model_type', // BPM 模型类型
   BPM_OA_LEAVE_TYPE: 'bpm_oa_leave_type', // BPM OA 请假类型

@@ -22,7 +22,7 @@ export interface ItemSku {
   netWeight?: number
   costPrice?: number
   sellingPrice?: number
-  createTime?: Date | string
+  createTime?: Date
 }
 
 /** 按 SKU 维度分页 */

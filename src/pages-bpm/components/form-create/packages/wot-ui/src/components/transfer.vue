@@ -11,8 +11,8 @@
     />
 
     <wd-select-picker
+      ref="pickerRef"
       v-model="pickerValue"
-      v-model:visible="visible"
       :title="rule.title || '请选择'"
       :columns="columns"
       :filter-placeholder="rule.props?.filterPlaceholder || '搜索选项'"
@@ -21,6 +21,8 @@
       label-key="label"
       type="checkbox"
       value-key="value"
+      @open="emit('open')"
+      @close="emit('close')"
       @cancel="emit('cancel')"
       @confirm="handleConfirm"
     />
@@ -28,8 +30,9 @@
 </template>
 
 <script lang="ts" setup>
+import type { SelectPickerInstance } from '@wot-ui/ui/components/wd-select-picker/types'
 import type { NormalizedFormCreateRule } from '../../../../types/typing'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { getPlaceholder } from '../core/utils'
 
 type TransferValue = string | number
@@ -61,7 +64,7 @@ const emit = defineEmits<{
 }>()
 
 const pickerValue = ref<TransferValue[]>([])
-const visible = ref(false)
+const pickerRef = ref<SelectPickerInstance>() // 穿梭框选择器
 
 const placeholder = computed(() => getPlaceholder(props.rule, '请选择'))
 const columns = computed(() => normalizeOptions(props.rule.props?.data || props.rule.options || []))
@@ -83,20 +86,13 @@ watch(
   { deep: true, immediate: true },
 )
 
-watch(visible, (value) => {
-  if (value) {
-    emit('open')
-  } else {
-    emit('close')
-  }
-})
-
-function open() {
+async function open() {
   if (props.disabled) {
     return
   }
   pickerValue.value = normalizeValue(props.modelValue)
-  visible.value = true
+  await nextTick()
+  pickerRef.value?.open()
 }
 
 function handleConfirm({ value }: { value: any }) {

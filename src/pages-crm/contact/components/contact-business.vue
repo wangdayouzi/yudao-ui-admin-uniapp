@@ -4,20 +4,18 @@
     <view class="flex items-center justify-between border-b border-[#f5f5f5] px-24rpx py-20rpx">
       <text class="text-30rpx text-[#333] font-semibold">关联商机</text>
       <view class="flex items-center gap-12rpx">
-        <wd-button v-if="canCreate" size="small" type="primary" plain @click="handleCreate">
+        <wd-button v-if="canCreate" size="small" type="primary" variant="plain" @click="handleCreate">
           新增商机
         </wd-button>
-        <CrmPicker
+        <BusinessPicker
           v-if="canAdd"
-          source="business"
-          :params="{ customerId }"
-          use-default-slot
+          :customer-id="customerId"
           @confirm="handleAdd"
         >
           <wd-button size="small" type="primary">
             关联
           </wd-button>
-        </CrmPicker>
+        </BusinessPicker>
       </view>
     </view>
 
@@ -56,17 +54,12 @@
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import type { Business } from '@/api/crm/business'
 import { getBusinessListByContact } from '@/api/crm/business'
 import { createContactBusinessList, deleteContactBusinessList } from '@/api/crm/contact'
 import { useAccess } from '@/hooks/useAccess'
 import { formatMoney } from '@/utils/format'
-import CrmPicker from '@/pages-crm/components/crm-picker.vue'
-
-interface PickerOption {
-  id: number | string
-  name: string
-  raw?: Record<string, any>
-}
+import BusinessPicker from '@/pages-crm/business/components/business-picker.vue'
 
 const props = defineProps<{
   contactId: number
@@ -96,8 +89,8 @@ async function loadList() {
 }
 
 /** 关联商机 */
-async function handleAdd(option?: PickerOption) {
-  const businessId = Number(option?.id)
+async function handleAdd(business?: Business) {
+  const businessId = Number(business?.id)
   if (!businessId) {
     return
   }

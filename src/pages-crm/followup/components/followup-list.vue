@@ -57,9 +57,9 @@
               v-for="url in item.fileUrls"
               :key="url"
               class="mb-8rpx flex items-center justify-between gap-16rpx rounded-8rpx bg-[#f7f8fa] px-16rpx py-12rpx text-26rpx"
-              @click="handleOpenFile(url)"
+              @click="openAttachment(url)"
             >
-              <text class="min-w-0 flex-1 truncate text-[#333]">{{ getFileName(url) }}</text>
+              <text class="min-w-0 flex-1 truncate text-[#333]">{{ getFileNameFromUrl(url) }}</text>
               <text class="shrink-0 text-primary">查看</text>
             </view>
           </view>
@@ -95,6 +95,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { deleteFollowUpRecord, getFollowUpRecordPage } from '@/api/crm/followup'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
+import { getFileNameFromUrl, openAttachment } from '@/utils/download'
 
 const props = withDefaults(defineProps<{
   bizId: number
@@ -154,29 +155,6 @@ async function handleDelete(id: number) {
   } finally {
     deletingId.value = undefined
   }
-}
-
-/** 打开附件 */
-function handleOpenFile(url: string) {
-  if (typeof window !== 'undefined') {
-    window.open(url, '_blank')
-    return
-  }
-  uni.downloadFile({
-    url,
-    success: (res) => {
-      uni.openDocument({ filePath: res.tempFilePath })
-    },
-  })
-}
-
-/** 获取文件名 */
-function getFileName(url: string) {
-  if (!url) {
-    return ''
-  }
-  const path = url.split('?')[0]
-  return decodeURIComponent(path.substring(path.lastIndexOf('/') + 1))
 }
 
 watch(() => [props.bizType, props.bizId], () => reload())

@@ -13,20 +13,7 @@
     @close="visible = false"
   >
     <view class="yd-search-form-container">
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          优惠券状态
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.status = true">
-          {{ getWotPickerDisplay(statusOptions, formData.status, { placeholder: '请选择优惠券状态' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.status"
-          :model-value="[formData.status]"
-          :columns="statusOptions"
-          @confirm="({ value }) => formData.status = value[0]"
-        />
-      </view>
+      <yd-search-picker v-model="formData.status" label="优惠券状态" :dict-type="DICT_TYPE.PROMOTION_COUPON_STATUS" all-option />
       <yd-search-date-range v-model="formData.createTime" label="领取时间" />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
@@ -42,11 +29,10 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDate, formatDateRange } from '@/utils/date'
-import { getWotPickerDisplay } from '@/utils/wot'
 
 const emit = defineEmits<{
   search: [data: Record<string, any>]
@@ -54,20 +40,15 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const pickerVisible = ref<Record<string, boolean>>({})
-const statusOptions = computed(() => [
-  { label: '全部', value: -1 },
-  ...getIntDictOptions(DICT_TYPE.PROMOTION_COUPON_STATUS),
-])
 const formData = reactive({
-  status: -1,
+  status: undefined as number | undefined,
   createTime: [undefined, undefined] as [number | undefined, number | undefined],
 }) // 搜索表单数据
 
 /** 搜索条件 placeholder 拼接 */
 const placeholder = computed(() => {
   const conditions: string[] = []
-  if (formData.status !== -1) {
+  if (formData.status !== undefined) {
     conditions.push(`状态:${getDictLabel(DICT_TYPE.PROMOTION_COUPON_STATUS, formData.status)}`)
   }
   if (formData.createTime[0] && formData.createTime[1]) {
@@ -80,14 +61,14 @@ const placeholder = computed(() => {
 function handleSearch() {
   visible.value = false
   emit('search', {
-    status: formData.status === -1 ? undefined : formData.status,
+    status: formData.status,
     createTime: formatDateRange(formData.createTime),
   })
 }
 
 /** 重置按钮操作 */
 function handleReset() {
-  formData.status = -1
+  formData.status = undefined
   formData.createTime = [undefined, undefined]
   visible.value = false
   emit('reset')

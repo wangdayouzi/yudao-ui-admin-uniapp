@@ -54,7 +54,7 @@
           </wd-radio>
         </wd-radio-group>
       </view>
-      <yd-search-picker v-model="formData.pickUpStoreId" label="自提门店" :columns="storeOptions" all-option />
+      <PickUpStoreSearchPicker ref="pickUpStoreSearchPickerRef" v-model="formData.pickUpStoreId" />
       <yd-search-date-range v-model="formData.createTime" label="下单时间" />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
@@ -69,12 +69,12 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { getSimpleDeliveryPickUpStoreList } from '@/api/mall/trade/delivery/pick-up-store'
+import { computed, reactive, ref } from 'vue'
 import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDate, formatDateRange } from '@/utils/date'
+import PickUpStoreSearchPicker from '../../pick-up-store/components/pick-up-store-search-picker.vue'
 
 const emit = defineEmits<{
   search: [data: Record<string, any>]
@@ -82,14 +82,14 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const storeOptions = ref<{ label: string, value: number }[]>([]) // 自提门店选项
+const pickUpStoreSearchPickerRef = ref<InstanceType<typeof PickUpStoreSearchPicker>>() // 自提门店搜索选择器
 const formData = reactive({
   no: undefined as string | undefined,
   userId: undefined as string | undefined,
   userNickname: undefined as string | undefined,
   userMobile: undefined as string | undefined,
   status: -1,
-  pickUpStoreId: -1, // 单选自提门店，提交时转 pickUpStoreIds 数组
+  pickUpStoreId: undefined as number | undefined, // 单选自提门店，提交时转 pickUpStoreIds 数组
   createTime: [undefined, undefined] as [number | undefined, number | undefined],
 }) // 搜索表单数据
 
@@ -108,19 +108,14 @@ const placeholder = computed(() => {
   if (formData.status !== -1) {
     conditions.push(`状态:${getDictLabel(DICT_TYPE.TRADE_ORDER_STATUS, formData.status)}`)
   }
+  if (formData.pickUpStoreId !== undefined) {
+    conditions.push(`门店:${pickUpStoreSearchPickerRef.value?.format(formData.pickUpStoreId) || formData.pickUpStoreId}`)
+  }
   if (formData.createTime?.[0] && formData.createTime?.[1]) {
     conditions.push(`时间:${formatDate(formData.createTime[0])}~${formatDate(formData.createTime[1])}`)
   }
   return conditions.length > 0 ? conditions.join(' | ') : '搜索核销订单'
 })
-
-/** 加载自提门店选项 */
-async function loadStoreOptions() {
-  const storeList = await getSimpleDeliveryPickUpStoreList()
-  storeOptions.value = storeList
-    .filter(item => item.id != null)
-    .map(item => ({ label: item.name || String(item.id), value: Number(item.id) }))
-}
 
 /** 搜索按钮操作 */
 function handleSearch() {
@@ -131,7 +126,7 @@ function handleSearch() {
     userNickname: formData.userNickname || undefined,
     userMobile: formData.userMobile || undefined,
     status: formData.status === -1 ? undefined : formData.status,
-    pickUpStoreIds: formData.pickUpStoreId === -1 ? undefined : [formData.pickUpStoreId],
+    pickUpStoreIds: formData.pickUpStoreId === undefined ? undefined : [formData.pickUpStoreId],
     createTime: formatDateRange(formData.createTime),
   })
 }
@@ -143,14 +138,9 @@ function handleReset() {
   formData.userNickname = undefined
   formData.userMobile = undefined
   formData.status = -1
-  formData.pickUpStoreId = -1
+  formData.pickUpStoreId = undefined
   formData.createTime = [undefined, undefined]
   visible.value = false
   emit('reset')
 }
-
-/** 初始化 */
-onMounted(() => {
-  loadStoreOptions()
-})
 </script>

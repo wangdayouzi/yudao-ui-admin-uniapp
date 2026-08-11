@@ -1,64 +1,40 @@
 import type { PageParam, PageResult } from '@/http/types'
 import { http } from '@/http/http'
 
-/** MES 外协发料单分页参数 */
-export interface WmOutsourceIssueQueryParams extends PageParam {
+/** MES 外协发料单 */
+export interface WmOutsourceIssue {
+  id?: number
   code?: string
   name?: string
   vendorId?: number
-  workOrderId?: number
-  issueDate?: [string, string]
-}
-
-// MES 外协发料单 VO
-export interface WmOutsourceIssueVO {
-  id: number
-  code: string
-  name: string
-  vendorId?: number
   vendorCode?: string
   vendorName?: string
-  workOrderId: number
+  workOrderId?: number
   workOrderCode?: string
   workOrderName?: string
-  issueDate?: string | number
-  status: number
+  issueDate?: string | number | Date
+  status?: number
   remark?: string
-  createTime?: string
-}
-
-/** MES 外协发料单创建参数 */
-export interface WmOutsourceIssueCreateReqVO {
-  code: string
-  name: string
-  vendorId?: number
-  workOrderId: number
-  issueDate?: string | number
-  remark?: string
-}
-
-/** MES 外协发料单更新参数 */
-export interface WmOutsourceIssueUpdateReqVO extends WmOutsourceIssueCreateReqVO {
-  id: number
+  createTime?: Date
 }
 
 /** 查询外协发料单分页 */
-export function getOutsourceIssuePage(params: WmOutsourceIssueQueryParams) {
-  return http.get<PageResult<WmOutsourceIssueVO>>('/mes/wm/outsource-issue/page', params)
+export function getOutsourceIssuePage(params: PageParam) {
+  return http.get<PageResult<WmOutsourceIssue>>('/mes/wm/outsource-issue/page', params)
 }
 
 /** 查询外协发料单详情 */
 export function getOutsourceIssue(id: number) {
-  return http.get<WmOutsourceIssueVO>(`/mes/wm/outsource-issue/get?id=${id}`)
+  return http.get<WmOutsourceIssue>(`/mes/wm/outsource-issue/get?id=${id}`)
 }
 
 /** 新增外协发料单 */
-export function createOutsourceIssue(data: WmOutsourceIssueCreateReqVO) {
+export function createOutsourceIssue(data: WmOutsourceIssue) {
   return http.post<number>('/mes/wm/outsource-issue/create', data)
 }
 
 /** 修改外协发料单 */
-export function updateOutsourceIssue(data: WmOutsourceIssueUpdateReqVO) {
+export function updateOutsourceIssue(data: WmOutsourceIssue) {
   return http.put<boolean>('/mes/wm/outsource-issue/update', data)
 }
 
@@ -90,23 +66,4 @@ export function cancelOutsourceIssue(id: number) {
 /** 校验外协发料单数量 */
 export function checkOutsourceIssueQuantity(id: number) {
   return http.get<boolean>(`/mes/wm/outsource-issue/check-quantity?id=${id}`)
-}
-
-/** 导出外协发料单 Excel */
-export function exportOutsourceIssue(params: WmOutsourceIssueQueryParams) {
-  return http.get<Blob>('/mes/wm/outsource-issue/export-excel', params)
-}
-
-export const WmOutsourceIssueApi = {
-  getOutsourceIssuePage,
-  getOutsourceIssue,
-  createOutsourceIssue,
-  updateOutsourceIssue,
-  deleteOutsourceIssue,
-  submitOutsourceIssue,
-  stockOutsourceIssue,
-  finishOutsourceIssue,
-  cancelOutsourceIssue,
-  checkOutsourceIssueQuantity,
-  exportOutsourceIssue,
 }

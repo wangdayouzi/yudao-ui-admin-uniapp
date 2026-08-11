@@ -33,16 +33,7 @@
           clearable
         />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          杂项类型
-        </view>
-        <wd-radio-group v-model="formData.type" type="button">
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.MES_WM_MISC_RECEIPT_TYPE)" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <yd-search-picker v-model="formData.type" label="杂项类型" :dict-type="DICT_TYPE.MES_WM_MISC_RECEIPT_TYPE" all-option />
       <view class="yd-search-form-item">
         <view class="yd-search-form-label">
           来源单据类型
@@ -63,27 +54,8 @@
           clearable
         />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          入库日期
-        </view>
-        <wd-calendar
-          v-model="formData.receiptDate"
-          type="daterange"
-          placeholder="请选择入库日期"
-          clearable
-        />
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          单据状态
-        </view>
-        <wd-radio-group v-model="formData.status" type="button">
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.MES_WM_MISC_RECEIPT_STATUS)" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <yd-search-date-range v-model="formData.receiptDate" label="入库日期" />
+      <yd-search-picker v-model="formData.status" label="单据状态" :dict-type="DICT_TYPE.MES_WM_MISC_RECEIPT_STATUS" all-option />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -97,10 +69,8 @@
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——① wd-radio-group 类型/状态筛选改 yd-search-picker（type/status，配 dict-kind + all-option）；② wd-calendar 日期范围改全局 yd-search-date-range
-import type { WmMiscReceiptQueryParams } from '@/api/mes/wm/miscreceipt'
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDateRange } from '@/utils/date'
@@ -111,12 +81,12 @@ interface SearchFormData {
   type?: number
   sourceDocType?: string
   sourceDocCode?: string
-  receiptDate?: string[]
+  receiptDate?: [number | undefined, number | undefined]
   status?: number
 }
 
 const emit = defineEmits<{
-  search: [data: WmMiscReceiptQueryParams]
+  search: [data: Record<string, any>]
   reset: []
 }>()
 
@@ -154,11 +124,10 @@ const placeholder = computed(() => { // 搜索条件摘要
   return conditions.length > 0 ? conditions.join(' | ') : '搜索其他入库'
 })
 
-/** 构造搜索参数 */
-function buildSearchParams(): WmMiscReceiptQueryParams {
-  return {
-    pageNo: 1,
-    pageSize: 10,
+/** 搜索按钮操作 */
+function handleSearch() {
+  visible.value = false
+  emit('search', {
     code: formData.code || undefined,
     name: formData.name || undefined,
     type: formData.type,
@@ -166,13 +135,7 @@ function buildSearchParams(): WmMiscReceiptQueryParams {
     sourceDocCode: formData.sourceDocCode || undefined,
     receiptDate: formatDateRange(formData.receiptDate),
     status: formData.status,
-  }
-}
-
-/** 搜索按钮操作 */
-function handleSearch() {
-  visible.value = false
-  emit('search', buildSearchParams())
+  })
 }
 
 /** 重置按钮操作 */

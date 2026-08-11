@@ -19,20 +19,7 @@
         </view>
         <wd-input v-model="formData.nickname" placeholder="请输入用户昵称" clearable />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          业务类型
-        </view>
-        <view class="yd-search-form-date-range-picker" @click="pickerVisible.bizType = true">
-          {{ getWotPickerDisplay(bizTypeOptions, formData.bizType, { placeholder: '请选择业务类型' }) }}
-        </view>
-        <wd-picker
-          v-model:visible="pickerVisible.bizType"
-          :model-value="[formData.bizType]"
-          :columns="bizTypeOptions"
-          @confirm="({ value }) => formData.bizType = value[0]"
-        />
-      </view>
+      <yd-search-picker v-model="formData.bizType" label="业务类型" :dict-type="DICT_TYPE.MEMBER_POINT_BIZ_TYPE" all-option />
       <view class="yd-search-form-item">
         <view class="yd-search-form-label">
           积分标题
@@ -54,11 +41,10 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDate, formatDateRange } from '@/utils/date'
-import { getWotPickerDisplay } from '@/utils/wot'
 
 const emit = defineEmits<{
   search: [data: Record<string, any>]
@@ -66,14 +52,9 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const pickerVisible = ref<Record<string, boolean>>({})
-const bizTypeOptions = computed(() => [
-  { label: '全部', value: -1 },
-  ...getIntDictOptions(DICT_TYPE.MEMBER_POINT_BIZ_TYPE),
-])
 const formData = reactive({
   nickname: undefined as string | undefined,
-  bizType: -1,
+  bizType: undefined as number | undefined,
   title: undefined as string | undefined,
   createDate: [undefined, undefined] as [number | undefined, number | undefined],
 }) // 搜索表单数据
@@ -84,7 +65,7 @@ const placeholder = computed(() => {
   if (formData.nickname) {
     conditions.push(`用户:${formData.nickname}`)
   }
-  if (formData.bizType !== -1) {
+  if (formData.bizType !== undefined) {
     conditions.push(`业务类型:${getDictLabel(DICT_TYPE.MEMBER_POINT_BIZ_TYPE, formData.bizType)}`)
   }
   if (formData.title) {
@@ -101,7 +82,7 @@ function handleSearch() {
   visible.value = false
   emit('search', {
     ...formData,
-    bizType: formData.bizType === -1 ? undefined : formData.bizType,
+    bizType: formData.bizType,
     createDate: formatDateRange(formData.createDate),
   })
 }
@@ -109,7 +90,7 @@ function handleSearch() {
 /** 重置按钮操作 */
 function handleReset() {
   formData.nickname = undefined
-  formData.bizType = -1
+  formData.bizType = undefined
   formData.title = undefined
   formData.createDate = [undefined, undefined]
   visible.value = false

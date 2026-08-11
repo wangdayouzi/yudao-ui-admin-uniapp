@@ -19,18 +19,19 @@
         </wd-cell-group>
 
         <!-- 盘点明细 -->
-        <view class="px-24rpx py-16rpx text-28rpx text-[#666]">
-          盘点产品清单
+        <view class="flex items-center justify-between px-24rpx py-16rpx">
+          <text class="text-28rpx text-[#333] font-semibold">盘点产品清单</text>
+          <wd-button size="small" type="primary" variant="plain" @click="itemEditorRef?.handleAdd()">
+            添加
+          </wd-button>
         </view>
-        <wd-cell-group border>
-          <wd-form-item title="盘点明细" title-width="220rpx">
-            <CheckItemForm ref="itemEditorRef" v-model="formData.items" :product-options="productOptions" :warehouse-options="warehouseOptions" />
-          </wd-form-item>
-        </wd-cell-group>
+        <view class="px-24rpx">
+          <CheckItemForm ref="itemEditorRef" v-model="formData.items" :product-options="productOptions" :warehouse-options="warehouseOptions" />
+        </view>
 
         <!-- 合计信息 -->
-        <view class="px-24rpx py-16rpx text-28rpx text-[#666]">
-          合计信息
+        <view class="flex items-center justify-between px-24rpx py-16rpx">
+          <text class="text-28rpx text-[#333] font-semibold">合计信息</text>
         </view>
         <wd-cell-group border>
           <wd-cell title="盈亏数量" :value="formatCount(formData.totalCount)" />
@@ -65,10 +66,10 @@ import { delay, navigateBackPlus } from '@/utils'
 import { formatDate } from '@/utils/date'
 import { createFormSchema } from '@/utils/wot'
 import CheckItemForm from '../components/check-item-form.vue'
-import { formatCount, formatMoney, roundPrice, toNumber } from '@/pages-erp/utils/erp'
+import { formatCount, roundPrice } from '@/pages-erp/utils/format'
+import { formatMoney, toNumber } from '@/utils/format'
 
-const props = defineProps<{ id?: number | any }>()
-
+const props = defineProps<{ id?: number }>()
 definePage({
   style: {
     navigationBarTitleText: '',
@@ -131,10 +132,7 @@ async function getDetail() {
   }
   try {
     toast.loading('加载中...')
-    formData.value = {
-      ...formData.value,
-      ...await getStockCheck(props.id),
-    }
+    formData.value = await getStockCheck(props.id)
   } finally {
     toast.close()
   }
@@ -147,6 +145,7 @@ async function handleSubmit() {
   if (!valid || !itemEditorRef.value?.validate()) {
     return
   }
+
   refreshAmount()
   formLoading.value = true
   try {
@@ -164,6 +163,7 @@ async function handleSubmit() {
   }
 }
 
+/** 明细变更后刷新金额 */
 watch(() => formData.value.items, refreshAmount, { deep: true })
 
 /** 初始化 */

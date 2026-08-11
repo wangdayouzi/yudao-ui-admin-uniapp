@@ -22,7 +22,7 @@ export interface InventoryHistory {
   orderId?: number
   orderNo?: string
   orderType?: number
-  createTime?: Date | string
+  createTime?: Date
 }
 
 /** 查询库存记录分页 */

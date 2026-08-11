@@ -13,8 +13,8 @@
     @close="visible = false"
   >
     <view class="yd-search-form-container">
-      <yd-search-picker v-model="formData.productId" label="产品" :columns="productOptions" label-key="name" value-key="id" placeholder="请选择产品" />
-      <yd-search-picker v-model="formData.warehouseId" label="仓库" :columns="warehouseOptions" label-key="name" value-key="id" placeholder="请选择仓库" />
+      <ProductSearchPicker ref="productPickerRef" v-model="formData.productId" />
+      <WarehouseSearchPicker ref="warehousePickerRef" v-model="formData.warehouseId" />
       <yd-search-picker v-model="formData.bizType" label="业务类型" :dict-type="DICT_TYPE.ERP_STOCK_RECORD_BIZ_TYPE" all-option />
       <view class="yd-search-form-item">
         <view class="yd-search-form-label">
@@ -36,48 +36,39 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { getDictLabel } from '@/hooks/useDict'
-import { erpOptionLoaders } from '@/pages-erp/config/options'
-import { normalizeOptions } from '@/pages-erp/utils/erp'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDate, formatDateRange } from '@/utils/date'
+import ProductSearchPicker from '@/pages-erp/product/product/components/product-search-picker.vue'
+import WarehouseSearchPicker from '@/pages-erp/stock/warehouse/components/warehouse-search-picker.vue'
 
 const emit = defineEmits<{
   search: [data: Record<string, any>]
   reset: []
 }>()
-
 const visible = ref(false) // 搜索弹窗显示状态
-const productOptions = ref<Record<string, any>[]>([]) // 产品选项
-const warehouseOptions = ref<Record<string, any>[]>([]) // 仓库选项
+const productPickerRef = ref<InstanceType<typeof ProductSearchPicker>>() // 产品选择器
+const warehousePickerRef = ref<InstanceType<typeof WarehouseSearchPicker>>() // 仓库选择器
 const formData = reactive({
   productId: undefined as number | undefined,
   warehouseId: undefined as number | undefined,
-  bizType: -1,
+  bizType: undefined as number | undefined,
   bizNo: undefined as string | undefined,
-  createTime: ['', ''] as [any, any],
+  createTime: [undefined, undefined] as [any, any],
 }) // 搜索表单数据
-
-/** 获取选项名称 */
-function getOptionLabel(options: Record<string, any>[], id?: number) {
-  if (!id) {
-    return ''
-  }
-  return options.find(item => String(item.id) === String(id))?.name || String(id)
-}
 
 /** 搜索条件 placeholder 拼接 */
 const placeholder = computed(() => {
   const conditions: string[] = []
   if (formData.productId) {
-    conditions.push(`产品:${getOptionLabel(productOptions.value, formData.productId)}`)
+    conditions.push(`产品:${productPickerRef.value?.format(formData.productId) || formData.productId}`)
   }
   if (formData.warehouseId) {
-    conditions.push(`仓库:${getOptionLabel(warehouseOptions.value, formData.warehouseId)}`)
+    conditions.push(`仓库:${warehousePickerRef.value?.format(formData.warehouseId) || formData.warehouseId}`)
   }
-  if (formData.bizType !== -1) {
+  if (formData.bizType !== undefined) {
     conditions.push(`类型:${getDictLabel(DICT_TYPE.ERP_STOCK_RECORD_BIZ_TYPE, formData.bizType)}`)
   }
   if (formData.bizNo) {
@@ -95,7 +86,7 @@ function handleSearch() {
   emit('search', {
     productId: formData.productId,
     warehouseId: formData.warehouseId,
-    bizType: formData.bizType === -1 ? undefined : formData.bizType,
+    bizType: formData.bizType,
     bizNo: formData.bizNo || undefined,
     createTime: formatDateRange(formData.createTime),
   })
@@ -105,20 +96,10 @@ function handleSearch() {
 function handleReset() {
   formData.productId = undefined
   formData.warehouseId = undefined
-  formData.bizType = -1
+  formData.bizType = undefined
   formData.bizNo = undefined
-  formData.createTime = ['', '']
+  formData.createTime = [undefined, undefined]
   visible.value = false
   emit('reset')
 }
-
-/** 加载搜索下拉选项 */
-onMounted(async () => {
-  const [products, warehouses] = await Promise.all([
-    erpOptionLoaders.product(),
-    erpOptionLoaders.warehouse(),
-  ])
-  productOptions.value = normalizeOptions(products)
-  warehouseOptions.value = normalizeOptions(warehouses)
-})
 </script>

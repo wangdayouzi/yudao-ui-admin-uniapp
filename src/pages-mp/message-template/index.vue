@@ -10,6 +10,13 @@
     <!-- 公众号选择 -->
     <AccountPicker v-model="accountId" @change="handleAccountChange" />
 
+    <!-- 同步模板 -->
+    <view v-if="hasAccessByCodes(['mp:message-template:sync'])" class="flex justify-end bg-white px-24rpx py-16rpx">
+      <wd-button type="success" size="small" :loading="syncing" @click="handleSync">
+        同步模板
+      </wd-button>
+    </view>
+
     <!-- 模板列表 -->
     <scroll-view class="min-h-0 flex-1" scroll-y>
       <view class="p-24rpx">
@@ -34,10 +41,10 @@
             行业：{{ item.primaryIndustry || '-' }} / {{ item.deputyIndustry || '-' }}
           </view>
           <view class="mb-12rpx whitespace-pre-wrap text-26rpx text-[#666]">
-            {{ item.content || '-' }}
+            {{ normalizeEscapedNewlines(item.content || '-') }}
           </view>
           <view class="mb-12rpx whitespace-pre-wrap text-26rpx text-[#666]">
-            示例：{{ item.example || '-' }}
+            示例：{{ normalizeEscapedNewlines(item.example || '-') }}
           </view>
           <view class="mb-20rpx text-24rpx text-[#999]">
             创建时间：{{ formatDateTime(item.createTime) || '-' }}
@@ -59,16 +66,6 @@
         </view>
       </view>
     </scroll-view>
-
-    <!-- 同步按钮 -->
-    <view
-      v-if="hasAccessByCodes(['mp:message-template:sync'])"
-      class="fixed bottom-60rpx right-32rpx z-10"
-    >
-      <wd-button type="success" size="small" :loading="syncing" @click="handleSync">
-        同步
-      </wd-button>
-    </view>
   </view>
 </template>
 
@@ -79,7 +76,7 @@ import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { ref } from 'vue'
 import { deleteMessageTemplate, getMessageTemplateList, syncMessageTemplate } from '@/api/mp/messageTemplate'
 import { useAccess } from '@/hooks/useAccess'
-import { navigateBackPlus } from '@/utils'
+import { navigateBackPlus, normalizeEscapedNewlines } from '@/utils'
 import { formatDateTime } from '@/utils/date'
 import AccountPicker from '@/pages-mp/account/components/account-picker.vue'
 
@@ -125,6 +122,9 @@ async function getList() {
 
 /** 同步模板 */
 async function handleSync() {
+  if (syncing.value) {
+    return
+  }
   if (!accountId.value) {
     toast.show('请先选择公众号')
     return
@@ -141,7 +141,7 @@ async function handleSync() {
   try {
     await syncMessageTemplate(accountId.value)
     toast.success('同步成功')
-    getList()
+    await getList()
   } finally {
     syncing.value = false
   }
@@ -150,7 +150,7 @@ async function handleSync() {
 /** 发送模板消息 */
 function handleSend(item: MsgTemplate) {
   uni.navigateTo({
-    url: `/pages-mp/message-template/send/index?id=${item.id}&accountId=${accountId.value}&title=${encodeURIComponent(item.title || '')}`,
+    url: `/pages-mp/message-template/send/index?id=${item.id}&accountId=${accountId.value}`,
   })
 }
 

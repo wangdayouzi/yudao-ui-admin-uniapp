@@ -16,10 +16,10 @@ export interface MovementOrder {
   totalQuantity?: number
   totalPrice?: number
   details?: MovementOrderDetail[]
-  createTime?: Date | string
+  createTime?: Date
   creator?: string
   creatorName?: string
-  updateTime?: Date | string
+  updateTime?: Date
   updater?: string
   updaterName?: string
 }

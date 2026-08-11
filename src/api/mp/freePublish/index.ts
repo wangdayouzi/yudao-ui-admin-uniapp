@@ -6,6 +6,7 @@ export interface FreePublishArticle {
   author?: string
   digest?: string
   contentSourceUrl?: string
+  url?: string // 已发布图文的微信文章链接（列表预览用）
   thumbUrl?: string
 }
 

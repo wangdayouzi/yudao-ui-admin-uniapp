@@ -11,32 +11,14 @@
     <view>
       <wd-form ref="formRef" :model="formData" :schema="formSchema">
         <wd-cell-group border>
-          <wd-form-item
-            title="所属频道"
-            title-width="180rpx"
-            prop="channelId"
-            is-link
-            :value="getWotPickerFormValue(channelOptions, formData.channelId)"
-            placeholder="请选择频道"
-            @click="pickerVisible.channel = true"
+          <ChannelFormPicker v-model="formData.channelId" prop="channelId" />
+          <yd-form-picker
+            v-model="formData.type"
+            label="内容类型"
+            label-width="180rpx"
+            prop="type"
+            :dict-type="DICT_TYPE.IM_CHANNEL_MATERIAL_TYPE"
           />
-          <wd-picker
-            v-model:visible="pickerVisible.channel"
-            :model-value="formData.channelId"
-            :columns="channelOptions"
-            @confirm="({ value }) => formData.channelId = Number(value[0])"
-          />
-          <wd-form-item title="内容类型" title-width="180rpx" prop="type" center>
-            <wd-radio-group v-model="formData.type" type="button">
-              <wd-radio
-                v-for="dict in getIntDictOptions(DICT_TYPE.IM_CHANNEL_MATERIAL_TYPE)"
-                :key="dict.value"
-                :value="dict.value"
-              >
-                {{ dict.label }}
-              </wd-radio>
-            </wd-radio-group>
-          </wd-form-item>
           <wd-form-item title="标题" title-width="180rpx" prop="title">
             <wd-input
               v-model="formData.title"
@@ -57,7 +39,7 @@
               show-word-limit
             />
           </wd-form-item>
-          <wd-form-item v-if="formData.type === 1" title="正文" title-width="180rpx" prop="content">
+          <wd-form-item v-if="formData.type === ImChannelMaterialType.CONTENT" title="正文" title-width="180rpx" prop="content">
             <wd-textarea
               v-model="formData.content"
               clearable
@@ -71,6 +53,7 @@
               v-model="formData.url"
               clearable
               placeholder="https://example.com/..."
+              :maxlength="512"
             />
           </wd-form-item>
         </wd-cell-group>
@@ -96,16 +79,15 @@ import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { ImManagerChannelMaterialVO } from '@/api/im/manager/channel/material'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { computed, onMounted, ref } from 'vue'
-import { getSimpleChannelList } from '@/api/im/manager/channel'
 import {
   createManagerChannelMaterial,
   getManagerChannelMaterial,
   updateManagerChannelMaterial,
 } from '@/api/im/manager/channel/material'
-import { getIntDictOptions } from '@/hooks/useDict'
 import { delay, navigateBackPlus } from '@/utils'
-import { DICT_TYPE } from '@/utils/constants'
-import { createFormSchema, getWotPickerFormValue } from '@/utils/wot'
+import { DICT_TYPE, ImChannelMaterialType } from '@/utils/constants'
+import { createFormSchema } from '@/utils/wot'
+import ChannelFormPicker from '@/pages-im/manager/channel/components/channel-form-picker.vue'
 
 const props = defineProps<{
   id?: number | string
@@ -119,14 +101,12 @@ definePage({
 })
 
 const toast = useToast()
-const formRef = ref<FormInstance>() // 表单组件引用
+const getTitle = computed(() => props.id ? '编辑频道素材' : '新增频道素材') // 表单标题
 const formLoading = ref(false) // 表单提交状态
-const pickerVisible = ref<Record<string, boolean>>({}) // 选择器状态
-const channelOptions = ref<{ label: string, value: number }[]>([]) // 频道选项
 const formData = ref<ImManagerChannelMaterialVO>({
-  id: undefined as any,
-  channelId: undefined as any,
-  type: 1,
+  id: undefined,
+  channelId: undefined,
+  type: ImChannelMaterialType.CONTENT,
   title: '',
   coverUrl: '',
   summary: '',
@@ -138,25 +118,14 @@ const formSchema = createFormSchema({
   type: [{ required: true, message: '内容类型不能为空' }],
   title: [{ required: true, message: '标题不能为空' }],
 })
-
-/** 表单标题 */
-const getTitle = computed(() => props.id ? '编辑频道素材' : '新增频道素材')
+const formRef = ref<FormInstance>() // 表单组件引用
 
 /** 返回上一页 */
 function handleBack() {
   navigateBackPlus('/pages-im/manager/channel/material/index')
 }
 
-/** 加载频道选项 */
-async function loadChannelOptions() {
-  const list = await getSimpleChannelList()
-  channelOptions.value = list.map(item => ({
-    label: item.name,
-    value: item.id,
-  }))
-}
-
-/** 加载详情 */
+/** 加载频道素材详情 */
 async function getDetail() {
   if (!props.id) {
     return
@@ -166,18 +135,22 @@ async function getDetail() {
 
 /** 提交表单 */
 async function handleSubmit() {
-  const { valid } = await formRef.value!.validate()
+  const { valid } = await formRef.value.validate()
   if (!valid) {
     return
   }
   formLoading.value = true
   try {
-    const data = { ...formData.value }
+    if (formData.value.type === ImChannelMaterialType.CONTENT) {
+      formData.value.url = ''
+    } else {
+      formData.value.content = ''
+    }
     if (props.id) {
-      await updateManagerChannelMaterial(data)
+      await updateManagerChannelMaterial(formData.value)
       toast.success('修改成功')
     } else {
-      await createManagerChannelMaterial(data)
+      await createManagerChannelMaterial(formData.value)
       toast.success('新增成功')
     }
     uni.$emit('im:manager:channel-material:reload')
@@ -187,9 +160,8 @@ async function handleSubmit() {
   }
 }
 
-/** 初始化 */
-onMounted(async () => {
-  await loadChannelOptions()
-  await getDetail()
+/** 初始化频道素材表单 */
+onMounted(() => {
+  getDetail()
 })
 </script>

@@ -32,48 +32,49 @@
           发货通知操作
         </view>
         <view class="flex flex-wrap gap-16rpx text-28rpx">
-          <view v-if="canUpdatePrepare" class="min-w-180rpx flex-1 rounded-8rpx bg-[#1677ff] py-20rpx text-center text-white" @click="handleEdit">
+          <wd-button v-if="canUpdatePrepare" class="min-w-180rpx flex-1" type="warning" @click="handleEdit">
             编辑
-          </view>
-          <view v-if="canDeletePrepare" class="min-w-180rpx flex-1 rounded-8rpx bg-[#f56c6c] py-20rpx text-center text-white" :class="deleting ? 'opacity-60' : ''" @click="handleDelete">
-            {{ deleting ? '删除中...' : '删除' }}
-          </view>
-          <view v-if="canSubmitPrepare" class="min-w-180rpx flex-1 rounded-8rpx bg-[#faad14] py-20rpx text-center text-white" :class="submitting ? 'opacity-60' : ''" @click="handleSubmitSalesNotice">
-            {{ submitting ? '提交中...' : '提交' }}
-          </view>
-          <view v-if="canFinishApproved" class="min-w-180rpx flex-1 rounded-8rpx bg-[#52c41a] py-20rpx text-center text-white" @click="handleFinish">
+          </wd-button>
+          <wd-button v-if="canSubmitPrepare" class="min-w-180rpx flex-1" type="warning" :loading="submitting" @click="handleSubmitSalesNotice">
+            提交
+          </wd-button>
+          <wd-button v-if="canFinishApproved" class="min-w-180rpx flex-1" type="success" @click="handleFinish">
             执行出库
-          </view>
+          </wd-button>
+          <wd-button v-if="canDeletePrepare" class="min-w-180rpx flex-1" type="danger" :loading="deleting" @click="handleDelete">
+            删除
+          </wd-button>
         </view>
       </view>
       <view class="h-180rpx" />
     </scroll-view>
 
     <!-- 底部操作按钮 -->
-    <MesFooterActions v-if="hasFooter" content-class="flex gap-24rpx text-28rpx">
-      <view v-if="canUpdatePrepare" class="flex-1 rounded-8rpx bg-[#1677ff] py-20rpx text-center text-white" @click="handleEdit">
-        编辑
+    <view v-if="hasFooter" class="yd-detail-footer">
+      <view class="yd-detail-footer-actions">
+        <wd-button v-if="canUpdatePrepare" class="flex-1" type="warning" @click="handleEdit">
+          编辑
+        </wd-button>
+        <wd-button v-if="canSubmitPrepare" class="flex-1" type="warning" :loading="submitting" @click="handleSubmitSalesNotice">
+          提交
+        </wd-button>
+        <wd-button v-if="canFinishApproved" class="flex-1" type="success" @click="handleFinish">
+          执行出库
+        </wd-button>
       </view>
-      <view v-if="canSubmitPrepare" class="flex-1 rounded-8rpx bg-[#faad14] py-20rpx text-center text-white" :class="submitting ? 'opacity-60' : ''" @click="handleSubmitSalesNotice">
-        {{ submitting ? '提交中...' : '提交' }}
-      </view>
-      <view v-if="canFinishApproved" class="flex-1 rounded-8rpx bg-[#52c41a] py-20rpx text-center text-white" @click="handleFinish">
-        执行出库
-      </view>
-    </MesFooterActions>
+    </view>
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { WmSalesNoticeVO } from '@/api/mes/wm/salesnotice'
+import type { WmSalesNotice } from '@/api/mes/wm/salesnotice'
+import { onShow } from '@dcloudio/uni-app'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { deleteSalesNotice, getSalesNotice, submitSalesNotice } from '@/api/mes/wm/salesnotice'
 import { useAccess } from '@/hooks/useAccess'
-import { useRouteQuery } from '@/hooks/useRouteQuery'
-import MesFooterActions from '@/pages-mes/components/mes-footer-actions.vue'
-import { navigateBackPlus } from '@/utils'
+import { delay, navigateBackPlus } from '@/utils'
 import { DICT_TYPE, MesWmSalesNoticeStatusEnum } from '@/utils/constants'
 import { formatDate, formatDateTime } from '@/utils/date'
 import SalesNoticeLineList from '../components/sales-notice-line-list.vue'
@@ -92,10 +93,8 @@ definePage({
 const { hasAccessByCodes } = useAccess()
 const dialog = useDialog()
 const toast = useToast()
-const formData = ref<WmSalesNoticeVO>() // 详情数据
-const { getRouteQueryNumber } = useRouteQuery(props, '/pages-mes/wm/salesnotice/detail/index')
-// TODO @YunaiV：简单 id 参数优先直接用 props.id 接收，不需要 useRouteQuery/getRouteQueryNumber 包一层；多参数页面只保留其它 query 的 helper。
-const currentId = computed(() => getRouteQueryNumber('id')) // 当前详情编号
+const formData = ref<WmSalesNotice>() // 详情数据
+const currentId = computed(() => props.id ? Number(props.id) : undefined) // 当前详情编号
 const deleting = ref(false) // 删除状态
 const submitting = ref(false) // 提交状态
 const canUpdatePrepare = computed(() => (
@@ -133,26 +132,10 @@ async function getDetail() {
   }
   try {
     toast.loading('加载中...')
-    const detailData = await getSalesNotice(currentId.value)
-    if (!detailData) {
-      uni.showToast({ icon: 'none', title: '详情不存在，已返回列表' })
-      // TODO @YunaiV：成功后延迟返回统一改 delay(handleBack)，对齐 system/infra（本文件共 2 处 setTimeout(() => handleBack())）
-      setTimeout(() => handleBack(), 300)
-      return
-    }
-    formData.value = detailData
+    formData.value = await getSalesNotice(currentId.value)
   } finally {
     toast.close()
   }
-}
-
-/** 初始化页面数据 */
-async function initPage() {
-  if (!currentId.value) {
-    formData.value = undefined
-    return
-  }
-  await getDetail()
 }
 
 /** 编辑 */
@@ -187,9 +170,7 @@ async function handleDelete() {
     await deleteSalesNotice(currentId.value)
     toast.success('删除成功')
     uni.$emit('mes:wm:salesnotice:reload')
-    setTimeout(() => {
-      handleBack()
-    }, 500)
+    delay(handleBack)
   } finally {
     deleting.value = false
   }
@@ -220,11 +201,7 @@ async function handleSubmitSalesNotice() {
 }
 
 /** 初始化 */
-onMounted(() => {
-  initPage()
-})
-
-watch(currentId, () => {
-  initPage()
+onShow(() => {
+  getDetail()
 })
 </script>

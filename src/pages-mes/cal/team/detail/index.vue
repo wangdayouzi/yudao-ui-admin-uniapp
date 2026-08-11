@@ -22,43 +22,44 @@
         <wd-cell title="创建时间" :value="formatDateTime(formData?.createTime) || '-'" />
       </wd-cell-group>
 
-      <TeamMemberList :team-id="teamId" />
+      <TeamMemberList v-if="props.id" :team-id="Number(props.id)" />
       <view class="h-160rpx" />
     </scroll-view>
 
     <!-- 底部操作按钮 -->
-    <MesFooterActions content-class="yd-detail-footer-actions">
-      <wd-button
-        v-if="hasAccessByCodes(['mes:cal-team:update'])"
-        class="flex-1"
-        type="warning"
-        @click="handleEdit"
-      >
-        编辑
-      </wd-button>
-      <wd-button
-        v-if="hasAccessByCodes(['mes:cal-team:delete'])"
-        class="flex-1"
-        type="danger"
-        :loading="deleting"
-        @click="handleDelete"
-      >
-        删除
-      </wd-button>
-    </MesFooterActions>
+    <view class="yd-detail-footer">
+      <view class="yd-detail-footer-actions">
+        <wd-button
+          v-if="hasAccessByCodes(['mes:cal-team:update'])"
+          class="flex-1"
+          type="warning"
+          @click="handleEdit"
+        >
+          编辑
+        </wd-button>
+        <wd-button
+          v-if="hasAccessByCodes(['mes:cal-team:delete'])"
+          class="flex-1"
+          type="danger"
+          :loading="deleting"
+          @click="handleDelete"
+        >
+          删除
+        </wd-button>
+      </view>
+    </view>
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { CalTeamVO } from '@/api/mes/cal/team'
+import type { CalTeam } from '@/api/mes/cal/team'
+import { onShow } from '@dcloudio/uni-app'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, onMounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { deleteTeam, getTeam } from '@/api/mes/cal/team'
 import { useAccess } from '@/hooks/useAccess'
-import { useRouteQuery } from '@/hooks/useRouteQuery'
-import MesFooterActions from '@/pages-mes/components/mes-footer-actions.vue'
-import { navigateBackPlus } from '@/utils'
+import { delay, navigateBackPlus } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 import { formatDateTime } from '@/utils/date'
 import TeamMemberList from '../components/team-member-list.vue'
@@ -75,11 +76,8 @@ definePage({
 const { hasAccessByCodes } = useAccess()
 const dialog = useDialog()
 const toast = useToast()
-const formData = ref<CalTeamVO>() // 详情数据
+const formData = ref<CalTeam>() // 详情数据
 const deleting = ref(false) // 删除状态
-const { getRouteQueryNumber } = useRouteQuery(props, '/pages-mes/cal/team/detail/index')
-// TODO @YunaiV：简单 id 参数优先直接用 props.id 接收，不需要 useRouteQuery/getRouteQueryNumber 包一层；多参数页面只保留其它 query 的 helper。
-const teamId = computed(() => getRouteQueryNumber('id'))
 
 /** 返回上一页 */
 function handleBack() {
@@ -88,19 +86,12 @@ function handleBack() {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!teamId.value) {
+  if (!props.id) {
     return
   }
   try {
     toast.loading('加载中...')
-    const detailData = await getTeam(teamId.value)
-    if (!detailData) {
-      uni.showToast({ icon: 'none', title: '详情不存在，已返回列表' })
-      // TODO @YunaiV：成功后延迟返回统一改 delay(handleBack)，对齐 system/infra（本文件共 2 处 setTimeout(() => handleBack())）
-      setTimeout(() => handleBack(), 300)
-      return
-    }
-    formData.value = detailData
+    formData.value = await getTeam(Number(props.id))
   } finally {
     toast.close()
   }
@@ -108,41 +99,43 @@ async function getDetail() {
 
 /** 编辑班组 */
 function handleEdit() {
-  if (!teamId.value) {
+  if (!props.id) {
     return
   }
-  uni.navigateTo({ url: `/pages-mes/cal/team/form/index?id=${teamId.value}` })
+  uni.navigateTo({ url: `/pages-mes/cal/team/form/index?id=${props.id}` })
 }
 
 /** 删除班组 */
 async function handleDelete() {
-  if (!teamId.value) {
+  if (!props.id) {
     return
   }
   try {
     await dialog.confirm({
       title: '删除确认',
-      msg: `确定要删除「${formData.value?.name || formData.value?.code || teamId.value}」班组吗？删除后会级联清理班组成员和排班记录。`,
+      msg: `确定要删除「${formData.value?.name || formData.value?.code || props.id}」班组吗？删除后会级联清理班组成员和排班记录。`,
     })
   } catch {
     return
   }
   deleting.value = true
   try {
-    await deleteTeam(teamId.value)
+    await deleteTeam(Number(props.id))
     toast.success('删除成功')
     uni.$emit('mes:cal:team:reload')
-    setTimeout(() => handleBack(), 500)
+    delay(handleBack)
   } finally {
     deleting.value = false
   }
 }
 
-onMounted(() => {
+/** 初始化 */
+onShow(() => {
   getDetail()
 })
 
-watch(teamId, () => {
+/** 监听班组编号变化 */
+watch(() => props.id, () => {
   getDetail()
 })
 </script>

@@ -4,6 +4,17 @@ import { http } from '@/http/http'
 const baseUrl = '/mp/message'
 
 /** 公众号消息 */
+export interface MpArticle {
+  title?: string
+  description?: string
+  picUrl?: string
+  url?: string
+  digest?: string
+  thumbUrl?: string
+  thumbMediaUrl?: string
+  contentSourceUrl?: string
+}
+
 export interface MpMessage {
   id?: number
   userId?: number
@@ -20,7 +31,7 @@ export interface MpMessage {
   url?: string
   event?: string
   eventKey?: string
-  articles?: any[]
+  articles?: MpArticle[]
   thumbMediaId?: string
   thumbMediaUrl?: string
   musicUrl?: string
@@ -44,7 +55,7 @@ export interface MpMessageSend {
   description?: string
   thumbMediaId?: string
   thumbMediaUrl?: string
-  articles?: any[]
+  articles?: MpArticle[]
   musicUrl?: string
   hqMusicUrl?: string
 }

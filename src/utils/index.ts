@@ -45,6 +45,27 @@ export function ensureDecodeURIComponent(url: string) {
   }
   return url
 }
+
+/** 解码 URL 文本值 */
+export function decodeUrlText(value: unknown) {
+  if (value === undefined || value === null) {
+    return ''
+  }
+  let result = String(value)
+  for (let i = 0; i < 3 && result.includes('%'); i++) {
+    try {
+      const decoded = decodeURIComponent(result)
+      if (decoded === result) {
+        break
+      }
+      result = decoded
+    } catch {
+      break
+    }
+  }
+  return result
+}
+
 /**
  * 解析 url 得到 path 和 query
  * 比如输入url: /pages/login/login?redirect=%2Fpages%2Fdemo%2Fbase%2Froute-interceptor
@@ -178,8 +199,8 @@ export function redirectAfterLogin(redirectUrl?: string) {
   if (isPageTabbar(_path)) {
     uni.switchTab({ url: path })
   } else {
-    // 如果 query 有值则通过reLaunch方式跳转过来所以不能用back
-    if (Object.keys(query).length > 0) {
+    // 登录后目标包含参数或页面栈无上一页时，使用 reLaunch 保证跳转成功
+    if (Object.keys(query).length > 0 || getCurrentPages().length <= 1) {
       uni.reLaunch({ url: path })
     } else {
       uni.navigateBack()
@@ -255,6 +276,11 @@ export function getTopPopupModalStyle() {
 /** 字符串数组逐项去空白并过滤空项 */
 export function trimArray(list: string[]): string[] {
   return list.map(item => item.trim()).filter(Boolean)
+}
+
+/** 归一化字符串里的转义换行 */
+export function normalizeEscapedNewlines(text: string): string {
+  return text.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n')
 }
 
 /** 换行文本转字符串数组（逐项去空白、过滤空项），用于多值表单字段 */

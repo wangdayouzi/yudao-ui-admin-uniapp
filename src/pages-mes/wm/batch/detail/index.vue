@@ -43,10 +43,6 @@
           <wd-cell title="工具" :value="formData?.toolCode || '-'" />
           <wd-cell title="模具" :value="formData?.moldId ? `模具 #${formData.moldId}` : '-'" />
         </wd-cell-group>
-
-        <view class="mt-24rpx rounded-12rpx bg-[#f6ffed] p-24rpx text-26rpx text-[#389e0d] leading-42rpx">
-          批次管理为只读查询能力；批次生成和流转由入库、出库、生产、质检等业务单据自动维护。
-        </view>
       </view>
       <view class="h-48rpx" />
     </scroll-view>
@@ -54,10 +50,10 @@
 </template>
 
 <script lang="ts" setup>
-import type { BatchVO } from '@/api/mes/wm/batch'
-import { useRouteQuery } from '@/hooks/useRouteQuery'
+import { onShow } from '@dcloudio/uni-app'
+import type { Batch } from '@/api/mes/wm/batch'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, onMounted, ref, watch } from 'vue'
+import { ref } from 'vue'
 import { getBatch } from '@/api/mes/wm/batch'
 import { navigateBackPlus } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
@@ -75,10 +71,7 @@ definePage({
 })
 
 const toast = useToast()
-const formData = ref<BatchVO>() // 详情数据
-const { getRouteQueryNumber } = useRouteQuery(props, '/pages-mes/wm/batch/detail/index')
-// TODO @YunaiV：简单 id 参数优先直接用 props.id 接收，不需要 useRouteQuery/getRouteQueryNumber 包一层；多参数页面只保留其它 query 的 helper。
-const currentId = computed(() => getRouteQueryNumber('id')) // 当前详情编号
+const formData = ref<Batch>() // 详情数据
 
 /** 返回上一页 */
 function handleBack() {
@@ -87,30 +80,19 @@ function handleBack() {
 
 /** 加载详情 */
 async function getDetail() {
-  if (!currentId.value) {
+  if (!props.id) {
     return
   }
   try {
     toast.loading('加载中...')
-    const detailData = await getBatch(currentId.value)
-    if (!detailData) {
-      uni.showToast({ icon: 'none', title: '详情不存在，已返回列表' })
-      // TODO @YunaiV：成功后延迟返回统一改 delay(handleBack)，对齐 system/infra（本文件共 1 处 setTimeout(() => handleBack())）
-      setTimeout(() => handleBack(), 300)
-      return
-    }
-    formData.value = detailData
+    formData.value = await getBatch(Number(props.id))
   } finally {
     toast.close()
   }
 }
 
 /** 初始化 */
-onMounted(() => {
-  getDetail()
-})
-
-watch(currentId, () => {
+onShow(() => {
   getDetail()
 })
 </script>

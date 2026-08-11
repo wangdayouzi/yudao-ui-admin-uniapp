@@ -10,7 +10,7 @@
           <wd-cell title="出库单号" :value="formData.no || '保存时自动生成'" />
           <wd-form-item title="出库时间" title-width="220rpx" prop="outTime" is-link :value="formatDate(formData.outTime) || ''" placeholder="请选择出库时间" @click="dateVisible.outTime = true" />
           <wd-datetime-picker v-model="formData.outTime" v-model:visible="dateVisible.outTime" title="请选择出库时间" type="date" />
-          <ErpPicker v-model="formData.customerId" label="客户" label-width="220rpx" source="customer" placeholder="请选择客户" />
+          <CustomerFormPicker v-model="formData.customerId" />
           <wd-form-item title="备注" title-width="220rpx" prop="remark">
             <wd-textarea v-model="formData.remark" placeholder="请输入备注" :maxlength="500" show-word-limit clearable />
           </wd-form-item>
@@ -20,18 +20,19 @@
         </wd-cell-group>
 
         <!-- 出库明细 -->
-        <view class="px-24rpx py-16rpx text-28rpx text-[#666]">
-          出库产品清单
+        <view class="flex items-center justify-between px-24rpx py-16rpx">
+          <text class="text-28rpx text-[#333] font-semibold">出库产品清单</text>
+          <wd-button size="small" type="primary" variant="plain" @click="itemEditorRef?.handleAdd()">
+            添加
+          </wd-button>
         </view>
-        <wd-cell-group border>
-          <wd-form-item title="出库明细" title-width="220rpx">
-            <OutItemForm ref="itemEditorRef" v-model="formData.items" :product-options="productOptions" :warehouse-options="warehouseOptions" />
-          </wd-form-item>
-        </wd-cell-group>
+        <view class="px-24rpx">
+          <OutItemForm ref="itemEditorRef" v-model="formData.items" :product-options="productOptions" :warehouse-options="warehouseOptions" />
+        </view>
 
         <!-- 合计信息 -->
-        <view class="px-24rpx py-16rpx text-28rpx text-[#666]">
-          合计信息
+        <view class="flex items-center justify-between px-24rpx py-16rpx">
+          <text class="text-28rpx text-[#333] font-semibold">合计信息</text>
         </view>
         <wd-cell-group border>
           <wd-cell title="合计数量" :value="formatCount(formData.totalCount)" />
@@ -65,12 +66,12 @@ import { getWarehouseSimpleList } from '@/api/erp/stock/warehouse'
 import { delay, navigateBackPlus } from '@/utils'
 import { formatDate } from '@/utils/date'
 import { createFormSchema } from '@/utils/wot'
-import ErpPicker from '@/pages-erp/components/erp-picker.vue'
+import CustomerFormPicker from '@/pages-erp/sale/customer/components/customer-form-picker.vue'
 import OutItemForm from '../components/out-item-form.vue'
-import { formatCount, formatMoney, roundPrice, toNumber } from '@/pages-erp/utils/erp'
+import { formatCount, roundPrice } from '@/pages-erp/utils/format'
+import { formatMoney, toNumber } from '@/utils/format'
 
-const props = defineProps<{ id?: number | any }>()
-
+const props = defineProps<{ id?: number }>()
 definePage({
   style: {
     navigationBarTitleText: '',
@@ -100,7 +101,6 @@ const dateVisible = reactive({
   outTime: false,
 }) // 日期选择器状态
 const formSchema = createFormSchema({
-  customerId: [{ required: true, message: '客户不能为空' }],
   outTime: [{ required: true, message: '出库时间不能为空' }],
 })
 
@@ -135,10 +135,7 @@ async function getDetail() {
   }
   try {
     toast.loading('加载中...')
-    formData.value = {
-      ...formData.value,
-      ...await getStockOut(props.id),
-    }
+    formData.value = await getStockOut(props.id)
   } finally {
     toast.close()
   }
@@ -151,6 +148,7 @@ async function handleSubmit() {
   if (!valid || !itemEditorRef.value?.validate()) {
     return
   }
+
   refreshAmount()
   formLoading.value = true
   try {
@@ -168,6 +166,7 @@ async function handleSubmit() {
   }
 }
 
+/** 明细变更后刷新金额 */
 watch(() => formData.value.items, refreshAmount, { deep: true })
 
 /** 初始化 */

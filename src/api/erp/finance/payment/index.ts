@@ -18,13 +18,19 @@ export interface FinancePayment {
   id?: number // 付款单编号
   no?: string // 付款单号
   supplierId?: number // 供应商编号
+  supplierName?: string // 供应商名称
   accountId?: number // 结算账户编号
+  accountName?: string // 结算账户名称
   financeUserId?: number // 财务人员编号
-  paymentTime?: string | number | Date // 付款时间
+  financeUserName?: string // 财务人员名称
+  paymentTime?: Date | string | number // 付款时间
   totalPrice?: number // 合计金额，单位：元
   discountPrice?: number // 优惠金额，单位：元
   paymentPrice?: number // 实际付款，单位：元
   status?: number // 状态
+  creator?: string // 创建人
+  creatorName?: string // 创建人名称
+  createTime?: Date // 创建时间
   remark?: string // 备注
   fileUrl?: string // 附件地址
   items?: FinancePaymentItem[] // 付款明细

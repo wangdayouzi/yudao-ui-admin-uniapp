@@ -2,7 +2,7 @@
   <!-- 搜索框入口 -->
   <view class="bg-white px-24rpx py-16rpx" @click="openSearch">
     <view class="flex items-center rounded-36rpx bg-[#f5f5f5] px-24rpx py-14rpx text-28rpx text-[#999]">
-      <wd-icon name="search" size="32rpx" />
+      <wd-icon name="search-line" size="32rpx" />
       <text class="ml-12rpx min-w-0 flex-1 truncate">
         {{ placeholder }}
       </text>
@@ -10,12 +10,9 @@
   </view>
 
   <!-- 搜索弹窗 -->
-  <!-- TODO @YunaiV：本 wd-popup 去掉 transition="fade" :duration="0"，对齐 system/infra（基线不带这俩属性） -->
   <wd-popup
     v-model="visible"
     position="top"
-    transition="fade"
-    :duration="0"
     :custom-style="getTopPopupStyle()"
     :modal-style="getTopPopupModalStyle()"
     @close="visible = false"
@@ -41,26 +38,8 @@
           clearable
         />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          项目类型
-        </view>
-        <wd-radio-group v-model="formData.type" type="button">
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.MES_DV_SUBJECT_TYPE)" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">
-          状态
-        </view>
-        <wd-radio-group v-model="formData.status" type="button">
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)" :key="dict.value" :value="dict.value">
-            {{ dict.label }}
-          </wd-radio>
-        </wd-radio-group>
-      </view>
+      <yd-search-picker v-model="formData.type" label="项目类型" :dict-type="DICT_TYPE.MES_DV_SUBJECT_TYPE" all-option />
+      <yd-search-picker v-model="formData.status" label="状态" :dict-type="DICT_TYPE.COMMON_STATUS" all-option />
       <view class="yd-search-form-actions">
         <wd-button class="flex-1" variant="plain" @click="handleReset">
           重置
@@ -74,20 +53,18 @@
 </template>
 
 <script lang="ts" setup>
-// TODO @YunaiV：搜索风格对齐 system/infra——wd-radio-group 状态/类型筛选改 yd-search-picker（配 dict-kind + all-option）
-import type { DvSubjectQueryParams } from '@/api/mes/dv/subject'
 import { computed, reactive, ref } from 'vue'
-import { getDictLabel, getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
 
 const emit = defineEmits<{
-  search: [data: DvSubjectQueryParams]
+  search: [data: Record<string, any>]
   reset: []
 }>()
 
 const visible = ref(false) // 搜索弹窗显示状态
-const formData = reactive<DvSubjectQueryParams>({
+const formData = reactive<Record<string, any>>({
   code: '',
   name: '',
   type: undefined,
@@ -103,10 +80,10 @@ const placeholder = computed(() => {
   if (formData.name) {
     conditions.push(`项目名称:${formData.name}`)
   }
-  if (formData.type != null) {
+  if (formData.type !== undefined) {
     conditions.push(`项目类型:${getDictLabel(DICT_TYPE.MES_DV_SUBJECT_TYPE, formData.type)}`)
   }
-  if (formData.status != null) {
+  if (formData.status !== undefined) {
     conditions.push(`状态:${getDictLabel(DICT_TYPE.COMMON_STATUS, formData.status)}`)
   }
   return conditions.length > 0 ? conditions.join(' | ') : '搜索点检项目'
@@ -120,20 +97,12 @@ function openSearch() {
 /** 搜索按钮操作 */
 function handleSearch() {
   visible.value = false
-  const params: DvSubjectQueryParams = {}
-  if (formData.code) {
-    params.code = formData.code
-  }
-  if (formData.name) {
-    params.name = formData.name
-  }
-  if (formData.type != null) {
-    params.type = formData.type
-  }
-  if (formData.status != null) {
-    params.status = formData.status
-  }
-  emit('search', params)
+  emit('search', {
+    code: formData.code || undefined,
+    name: formData.name || undefined,
+    type: formData.type,
+    status: formData.status,
+  })
 }
 
 /** 重置按钮操作 */

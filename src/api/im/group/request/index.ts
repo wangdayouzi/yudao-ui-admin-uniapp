@@ -13,6 +13,7 @@ export interface ImGroupRequestRespVO {
   addSource?: number
   handleTime?: string
   createTime: string
+  updateTime?: number
   userNickname?: string
   userAvatar?: string
   inviterNickname?: string
@@ -22,14 +23,14 @@ export interface ImGroupRequestRespVO {
 }
 
 /** IM 加群申请发起 */
-export interface ImGroupRequestApplyReqVO {
+export interface ImGroupRequestApplyReq {
   groupId: number
   applyContent?: string
   addSource?: number
 }
 
 /** 申请加群 */
-export function applyJoinGroup(data: ImGroupRequestApplyReqVO) {
+export function applyJoinGroup(data: ImGroupRequestApplyReq) {
   return http.post<number | null>('/im/group-request/apply', data)
 }
 
@@ -56,4 +57,9 @@ export function getGroupRequestListByGroupId(groupId: number) {
 /** 获得我相关的加群申请详情 */
 export function getMyGroupRequest(id: number) {
   return http.get<ImGroupRequestRespVO | null>('/im/group-request/get', { id })
+}
+
+/** 增量拉取当前用户管理群的加群申请 */
+export function pullMyGroupRequestList(params: { lastUpdateTime?: number, lastId?: number, limit: number }) {
+  return http.get<ImGroupRequestRespVO[]>('/im/group-request/pull', params)
 }

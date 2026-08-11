@@ -6,7 +6,9 @@ export interface PurchaseInItem {
   id?: number
   orderItemId?: number
   warehouseId?: number
+  warehouseName?: string
   productId?: number
+  productUnitId?: number
   productName?: string
   productUnitName?: string
   productBarCode?: string
@@ -27,16 +29,25 @@ export interface PurchaseIn {
   id?: number // 入库工单编号
   no?: string // 采购入库号
   supplierId?: number // 供应商编号
+  supplierName?: string // 供应商名称
   accountId?: number // 结算账户编号
-  inTime?: string | number | Date // 入库时间
+  accountName?: string // 结算账户名称
+  orderId?: number // 关联订单编号
+  inTime?: Date | string | number // 入库时间
   orderNo?: string // 关联订单
   discountPercent?: number // 优惠率
   discountPrice?: number // 付款优惠
   totalPrice?: number // 优惠后金额
   otherPrice?: number // 其它费用
   paymentPrice?: number // 应付金额
+  totalProductPrice?: number // 合计产品金额
+  totalTaxPrice?: number // 合计税额
   totalCount?: number // 合计数量
   status?: number // 状态
+  creator?: string // 创建人
+  creatorName?: string // 创建人名称
+  createTime?: Date // 创建时间
+  productNames?: string // 产品信息
   remark?: string // 备注
   fileUrl?: string // 附件地址
   items?: PurchaseInItem[] // 入库明细

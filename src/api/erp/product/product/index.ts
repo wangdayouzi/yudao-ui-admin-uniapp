@@ -7,6 +7,7 @@ export interface Product {
   name?: string // 产品名称
   barCode?: string // 产品条码
   categoryId?: number // 产品分类编号
+  categoryName?: string // 产品分类名称
   unitId?: number // 单位编号
   unitName?: string // 单位名字
   status?: number // 产品状态
@@ -17,6 +18,7 @@ export interface Product {
   purchasePrice?: number // 采购价格，单位：元
   salePrice?: number // 销售价格，单位：元
   minPrice?: number // 最低价格，单位：元
+  createTime?: Date // 创建时间
 }
 
 /** 获取产品分页列表 */

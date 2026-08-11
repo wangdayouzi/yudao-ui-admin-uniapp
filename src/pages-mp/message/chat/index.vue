@@ -1,5 +1,5 @@
 <template>
-  <view class="yd-page-container">
+  <view class="yd-page-container yd-page-container-paging">
     <!-- 顶部导航栏 -->
     <wd-navbar
       title="粉丝消息"
@@ -8,7 +8,7 @@
     />
 
     <!-- 粉丝信息 -->
-    <view class="bg-white px-24rpx py-20rpx">
+    <view class="shrink-0 bg-white px-24rpx py-20rpx">
       <view class="flex items-center gap-16rpx">
         <wd-img
           v-if="userInfo.headImageUrl"
@@ -35,32 +35,26 @@
       </view>
     </view>
 
-    <!-- 消息会话 -->
-    <scroll-view
-      scroll-y
+    <!-- 消息列表 -->
+    <z-paging
+      ref="pagingRef"
+      v-model="list"
+      use-chat-record-mode
+      :fixed="false"
+      :auto="false"
       class="min-h-0 flex-1 bg-[#f3f5f7]"
-      :scroll-into-view="scrollIntoView"
+      :default-page-size="PAGE_SIZE"
+      bg-color="#f3f5f7"
+      bottom-bg-color="#fff"
+      empty-view-text="暂无消息"
+      @query="queryList"
+      @cell-style-change="cellStyle = $event"
     >
       <view class="px-24rpx py-20rpx">
-        <view class="mb-20rpx text-center">
-          <wd-button
-            v-if="hasMore"
-            size="small"
-            variant="plain"
-            :loading="loading"
-            @click="loadMore"
-          >
-            加载更多
-          </wd-button>
-          <text v-else class="text-24rpx text-[#999]">
-            没有更多了
-          </text>
-        </view>
-
         <view
           v-for="(item, index) in list"
-          :id="getMessageDomId(item, index)"
           :key="item.id || index"
+          :style="cellStyle"
           class="mb-24rpx"
         >
           <view class="mb-8rpx text-center text-22rpx text-[#999]">
@@ -72,7 +66,7 @@
           >
             <view
               class="h-64rpx w-64rpx flex shrink-0 items-center justify-center rounded-full text-24rpx text-white"
-              :class="item.sendFrom === 2 ? 'bg-[#1677ff]' : 'bg-[#07c160]'"
+              :class="item.sendFrom === 2 ? 'bg-[#1890ff]' : 'bg-[#07c160]'"
             >
               {{ item.sendFrom === 2 ? '号' : '粉' }}
             </view>
@@ -103,127 +97,132 @@
             </view>
           </view>
         </view>
-        <view id="message-bottom" class="h-1rpx" />
       </view>
-    </scroll-view>
 
-    <!-- 发送区域 -->
-    <view class="border-t border-[#eee] bg-white px-24rpx py-20rpx">
-      <view class="mb-16rpx flex items-center gap-16rpx">
-        <wd-button size="small" variant="plain" @click="sendTypePickerVisible = true">
-          {{ sendTypeLabel }}
-        </wd-button>
-        <wd-button v-if="canUpload" size="small" variant="plain" :loading="uploading" @click="handleUpload">
-          本地上传
-        </wd-button>
-        <wd-button
-          v-if="canPickMaterial"
-          size="small"
-          variant="plain"
-          @click="materialPickerVisible = true"
-        >
-          {{ sendForm.type === 'music' ? '选缩略图' : '素材库' }}
-        </wd-button>
-      </view>
-      <wd-picker
-        v-model:visible="sendTypePickerVisible"
-        :model-value="[sendForm.type]"
-        :columns="sendTypeOptions"
-        @confirm="handleSendTypeConfirm"
-      />
+      <!-- 发送区域 -->
+      <template #bottom>
+        <view class="shrink-0 border-t border-[#eee] bg-white px-24rpx py-20rpx pb-[calc(20rpx+env(safe-area-inset-bottom))]">
+          <view class="mb-16rpx flex items-center gap-16rpx">
+            <wd-button size="small" variant="plain" @click="sendTypePickerVisible = true">
+              <view class="flex items-center gap-4rpx">
+                <text>{{ sendTypeLabel }}</text>
+                <wd-icon name="down" size="24rpx" />
+              </view>
+            </wd-button>
+            <wd-button v-if="canUpload" size="small" variant="plain" :loading="uploading" @click="handleUpload">
+              本地上传
+            </wd-button>
+            <wd-button
+              v-if="canPickMaterial"
+              size="small"
+              variant="plain"
+              @click="materialPickerVisible = true"
+            >
+              {{ sendForm.type === 'music' ? '选缩略图' : '素材库' }}
+            </wd-button>
+          </view>
+          <wd-picker
+            v-model:visible="sendTypePickerVisible"
+            :model-value="[sendForm.type]"
+            :columns="sendTypeOptions"
+            root-portal
+            @confirm="handleSendTypeConfirm"
+          />
 
-      <!-- 文本 -->
-      <template v-if="sendForm.type === 'text'">
-        <wd-textarea
-          v-model="sendForm.content"
-          placeholder="请输入消息内容"
-          :maxlength="600"
-          show-word-limit
-          clearable
-        />
-      </template>
+          <!-- 文本 -->
+          <template v-if="sendForm.type === 'text'">
+            <wd-textarea
+              v-model="sendForm.content"
+              placeholder="请输入消息内容"
+              :maxlength="600"
+              show-word-limit
+              clearable
+            />
+          </template>
 
-      <!-- 图片 -->
-      <template v-else-if="sendForm.type === 'image'">
-        <view v-if="sendForm.url" class="flex items-center gap-16rpx">
-          <wd-img :src="sendForm.url" width="160rpx" height="160rpx" radius="8rpx" mode="aspectFill" />
-          <wd-button size="small" type="error" variant="plain" @click="clearMedia">
-            移除
+          <!-- 图片 -->
+          <template v-else-if="sendForm.type === 'image'">
+            <view v-if="sendForm.url" class="flex items-center gap-16rpx">
+              <wd-img :src="sendForm.url" width="160rpx" height="160rpx" radius="8rpx" mode="aspectFill" />
+              <wd-button size="small" type="danger" variant="plain" @click="clearMedia">
+                移除
+              </wd-button>
+            </view>
+            <view v-else class="text-26rpx text-[#999]">
+              请「本地上传」或从「素材库」选择图片
+            </view>
+          </template>
+
+          <!-- 语音 -->
+          <template v-else-if="sendForm.type === 'voice'">
+            <view v-if="sendForm.url" class="flex items-center gap-16rpx">
+              <MediaPreview type="voice" :url="sendForm.url" />
+              <wd-button size="small" type="danger" variant="plain" @click="clearMedia">
+                移除
+              </wd-button>
+            </view>
+            <view v-else class="text-26rpx text-[#999]">
+              请「本地上传」或从「素材库」选择语音
+            </view>
+          </template>
+
+          <!-- 视频 -->
+          <template v-else-if="sendForm.type === 'video'">
+            <MediaPreview v-if="sendForm.url" type="video" :url="sendForm.url" />
+            <view v-else class="text-26rpx text-[#999]">
+              请「本地上传」或从「素材库」选择视频
+            </view>
+            <view class="h-12rpx" />
+            <wd-input v-model="sendForm.title" clearable placeholder="请输入视频标题" />
+            <view class="h-12rpx" />
+            <wd-textarea v-model="sendForm.description" clearable placeholder="请输入视频描述" />
+          </template>
+
+          <!-- 图文 -->
+          <template v-else-if="sendForm.type === 'news'">
+            <NewsCard
+              v-if="sendForm.articles.length"
+              :articles="sendForm.articles"
+              @article-click="article => openUrl(article.url)"
+            />
+            <view v-else class="text-26rpx text-[#999]">
+              请从「素材库」选择图文（最多发送 1 条）
+            </view>
+            <view v-if="sendForm.articles.length" class="mt-12rpx text-right">
+              <wd-button size="small" type="danger" variant="plain" @click="sendForm.articles = []">
+                移除图文
+              </wd-button>
+            </view>
+          </template>
+
+          <!-- 音乐 -->
+          <template v-else-if="sendForm.type === 'music'">
+            <view v-if="sendForm.thumbMediaUrl" class="mb-12rpx flex items-center gap-16rpx">
+              <wd-img :src="sendForm.thumbMediaUrl" width="120rpx" height="120rpx" radius="8rpx" mode="aspectFill" />
+              <wd-button size="small" type="danger" variant="plain" @click="clearMusicThumb">
+                移除缩略图
+              </wd-button>
+            </view>
+            <view v-else class="mb-12rpx text-26rpx text-[#999]">
+              请「本地上传」或「选缩略图」回填音乐封面
+            </view>
+            <wd-input v-model="sendForm.title" clearable placeholder="请输入标题" />
+            <view class="h-12rpx" />
+            <wd-textarea v-model="sendForm.description" clearable placeholder="请输入描述" />
+            <view class="h-12rpx" />
+            <wd-input v-model="sendForm.musicUrl" clearable placeholder="请输入音乐链接" />
+            <view class="h-12rpx" />
+            <wd-input v-model="sendForm.hqMusicUrl" clearable placeholder="请输入高质量音乐链接（选填）" />
+          </template>
+
+          <wd-button class="mt-16rpx" type="primary" block :loading="sending" @click="handleSend">
+            发送
           </wd-button>
         </view>
-        <view v-else class="text-26rpx text-[#999]">
-          请「本地上传」或从「素材库」选择图片
-        </view>
       </template>
+    </z-paging>
 
-      <!-- 语音 -->
-      <template v-else-if="sendForm.type === 'voice'">
-        <view v-if="sendForm.url" class="flex items-center gap-16rpx">
-          <MediaPreview type="voice" :url="sendForm.url" />
-          <wd-button size="small" type="error" variant="plain" @click="clearMedia">
-            移除
-          </wd-button>
-        </view>
-        <view v-else class="text-26rpx text-[#999]">
-          请「本地上传」或从「素材库」选择语音
-        </view>
-      </template>
-
-      <!-- 视频 -->
-      <template v-else-if="sendForm.type === 'video'">
-        <MediaPreview v-if="sendForm.url" type="video" :url="sendForm.url" />
-        <view v-else class="text-26rpx text-[#999]">
-          请「本地上传」或从「素材库」选择视频
-        </view>
-        <view class="h-12rpx" />
-        <wd-input v-model="sendForm.title" clearable placeholder="请输入视频标题" />
-        <view class="h-12rpx" />
-        <wd-textarea v-model="sendForm.description" clearable placeholder="请输入视频描述" />
-      </template>
-
-      <!-- 图文 -->
-      <template v-else-if="sendForm.type === 'news'">
-        <NewsCard
-          v-if="sendForm.articles.length"
-          :articles="sendForm.articles"
-          @article-click="article => openExternalUrl(article.url)"
-        />
-        <view v-else class="text-26rpx text-[#999]">
-          请从「素材库」选择图文（最多发送 1 条）
-        </view>
-        <view v-if="sendForm.articles.length" class="mt-12rpx text-right">
-          <wd-button size="small" type="error" variant="plain" @click="sendForm.articles = []">
-            移除图文
-          </wd-button>
-        </view>
-      </template>
-
-      <!-- 音乐 -->
-      <template v-else-if="sendForm.type === 'music'">
-        <view v-if="sendForm.thumbMediaUrl" class="mb-12rpx flex items-center gap-16rpx">
-          <wd-img :src="sendForm.thumbMediaUrl" width="120rpx" height="120rpx" radius="8rpx" mode="aspectFill" />
-          <wd-button size="small" type="error" variant="plain" @click="clearMusicThumb">
-            移除缩略图
-          </wd-button>
-        </view>
-        <view v-else class="mb-12rpx text-26rpx text-[#999]">
-          请「本地上传」或「选缩略图」回填音乐封面
-        </view>
-        <wd-input v-model="sendForm.title" clearable placeholder="请输入标题" />
-        <view class="h-12rpx" />
-        <wd-textarea v-model="sendForm.description" clearable placeholder="请输入描述" />
-        <view class="h-12rpx" />
-        <wd-input v-model="sendForm.musicUrl" clearable placeholder="请输入音乐链接" />
-        <view class="h-12rpx" />
-        <wd-input v-model="sendForm.hqMusicUrl" clearable placeholder="请输入高质量音乐链接" />
-      </template>
-
-      <wd-button class="mt-16rpx" type="primary" block :loading="sending" @click="handleSend">
-        发送
-      </wd-button>
-    </view>
-
-    <!-- 素材选择 -->
+    <!-- 素材选择弹窗 -->
     <MaterialPicker
       v-model:visible="materialPickerVisible"
       :account-id="accountId"
@@ -234,11 +233,10 @@
 </template>
 
 <script lang="ts" setup>
-import type { MpMessage, MpMessageSend } from '@/api/mp/message'
+import type { MpArticle, MpMessage, MpMessageSend } from '@/api/mp/message'
 import type { MpUser } from '@/api/mp/user'
-import { onLoad } from '@dcloudio/uni-app'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { computed, nextTick, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { getMessagePage, sendMessage } from '@/api/mp/message'
 import { getUser } from '@/api/mp/user'
 import { navigateBackPlus } from '@/utils'
@@ -246,17 +244,15 @@ import { formatDateTime } from '@/utils/date'
 import MediaPreview from '@/pages-mp/components/media-preview.vue'
 import NewsCard from '@/pages-mp/components/news-card.vue'
 import MaterialPicker from '@/pages-mp/material/components/material-picker.vue'
-import { openExternalUrl } from '@/pages-mp/utils/link'
+import { openUrl } from '@/utils/url'
 import { useMaterialUpload } from '@/pages-mp/utils/upload'
 import ReplyContent from '../../components/reply-content.vue'
-import { getMpRouteNumber, getMpRouteString, useMpRouteParams } from '../../utils/route'
 
 const props = defineProps<{
-  userId?: number | any
-  accountId?: number | any
+  userId?: number | string
+  accountId?: number | string
   openid?: string
 }>()
-const { routeParams, syncRouteParams } = useMpRouteParams(props)
 
 definePage({
   style: {
@@ -267,39 +263,39 @@ definePage({
 
 const toast = useToast()
 const { uploading, chooseAndUpload } = useMaterialUpload()
-const userId = computed(() => getMpRouteNumber(routeParams.userId))
-const routeAccountId = computed(() => getMpRouteNumber(routeParams.accountId))
-const routeOpenid = computed(() => getMpRouteString(routeParams.openid))
+const PAGE_SIZE = 14 // 每页消息数
+const userId = computed(() => props.userId ? Number(props.userId) : undefined) // 粉丝编号
+const routeAccountId = computed(() => props.accountId ? Number(props.accountId) : undefined) // 路由公众号编号
+const routeOpenid = computed(() => props.openid || '') // 路由 OpenID
 const accountId = ref<number>() // 当前公众号编号
-const userInfo = reactive<MpUser>({
+const userInfo = reactive<MpUser>({ // 粉丝信息
   id: undefined,
   nickname: '',
   openid: '',
   headImageUrl: '',
-}) // 粉丝信息
-const list = ref<MpMessage[]>([]) // 消息列表
-const pageNo = ref(1) // 当前页码
-const pageSize = 14 // 每页条数
-const loading = ref(false) // 加载状态
-const hasMore = ref(true) // 是否还有更多
-const scrollIntoView = ref('message-bottom') // 滚动锚点
+})
+const pagingRef = ref<any>() // 分页组件引用
+const list = ref<MpMessage[]>([]) // 消息列表（最新在前）
+const firstPageLoading = ref(true) // 首屏消息加载状态
+const pendingLatestMessages = ref<MpMessage[]>([]) // 首屏加载期间待追加消息
+const cellStyle = ref<Record<string, string>>({ transform: 'scaleY(-1)' }) // 聊天记录模式单元格倒置样式
 const sending = ref(false) // 发送状态
 const sendTypePickerVisible = ref(false) // 类型选择器
 const materialPickerVisible = ref(false) // 素材选择弹窗
-const sendForm = reactive({
+const sendForm = reactive({ // 发送表单
   type: 'text',
   content: '',
   mediaId: '',
   url: '',
   title: '',
   description: '',
-  articles: [] as any[],
+  articles: [] as MpArticle[],
   thumbMediaId: '',
   thumbMediaUrl: '',
   musicUrl: '',
   hqMusicUrl: '',
-}) // 发送表单
-const sendTypeOptions = [
+})
+const sendTypeOptions = [ // 发送类型选项
   { value: 'text', label: '文本' },
   { value: 'image', label: '图片' },
   { value: 'voice', label: '语音' },
@@ -308,11 +304,10 @@ const sendTypeOptions = [
   { value: 'music', label: '音乐' },
 ]
 
-const sendTypeLabel = computed(() => sendTypeOptions.find(item => item.value === sendForm.type)?.label || '')
-const canPickMaterial = computed(() => ['image', 'voice', 'video', 'news', 'music'].includes(sendForm.type))
-// 本地上传：图片 / 语音 / 视频内联上传，音乐上传缩略图（thumb）
-const canUpload = computed(() => ['image', 'voice', 'video', 'music'].includes(sendForm.type))
-const materialPickerType = computed<'image' | 'voice' | 'video' | 'news'>(() => {
+const sendTypeLabel = computed(() => sendTypeOptions.find(item => item.value === sendForm.type)?.label || '') // 发送类型文案
+const canPickMaterial = computed(() => ['image', 'voice', 'video', 'news', 'music'].includes(sendForm.type)) // 是否可以选择素材
+const canUpload = computed(() => ['image', 'voice', 'video', 'music'].includes(sendForm.type)) // 是否可以本地上传
+const materialPickerType = computed<'image' | 'voice' | 'video' | 'news'>(() => { // 素材选择类型
   if (sendForm.type === 'news') {
     return 'news'
   }
@@ -347,55 +342,46 @@ async function initUser() {
   }
 }
 
-/** 获取消息 DOM 编号 */
-function getMessageDomId(item: MpMessage, index: number) {
-  return `message-${item.id || index}`
-}
-
-/** 加载消息 */
-async function getList(reset = false) {
+/** 分页加载消息 */
+async function queryList(pageNo: number, pageSize: number) {
+  const isFirstPage = pageNo === 1
+  let querySucceeded = false
+  if (isFirstPage) {
+    firstPageLoading.value = true
+  }
   if (!userId.value) {
+    await pagingRef.value?.completeByTotal([], 0)
+    if (isFirstPage) {
+      flushPendingLatestMessages()
+    }
     return
   }
-  if (loading.value) {
-    return
-  }
-  if (reset) {
-    pageNo.value = 1
-    list.value = []
-    hasMore.value = true
-  }
-  loading.value = true
   try {
     const data = await getMessagePage({
-      pageNo: pageNo.value,
+      pageNo,
       pageSize,
       userId: userId.value,
       accountId: accountId.value,
     })
-    const messages = (data.list || []).reverse()
-    list.value = reset ? messages : [...messages, ...list.value]
-    hasMore.value = messages.length >= pageSize
-    await nextTick()
-    if (reset) {
-      scrollIntoView.value = 'message-bottom'
-    } else if (messages.length > 0) {
-      scrollIntoView.value = getMessageDomId(messages[messages.length - 1], messages.length - 1)
+    const rawMessages = data.list || []
+    if (isFirstPage) {
+      await pagingRef.value?.completeByTotal(rawMessages, data.total)
+      querySucceeded = true
+      return
+    }
+    // 发送新消息会使 offset 分页后移；过滤边界重复，是否结束仍以服务端原始页长度判断
+    const messages = rawMessages.filter(item => !item.id || !list.value.some(exist => exist.id === item.id))
+    await pagingRef.value?.completeByNoMore(messages, rawMessages.length < pageSize)
+    if (messages.length === 0 && rawMessages.length === pageSize) {
+      setTimeout(() => pagingRef.value?.doChatRecordLoadMore(), 50)
     }
   } catch {
-    hasMore.value = false
+    await pagingRef.value?.complete(false).catch(() => undefined)
   } finally {
-    loading.value = false
+    if (isFirstPage && querySucceeded) {
+      flushPendingLatestMessages()
+    }
   }
-}
-
-/** 加载更多 */
-function loadMore() {
-  if (!hasMore.value || loading.value) {
-    return
-  }
-  pageNo.value += 1
-  getList()
 }
 
 /** 消息类型选择 */
@@ -429,7 +415,7 @@ async function handleUpload() {
 function handleMaterialSelect(item: any) {
   // 图文：回填 articles 数组，预览用 news-card
   if (sendForm.type === 'news') {
-    sendForm.articles = item.content?.newsItem || item.articles || []
+    sendForm.articles = normalizeArticles(getNewsArticles(item))
     return
   }
   // 音乐：选图片素材作为缩略图
@@ -445,6 +431,22 @@ function handleMaterialSelect(item: any) {
     sendForm.title = item.title || sendForm.title
     sendForm.description = item.introduction || item.description || sendForm.description
   }
+}
+
+/** 获取素材图文列表 */
+function getNewsArticles(item: any) {
+  return item?.content?.newsItem || item?.articles || []
+}
+
+/** 规整图文字段，满足后端 Article 结构 */
+function normalizeArticles(articles: MpArticle[]) {
+  return articles.map(article => ({
+    ...article,
+    title: article.title || '',
+    description: article.description || article.digest || '',
+    picUrl: article.picUrl || article.thumbUrl || article.thumbMediaUrl || '',
+    url: article.url || article.contentSourceUrl || '',
+  }))
 }
 
 /** 移除已选媒体 */
@@ -473,6 +475,32 @@ function clearSendForm() {
   sendForm.hqMusicUrl = ''
 }
 
+/** 去重后追加最新消息并滚动到底部 */
+function addLatestMessage(message: MpMessage) {
+  if (message.id && (list.value.some(item => item.id === message.id)
+    || pendingLatestMessages.value.some(item => item.id === message.id))) {
+    return
+  }
+  if (firstPageLoading.value) {
+    pendingLatestMessages.value.push(message)
+    return
+  }
+  if (pagingRef.value) {
+    pagingRef.value.addChatRecordData(message)
+  } else {
+    list.value = [message, ...list.value]
+  }
+}
+
+/** 追加首屏加载期间发送的新消息 */
+function flushPendingLatestMessages() {
+  firstPageLoading.value = false
+  const messages = [...pendingLatestMessages.value]
+    .sort((left, right) => (left.id || 0) - (right.id || 0))
+  pendingLatestMessages.value = []
+  messages.forEach(message => addLatestMessage(message))
+}
+
 /** 发送消息 */
 async function handleSend() {
   if (!userId.value) {
@@ -491,12 +519,12 @@ async function handleSend() {
     toast.show('请填写视频标题与描述')
     return
   }
-  if (sendForm.type === 'music' && (!sendForm.thumbMediaId || !sendForm.musicUrl || !sendForm.hqMusicUrl)) {
-    toast.show('请上传音乐缩略图并填写音乐链接与高质量链接')
+  if (sendForm.type === 'music' && (!sendForm.thumbMediaId || !sendForm.musicUrl)) {
+    toast.show('请上传音乐缩略图并填写音乐链接')
     return
   }
 
-  let articles: any[] | undefined
+  let articles: MpArticle[] | undefined
   if (sendForm.type === 'news') {
     if (!sendForm.articles.length) {
       toast.show('请从素材库选择图文素材')
@@ -530,10 +558,8 @@ async function handleSend() {
   sending.value = true
   try {
     const message = await sendMessage(data)
-    list.value = [...list.value, message]
+    addLatestMessage(message)
     clearSendForm()
-    await nextTick()
-    scrollIntoView.value = 'message-bottom'
     toast.success('发送成功')
   } finally {
     sending.value = false
@@ -541,9 +567,8 @@ async function handleSend() {
 }
 
 /** 初始化 */
-onLoad(async (query) => {
-  syncRouteParams(query)
+onMounted(async () => {
   await initUser()
-  await getList(true)
+  await pagingRef.value?.reload()
 })
 </script>

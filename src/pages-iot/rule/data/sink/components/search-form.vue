@@ -5,29 +5,40 @@
   </view>
 
   <!-- 搜索弹窗 -->
-  <wd-popup v-model="visible" position="top" :custom-style="getTopPopupStyle()" :modal-style="getTopPopupModalStyle()" @close="visible = false">
+  <wd-popup
+    v-model="visible"
+    position="top"
+    :custom-style="getTopPopupStyle()"
+    :modal-style="getTopPopupModalStyle()"
+    @close="visible = false"
+  >
     <view class="yd-search-form-container">
       <view class="yd-search-form-item">
-        <view class="yd-search-form-label">目的名称</view>
+        <view class="yd-search-form-label">
+          目的名称
+        </view>
         <wd-input v-model="formData.name" placeholder="请输入目的名称" clearable />
       </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">目的状态</view>
-        <wd-radio-group v-model="formData.status" type="button">
-          <wd-radio :value="-1">全部</wd-radio>
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.COMMON_STATUS)" :key="dict.value" :value="dict.value">{{ dict.label }}</wd-radio>
-        </wd-radio-group>
-      </view>
-      <view class="yd-search-form-item">
-        <view class="yd-search-form-label">目的类型</view>
-        <wd-radio-group v-model="formData.type" type="button">
-          <wd-radio :value="-1">全部</wd-radio>
-          <wd-radio v-for="dict in getIntDictOptions(DICT_TYPE.IOT_DATA_SINK_TYPE_ENUM)" :key="dict.value" :value="dict.value">{{ dict.label }}</wd-radio>
-        </wd-radio-group>
-      </view>
+      <yd-search-picker
+        v-model="formData.status"
+        label="目的状态"
+        :dict-type="DICT_TYPE.COMMON_STATUS"
+        all-option
+      />
+      <yd-search-picker
+        v-model="formData.type"
+        label="目的类型"
+        :dict-type="DICT_TYPE.IOT_DATA_SINK_TYPE_ENUM"
+        all-option
+      />
+      <yd-search-date-range v-model="formData.createTime" label="创建时间" />
       <view class="yd-search-form-actions">
-        <wd-button class="flex-1" variant="plain" @click="handleReset">重置</wd-button>
-        <wd-button class="flex-1" type="primary" @click="handleSearch">搜索</wd-button>
+        <wd-button class="flex-1" variant="plain" @click="handleReset">
+          重置
+        </wd-button>
+        <wd-button class="flex-1" type="primary" @click="handleSearch">
+          搜索
+        </wd-button>
       </view>
     </view>
   </wd-popup>
@@ -35,23 +46,37 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref } from 'vue'
-import { getIntDictOptions } from '@/hooks/useDict'
+import { getDictLabel } from '@/hooks/useDict'
 import { getTopPopupModalStyle, getTopPopupStyle } from '@/utils'
 import { DICT_TYPE } from '@/utils/constants'
+import { formatDate, formatDateRange } from '@/utils/date'
 
-const emit = defineEmits<{ search: [data: Record<string, any>], reset: [] }>()
+const emit = defineEmits<{
+  search: [data: Record<string, any>]
+  reset: []
+}>()
 const visible = ref(false) // 搜索弹窗显示状态
 const formData = reactive({
   name: undefined as string | undefined,
-  status: -1,
-  type: -1,
+  status: undefined as number | undefined,
+  type: undefined as number | undefined,
+  createTime: [undefined, undefined] as [number | undefined, number | undefined],
 }) // 搜索表单数据
 
 const placeholder = computed(() => {
   const conditions: string[] = []
-  if (formData.name) conditions.push('名称:' + formData.name)
-  if (formData.status !== -1) conditions.push('状态已选')
-  if (formData.type !== -1) conditions.push('类型已选')
+  if (formData.name) {
+    conditions.push(`名称:${formData.name}`)
+  }
+  if (formData.status !== undefined) {
+    conditions.push(`状态:${getDictLabel(DICT_TYPE.COMMON_STATUS, formData.status)}`)
+  }
+  if (formData.type !== undefined) {
+    conditions.push(`类型:${getDictLabel(DICT_TYPE.IOT_DATA_SINK_TYPE_ENUM, formData.type)}`)
+  }
+  if (formData.createTime?.[0] && formData.createTime?.[1]) {
+    conditions.push(`时间:${formatDate(formData.createTime[0])}~${formatDate(formData.createTime[1])}`)
+  }
   return conditions.length > 0 ? conditions.join(' | ') : '搜索数据目的'
 })
 
@@ -59,17 +84,19 @@ const placeholder = computed(() => {
 function handleSearch() {
   visible.value = false
   emit('search', {
-    name: formData.name,
-    status: formData.status === -1 ? undefined : formData.status,
-    type: formData.type === -1 ? undefined : formData.type,
+    name: formData.name || undefined,
+    status: formData.status,
+    type: formData.type,
+    createTime: formatDateRange(formData.createTime),
   })
 }
 
 /** 重置按钮操作 */
 function handleReset() {
   formData.name = undefined
-  formData.status = -1
-  formData.type = -1
+  formData.status = undefined
+  formData.type = undefined
+  formData.createTime = [undefined, undefined]
   visible.value = false
   emit('reset')
 }

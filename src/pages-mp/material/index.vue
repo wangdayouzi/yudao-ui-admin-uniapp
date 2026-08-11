@@ -84,13 +84,12 @@
           <view class="mb-20rpx text-24rpx text-[#999]">
             上传时间：{{ formatDateTime(item.createTime) || '-' }}
           </view>
-          <view v-if="hasAccessByCodes(['mp:material:delete'])" class="flex">
-            <wd-button
-              class="flex-1" size="small" type="danger" @click="handleDelete(item)"
-            >
-              删除
-            </wd-button>
-          </view>
+          <wd-button
+            v-if="hasAccessByCodes(['mp:material:delete'])"
+            block size="small" type="danger" @click="handleDelete(item)"
+          >
+            删除
+          </wd-button>
         </view>
       </view>
     </z-paging>
@@ -216,6 +215,8 @@ async function handleUpload() {
   }
   // 视频需先在弹窗收集标题与描述
   if (currentType.value === 'video') {
+    videoForm.title = ''
+    videoForm.introduction = ''
     videoFormVisible.value = true
     return
   }

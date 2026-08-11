@@ -5,6 +5,7 @@ import { http } from '@/http/http'
 export interface StockOutItem {
   id?: number
   warehouseId?: number
+  warehouseName?: string
   productId?: number
   productName?: string
   productUnitName?: string
@@ -21,10 +22,15 @@ export interface StockOut {
   id?: number // 出库编号
   no?: string // 出库单号
   customerId?: number // 客户编号
-  outTime?: string | number | Date // 出库时间
+  customerName?: string // 客户名称
+  outTime?: Date | string | number // 出库时间
   totalCount?: number // 合计数量
   totalPrice?: number // 合计金额，单位：元
   status?: number // 状态
+  creator?: string // 创建人
+  creatorName?: string // 创建人名称
+  createTime?: Date // 创建时间
+  productNames?: string // 产品信息
   remark?: string // 备注
   fileUrl?: string // 附件地址
   items?: StockOutItem[] // 出库明细
