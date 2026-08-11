@@ -13,6 +13,7 @@ export const LOGIN_PAGE = '/pages-core/auth/login' // edit by 芋艿：自定义
 export const REGISTER_PAGE = '/pages-core/auth/register' // edit by 芋艿：自定义了注册页路径
 export const CODE_LOGIN_PAGE = '/pages-core/auth/code-login' // edit by 芋艿：自定义了短信登录页路径
 export const FORGET_PASSWORD_PAGE = '/pages-core/auth/forget-password' // edit by 芋艿：自定义了忘记密码页路径
+export const OAUTH_CALLBACK_PAGE = '/pages-core/auth/oauth-callback' // edit by 芋艿：钉钉等 OAuth 回调落地页
 export const NOT_FOUND_PAGE = '/pages-core/error/404' // edit by 芋艿：调整 404 页面路径
 export const ONLY_PC_PAGE = '/pages-core/error/pc-only' // edit by 芋艿：新增仅 PC 端访问提示页面路径
 

@@ -171,6 +171,18 @@ export const useTokenStore = defineStore(
     }
 
     /**
+     * 钉钉等 OAuth 回调登录：token 不是来自登录接口，而是来自 OAuth 回调 URL 参数。
+     * 复用 _postLogin 完成 token 持久化、用户信息与字典加载。
+     * @param tokenInfo OAuth 回调返回的 token 信息
+     * @returns 登录结果
+     */
+    const oauthLogin = async (tokenInfo: IAuthLoginRes) => {
+      await _postLogin(tokenInfo)
+      toast.success('登录成功')
+      return tokenInfo
+    }
+
+    /**
      * 微信登录
      * 有的时候后端会用一个接口返回token和用户信息，有的时候会分开2个接口，一个获取token，一个获取用户信息
      * （各有利弊，看业务场景和系统复杂度），这里使用2个接口返回的来模拟
@@ -336,6 +348,7 @@ export const useTokenStore = defineStore(
     return {
       // 核心API方法
       login,
+      oauthLogin,
       wxLogin,
       logout,
 

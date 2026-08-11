@@ -29,6 +29,8 @@ interface ImportMetaEnv {
   readonly VITE_SERVER_HAS_API_PREFIX: 'true' | 'false'
   /** 认证模式，'single' | 'double' ==> 单token | 双token */
   readonly VITE_AUTH_MODE: 'single' | 'double'
+  /** h5 部署网站 base，如 /h5/，用于钉钉 OAuth 回调重定向 */
+  readonly VITE_APP_PUBLIC_BASE?: string
   /** 是否清除console */
   readonly VITE_DELETE_CONSOLE: string
   // 更多环境变量...

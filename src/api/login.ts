@@ -97,6 +97,16 @@ export function getTenantSimpleList() {
   return http.get<TenantVO[]>('/system/tenant/simple-list')
 }
 
+/**
+ * 获取钉钉 OAuth2 授权页 URL
+ * @param redirect 登录成功后前端重定向路径，如 /h5/#/pages-core/auth/login（移动端 H5 使用；管理后台可不传）
+ * @returns 钉钉授权页完整地址
+ */
+export function getDingTalkAuthorizeUrl(redirect?: string) {
+  const query = redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''
+  return http.get<string>(`/system/auth/dingtalk/authorize-url${query}`)
+}
+
 /** 根据租户域名获取租户信息 */
 export function getTenantByWebsite(website: string) {
   return http.get<TenantVO>(`/system/tenant/get-by-website?website=${website}`)

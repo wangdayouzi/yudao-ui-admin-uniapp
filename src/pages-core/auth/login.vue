@@ -80,9 +80,11 @@
 <script lang="ts" setup>
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { reactive, ref } from 'vue'
+import { getDingTalkAuthorizeUrl } from '@/api/login'
 import {
   CODE_LOGIN_PAGE,
   FORGET_PASSWORD_PAGE,
+  OAUTH_CALLBACK_PAGE,
   REGISTER_PAGE,
 } from '@/router/config'
 import { useTokenStore } from '@/store/token'
@@ -191,10 +193,42 @@ function handleWechatLogin() {
   toast.info('微信登录功能开发中')
 }
 
-/** 钉钉登录 */
-// TODO @芋艿：后续开发
-function handleDingTalkLogin() {
-  toast.info('钉钉登录功能开发中')
+/** 钉钉登录（新版 OAuth2，复用管理后台的登录流程） */
+async function handleDingTalkLogin() {
+  // #ifdef MP-WEIXIN || MP-ALIPAY
+  toast.info('当前平台暂不支持钉钉登录')
+  return
+  // #endif
+  // #ifdef H5 || APP-PLUS
+  loading.value = true
+  try {
+    // 暂存原始跳转地址，回调落地页登录成功后跳回去
+    uni.setStorageSync('oauthLoginRedirect', redirectUrl.value || '')
+    // 计算回调重定向地址：指向 OAuth 回调落地页，登录成功后由回调页接收 token 参数
+    const redirect = `${import.meta.env.VITE_APP_PUBLIC_BASE || '/'}#${OAUTH_CALLBACK_PAGE}`
+    const url = await getDingTalkAuthorizeUrl(redirect)
+    if (!url) {
+      toast.warning('获取钉钉授权地址为空')
+      return
+    }
+    console.log('[DingTalk] authorize-url:', url)
+    // #ifdef H5
+    // 同页跳转到钉钉授权页，登录后回调会落到 oauth-callback 落地页自动登录
+    window.location.href = url
+    // #endif
+    // #ifdef APP-PLUS
+    // App 端打开系统浏览器完成授权
+    plus.runtime.openURL(url)
+    // #endif
+  }
+  catch (e) {
+    console.error('[DingTalk] 授权地址获取失败:', e)
+    toast.error('钉钉登录配置异常，请联系管理员')
+  }
+  finally {
+    loading.value = false
+  }
+  // #endif
 }
 </script>
 
