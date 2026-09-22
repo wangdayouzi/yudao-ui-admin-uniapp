@@ -132,6 +132,7 @@
             },
             {
               "key": "area",
+              "permission": "system:dict:query",
               "name": "地区管理",
               "icon": "location",
               "iconColor": "#f5222d",
@@ -219,6 +220,7 @@
             },
             {
               "key": "websocket",
+              "permission": "system:user:list",
               "name": "WebSocket",
               "icon": "wifi",
               "iconColor": "#13c2c2",
@@ -248,6 +250,7 @@
             },
             {
               "key": "build",
+              "permission": "infra:build:list",
               "name": "表单构建",
               "icon": "edit",
               "iconColor": "#73d13d",
@@ -255,6 +258,7 @@
             },
             {
               "key": "swagger",
+              "permission": "infra:swagger:list",
               "name": "API 接口",
               "icon": "link",
               "iconColor": "#95de64",
@@ -268,6 +272,7 @@
           "menus": [
             {
               "key": "mysql",
+              "permission": "infra:api-error-log:query",
               "name": "MySQL 监控",
               "icon": "desktop",
               "iconColor": "#1890ff",
@@ -283,6 +288,7 @@
             },
             {
               "key": "java",
+              "permission": "infra:redis:get-monitor-info",
               "name": "Java 监控",
               "icon": "settings",
               "iconColor": "#52c41a",
@@ -290,6 +296,7 @@
             },
             {
               "key": "skywalking",
+              "permission": "infra:api-access-log:query",
               "name": "链路追踪",
               "icon": "apps",
               "iconColor": "#722ed1",
@@ -431,6 +438,7 @@
           "menus": [
             {
               "key": "payDemoOrder",
+              "permission": "pay:app:query",
               "name": "示例订单",
               "icon": "ordered-list",
               "iconColor": "#eb2f96",
@@ -438,6 +446,7 @@
             },
             {
               "key": "payDemoWithdraw",
+              "permission": "pay:wallet:query",
               "name": "示例提现",
               "icon": "safe",
               "iconColor": "#fa541c",
@@ -661,6 +670,7 @@
           "menus": [
             {
               "key": "mallHome",
+              "permission": "statistics:trade:query",
               "name": "商城首页",
               "icon": "dashboard",
               "iconColor": "#1677ff",
@@ -954,6 +964,7 @@
           "menus": [
             {
               "key": "mallStatisticsTrade",
+              "permission": "statistics:trade:query",
               "name": "交易统计",
               "icon": "dashboard",
               "iconColor": "#fa8c16",
@@ -961,6 +972,7 @@
             },
             {
               "key": "mallStatisticsProduct",
+              "permission": "statistics:product:query",
               "name": "商品统计",
               "icon": "dashboard",
               "iconColor": "#52c41a",
@@ -968,6 +980,7 @@
             },
             {
               "key": "mallStatisticsMember",
+              "permission": "statistics:member:query",
               "name": "会员统计",
               "icon": "dashboard",
               "iconColor": "#1677ff",
@@ -1105,6 +1118,7 @@
           "menus": [
             {
               "key": "crmBacklog",
+              "permission": "crm:customer:query",
               "name": "待办事项",
               "icon": "calendar-line",
               "iconColor": "#fa541c",
@@ -1530,6 +1544,7 @@
           "menus": [
             {
               "key": "mesHome",
+              "permission": "mes:pro-work-order:query",
               "name": "MES 工作台",
               "icon": "dashboard",
               "iconColor": "#1677ff",
@@ -2805,6 +2820,7 @@
           "menus": [
             {
               "key": "aiChat",
+              "permission": "ai:chat-conversation:query",
               "name": "AI 对话",
               "icon": "message",
               "iconColor": "#13c2c2",
@@ -2812,6 +2828,7 @@
             },
             {
               "key": "aiImage",
+              "permission": "ai:image:query",
               "name": "AI 绘图",
               "icon": "image",
               "iconColor": "#722ed1",
@@ -2819,6 +2836,7 @@
             },
             {
               "key": "aiWrite",
+              "permission": "ai:write:query",
               "name": "AI 写作",
               "icon": "edit",
               "iconColor": "#fa8c16",
@@ -2826,6 +2844,7 @@
             },
             {
               "key": "aiMusic",
+              "permission": "ai:music:query",
               "name": "AI 音乐",
               "icon": "sound",
               "iconColor": "#f5222d",
@@ -2849,6 +2868,7 @@
             },
             {
               "key": "aiMindMap",
+              "permission": "ai:mind-map:query",
               "name": "思维导图",
               "icon": "share-alt",
               "iconColor": "#52c41a",
@@ -2946,6 +2966,7 @@
           "menus": [
             {
               "key": "iotHome",
+              "permission": "iot:device:query",
               "name": "IoT 首页",
               "icon": "dashboard",
               "iconColor": "#1677ff",
@@ -3075,6 +3096,7 @@
           "menus": [
             {
               "key": "imHome",
+              "permission": "im:manager:friend:query",
               "name": "聊天",
               "icon": "message",
               "iconColor": "#1677ff",
@@ -3088,6 +3110,7 @@
           "menus": [
             {
               "key": "imFriend",
+              "permission": "im:manager:friend:query",
               "name": "好友列表",
               "icon": "user",
               "iconColor": "#1890ff",
@@ -3095,6 +3118,7 @@
             },
             {
               "key": "imFriendRequest",
+              "permission": "im:manager:friend-request:query",
               "name": "好友申请",
               "icon": "user-add",
               "iconColor": "#fa8c16",
@@ -3102,6 +3126,7 @@
             },
             {
               "key": "imPrivateMessage",
+              "permission": "im:manager:message:query",
               "name": "好友消息",
               "icon": "message",
               "iconColor": "#722ed1",
@@ -3115,6 +3140,7 @@
           "menus": [
             {
               "key": "imGroup",
+              "permission": "im:manager:group:query",
               "name": "群聊列表",
               "icon": "user-group",
               "iconColor": "#52c41a",
@@ -3122,6 +3148,7 @@
             },
             {
               "key": "imGroupRequest",
+              "permission": "im:manager:group-request:query",
               "name": "群聊申请",
               "icon": "user-add",
               "iconColor": "#13c2c2",
@@ -3129,6 +3156,7 @@
             },
             {
               "key": "imGroupMessage",
+              "permission": "im:manager:message:query",
               "name": "群聊消息",
               "icon": "message",
               "iconColor": "#eb2f96",
@@ -3142,6 +3170,7 @@
           "menus": [
             {
               "key": "imChannel",
+              "permission": "im:manager:channel:query",
               "name": "频道列表",
               "icon": "send",
               "iconColor": "#2f54eb",
@@ -3149,6 +3178,7 @@
             },
             {
               "key": "imChannelMaterial",
+              "permission": "im:manager:channel-material:query",
               "name": "频道素材",
               "icon": "image",
               "iconColor": "#fa541c",
@@ -3156,6 +3186,7 @@
             },
             {
               "key": "imChannelMessage",
+              "permission": "im:manager:channel-message:query",
               "name": "频道消息",
               "icon": "email",
               "iconColor": "#faad14",
@@ -3169,6 +3200,7 @@
           "menus": [
             {
               "key": "imStatistics",
+              "permission": "im:manager:statistics:query",
               "name": "数据统计",
               "icon": "dashboard",
               "iconColor": "#722ed1",
@@ -3176,6 +3208,7 @@
             },
             {
               "key": "imRtc",
+              "permission": "im:manager:rtc:query",
               "name": "通话记录",
               "icon": "phone",
               "iconColor": "#08979c",
@@ -3183,6 +3216,7 @@
             },
             {
               "key": "imSensitiveWord",
+              "permission": "im:manager:sensitive-word:query",
               "name": "敏感词管理",
               "icon": "message-banned",
               "iconColor": "#f5222d",
@@ -3190,6 +3224,7 @@
             },
             {
               "key": "imFacePack",
+              "permission": "im:manager:face-pack:query",
               "name": "系统表情",
               "icon": "face-smile-fill",
               "iconColor": "#9254de",
@@ -3197,6 +3232,7 @@
             },
             {
               "key": "imFaceUserItem",
+              "permission": "im:manager:face-user-item:query",
               "name": "用户表情",
               "icon": "face-meh-fill",
               "iconColor": "#36cfc9",
