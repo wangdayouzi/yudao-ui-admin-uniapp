@@ -3,18 +3,21 @@
     {
       "key": "system",
       "name": "系统管理",
+      "visible": true,
       "subGroups": [
         {
           "key": "permission",
           "name": "权限管理",
+          "visible": true,
           "menus": [
             {
               "key": "user",
               "name": "用户管理",
+              "visible": true,
               "icon": "user",
               "iconColor": "#1890ff",
               "url": "/pages-system/user/index",
-              "permission": "system:user:list"
+              "permission": "system:user:query"
             },
             {
               "key": "role",
@@ -64,7 +67,7 @@
             },
             {
               "key": "social",
-              "name": "三方用户",
+              "name": "三方登录",
               "icon": "share-alt",
               "iconColor": "#f759ab",
               "url": "/pages-system/social/index",
@@ -72,11 +75,11 @@
             },
             {
               "key": "oauth2",
-              "name": "OAuth2.0",
+              "name": "OAuth 2.0",
               "icon": "lock",
               "iconColor": "#ff85c0",
               "url": "/pages-system/oauth2/index",
-              "permission": "system:oauth2-client:query"
+              "permissions": ["system:oauth2-client:query", "system:oauth2-token:query"]
             }
           ]
         },
@@ -98,7 +101,7 @@
               "icon": "message",
               "iconColor": "#faad14",
               "url": "/pages-system/sms/index",
-              "permission": "system:sms-channel:query"
+              "permissions": ["system:sms-channel:query", "system:sms-template:query", "system:sms-log:query"]
             },
             {
               "key": "mail",
@@ -106,7 +109,7 @@
               "icon": "email",
               "iconColor": "#ffc53d",
               "url": "/pages-system/mail/index",
-              "permission": "system:mail-account:query"
+              "permissions": ["system:mail-account:query", "system:mail-template:query", "system:mail-log:query"]
             },
             {
               "key": "notify",
@@ -114,7 +117,7 @@
               "icon": "message",
               "iconColor": "#ff7a45",
               "url": "/pages-system/notify/index",
-              "permission": "system:notify-template:query"
+              "permissions": ["system:notify-template:query", "system:notify-message:query"]
             }
           ]
         },
@@ -212,11 +215,11 @@
             },
             {
               "key": "file",
-              "name": "文件管理",
+              "name": "文件列表",
               "icon": "folder",
               "iconColor": "#2f54eb",
               "url": "/pages-infra/file/index",
-              "permission": "infra:file:query"
+              "permissions": ["infra:file:query", "infra:file-config:query"]
             },
             {
               "key": "websocket",
@@ -310,7 +313,7 @@
           "menus": [
             {
               "key": "demo01",
-              "name": "单表",
+              "name": "单表（增删改查）",
               "icon": "list",
               "iconColor": "#1890ff",
               "url": "/pages-infra/demo/demo01/index",
@@ -318,7 +321,7 @@
             },
             {
               "key": "demo02",
-              "name": "树表",
+              "name": "树表（增删改查）",
               "icon": "folder",
               "iconColor": "#13c2c2",
               "url": "/pages-infra/demo/demo02/index",
@@ -439,7 +442,7 @@
             {
               "key": "payDemoOrder",
               "permission": "pay:app:query",
-              "name": "示例订单",
+              "name": "支付&退款案例",
               "icon": "ordered-list",
               "iconColor": "#eb2f96",
               "url": "/pages-pay/demo/order/index"
@@ -447,7 +450,7 @@
             {
               "key": "payDemoWithdraw",
               "permission": "pay:wallet:query",
-              "name": "示例提现",
+              "name": "提现转账案例",
               "icon": "safe",
               "iconColor": "#fa541c",
               "url": "/pages-pay/demo/withdraw/index"
@@ -497,7 +500,7 @@
               "permission": "bpm:process-instance-cc:query"
             },
             {
-              "key": "oaLeave",
+              "key": "bpmOaLeave",
               "name": "请假查询",
               "icon": "calendar-line",
               "iconColor": "#52c41a",
@@ -662,7 +665,7 @@
     },
     {
       "key": "mall",
-      "name": "商城系统",
+      "name": "MALL 商城系统",
       "subGroups": [
         {
           "key": "overview",
@@ -678,7 +681,7 @@
             },
             {
               "key": "mallKefu",
-              "name": "客服会话",
+              "name": "客服中心",
               "icon": "message",
               "iconColor": "#722ed1",
               "url": "/pages-mall/kefu/index",
@@ -762,7 +765,7 @@
             },
             {
               "key": "mallDeliveryExpressTemplate",
-              "name": "运费模板",
+              "name": "运费模版",
               "icon": "file",
               "iconColor": "#2f54eb",
               "url": "/pages-mall/trade/delivery/express-template/index",
@@ -796,7 +799,7 @@
         },
         {
           "key": "promotion",
-          "name": "营销管理",
+          "name": "营销中心",
           "menus": [
             {
               "key": "mallPromotionBanner",
@@ -824,7 +827,7 @@
             },
             {
               "key": "mallPromotionCouponTemplate",
-              "name": "优惠券列表",
+              "name": "优惠劵列表",
               "icon": "tags",
               "iconColor": "#eb2f96",
               "url": "/pages-mall/promotion/coupon/template/index",
@@ -992,7 +995,7 @@
     },
     {
       "key": "mp",
-      "name": "MP 公众号",
+      "name": "MP 公众号管理",
       "subGroups": [
         {
           "key": "account",
@@ -1054,7 +1057,7 @@
             },
             {
               "key": "mpMessageTemplate",
-              "name": "消息模板",
+              "name": "模版消息",
               "icon": "notification",
               "iconColor": "#eb2f96",
               "url": "/pages-mp/message-template/index",
@@ -1545,7 +1548,7 @@
             {
               "key": "mesHome",
               "permission": "mes:pro-work-order:query",
-              "name": "MES 工作台",
+              "name": "MES 首页",
               "icon": "dashboard",
               "iconColor": "#1677ff",
               "url": "/pages-statistics/mes/home/index"
@@ -1576,7 +1579,7 @@
             },
             {
               "key": "mesMdItem",
-              "name": "物料产品",
+              "name": "物料产品管理",
               "icon": "archive",
               "iconColor": "#fa8c16",
               "url": "/pages-mes/md/item/index",
@@ -1584,7 +1587,7 @@
             },
             {
               "key": "mesMdItemType",
-              "name": "物料分类",
+              "name": "物料产品分类",
               "icon": "folder",
               "iconColor": "#faad14",
               "url": "/pages-mes/md/item/type/index",
@@ -1600,7 +1603,7 @@
             },
             {
               "key": "mesMdWorkshop",
-              "name": "车间管理",
+              "name": "车间设置",
               "icon": "home",
               "iconColor": "#eb2f96",
               "url": "/pages-mes/md/workstation/workshop/index",
@@ -1608,7 +1611,7 @@
             },
             {
               "key": "mesMdWorkstation",
-              "name": "工作站",
+              "name": "工作站设置",
               "icon": "location",
               "iconColor": "#36cfc9",
               "url": "/pages-mes/md/workstation/index",
@@ -1654,7 +1657,7 @@
             },
             {
               "key": "mesProProcess",
-              "name": "生产工序",
+              "name": "工序设置",
               "icon": "settings",
               "iconColor": "#389e0d",
               "url": "/pages-mes/pro/process/index",
@@ -1662,7 +1665,7 @@
             },
             {
               "key": "mesProRoute",
-              "name": "工艺路线",
+              "name": "工艺流程",
               "icon": "share-alt",
               "iconColor": "#13c2c2",
               "url": "/pages-mes/pro/route/index",
@@ -1670,7 +1673,7 @@
             },
             {
               "key": "mesProCard",
-              "name": "流转卡",
+              "name": "工序流转",
               "icon": "idcard",
               "iconColor": "#1677ff",
               "url": "/pages-mes/pro/card/index",
@@ -1678,7 +1681,7 @@
             },
             {
               "key": "mesProAndonRecord",
-              "name": "安灯记录",
+              "name": "安灯呼叫",
               "icon": "exclamation-circle",
               "iconColor": "#fa8c16",
               "url": "/pages-mes/pro/andon/record/index",
@@ -1688,7 +1691,7 @@
         },
         {
           "key": "wm",
-          "name": "仓储管理",
+          "name": "仓库管理",
           "menus": [
             {
               "key": "mesWmArrivalnotice",
@@ -1708,7 +1711,7 @@
             },
             {
               "key": "mesWmMiscreceipt",
-              "name": "其他入库",
+              "name": "杂项入库",
               "icon": "download",
               "iconColor": "#52c41a",
               "url": "/pages-mes/wm/miscreceipt/index",
@@ -1732,7 +1735,7 @@
             },
             {
               "key": "mesWmMiscissue",
-              "name": "其他出库",
+              "name": "杂项出库",
               "icon": "upload",
               "iconColor": "#13c2c2",
               "url": "/pages-mes/wm/miscissue/index",
@@ -1796,7 +1799,7 @@
             },
             {
               "key": "mesWmMaterialstock",
-              "name": "库存台账",
+              "name": "库存现有量",
               "icon": "dashboard",
               "iconColor": "#722ed1",
               "url": "/pages-mes/wm/materialstock/index",
@@ -1804,7 +1807,7 @@
             },
             {
               "key": "mesWmTransfer",
-              "name": "库存调拨",
+              "name": "转移调拨",
               "icon": "swap",
               "iconColor": "#87e8de",
               "url": "/pages-mes/wm/transfer/index",
@@ -1828,7 +1831,7 @@
             },
             {
               "key": "mesWmPackages",
-              "name": "装箱单",
+              "name": "装箱管理",
               "icon": "archive",
               "iconColor": "#ffc53d",
               "url": "/pages-mes/wm/packages/index",
@@ -1844,7 +1847,7 @@
             },
             {
               "key": "mesWmBarcode",
-              "name": "条码管理",
+              "name": "赋能管理",
               "icon": "code",
               "iconColor": "#1890ff",
               "url": "/pages-mes/wm/barcode/index",
@@ -1860,7 +1863,7 @@
             },
             {
               "key": "mesWmBatch",
-              "name": "批次管理",
+              "name": "批次追溯",
               "icon": "list",
               "iconColor": "#69c0ff",
               "url": "/pages-mes/wm/batch/index",
@@ -1868,7 +1871,7 @@
             },
             {
               "key": "mesWmWarehouse",
-              "name": "仓库管理",
+              "name": "仓库设置",
               "icon": "home",
               "iconColor": "#fa8c16",
               "url": "/pages-mes/wm/warehouse/index",
@@ -1890,7 +1893,7 @@
             },
             {
               "key": "mesQcIndicator",
-              "name": "质检指标",
+              "name": "检测项设置",
               "icon": "list",
               "iconColor": "#9254de",
               "url": "/pages-mes/qc/indicator/index",
@@ -1898,7 +1901,7 @@
             },
             {
               "key": "mesQcDefect",
-              "name": "缺陷类型",
+              "name": "常见缺陷",
               "icon": "exclamation-circle",
               "iconColor": "#f5222d",
               "url": "/pages-mes/qc/defect/index",
@@ -1938,7 +1941,7 @@
             },
             {
               "key": "mesQcRqc",
-              "name": "退货检验",
+              "name": "退料检验",
               "icon": "undo",
               "iconColor": "#eb2f96",
               "url": "/pages-mes/qc/rqc/index",
@@ -1976,7 +1979,7 @@
             },
             {
               "key": "mesDvSubject",
-              "name": "点检项目",
+              "name": "点检保养项目",
               "icon": "list",
               "iconColor": "#2f54eb",
               "url": "/pages-mes/dv/subject/index",
@@ -1984,7 +1987,7 @@
             },
             {
               "key": "mesDvCheckplan",
-              "name": "点检方案",
+              "name": "点检保养方案",
               "icon": "calendar-line",
               "iconColor": "#722ed1",
               "url": "/pages-mes/dv/checkplan/index",
@@ -2008,7 +2011,7 @@
             },
             {
               "key": "mesDvRepair",
-              "name": "维修工单",
+              "name": "维修单",
               "icon": "edit",
               "iconColor": "#fa8c16",
               "url": "/pages-mes/dv/repair/index",
@@ -2046,7 +2049,7 @@
             },
             {
               "key": "mesCalHoliday",
-              "name": "假期设置",
+              "name": "节假日设置",
               "icon": "clock-circle",
               "iconColor": "#fa8c16",
               "url": "/pages-mes/cal/holiday/index",
@@ -2060,7 +2063,7 @@
           "menus": [
             {
               "key": "mesTmTool",
-              "name": "工具台账",
+              "name": "工装夹具台账",
               "icon": "tool",
               "iconColor": "#faad14",
               "url": "/pages-mes/tm/tool/index",
@@ -2068,7 +2071,7 @@
             },
             {
               "key": "mesTmToolType",
-              "name": "工具类型",
+              "name": "工具类型设置",
               "icon": "folder",
               "iconColor": "#ffc53d",
               "url": "/pages-mes/tm/tool/type/index",
@@ -2098,7 +2101,7 @@
         },
         {
           "key": "master",
-          "name": "主数据",
+          "name": "基础数据",
           "menus": [
             {
               "key": "wmsWarehouse",
@@ -2144,7 +2147,7 @@
         },
         {
           "key": "stock",
-          "name": "库存",
+          "name": "库存管理",
           "menus": [
             {
               "key": "wmsInventory",
@@ -2170,7 +2173,7 @@
           "menus": [
             {
               "key": "wmsReceiptOrder",
-              "name": "入库单",
+              "name": "入库管理",
               "icon": "download",
               "iconColor": "#36cfc9",
               "url": "/pages-wms/order/receipt/index",
@@ -2178,7 +2181,7 @@
             },
             {
               "key": "wmsShipmentOrder",
-              "name": "出库单",
+              "name": "出库管理",
               "icon": "upload",
               "iconColor": "#13c2c2",
               "url": "/pages-wms/order/shipment/index",
@@ -2186,7 +2189,7 @@
             },
             {
               "key": "wmsMovementOrder",
-              "name": "移库单",
+              "name": "移库管理",
               "icon": "swap",
               "iconColor": "#5cdbd3",
               "url": "/pages-wms/order/movement/index",
@@ -2194,7 +2197,7 @@
             },
             {
               "key": "wmsCheckOrder",
-              "name": "盘库单",
+              "name": "盘库管理",
               "icon": "check-circle",
               "iconColor": "#87e8de",
               "url": "/pages-wms/order/check/index",
@@ -2456,7 +2459,7 @@
           "menus": [
             {
               "key": "hrmPerformancePlan",
-              "name": "KPI 考核",
+              "name": "KPI考核",
               "icon": "trophy",
               "iconColor": "#1677ff",
               "url": "/pages-hrm/performance/plan/index",
@@ -2811,6 +2814,583 @@
       ]
     },
     {
+      "key": "pms",
+      "name": "PMS 项目管理",
+      "subGroups": [
+        {
+          "key": "pm",
+          "name": "项目中心",
+          "menus": [
+            {
+              "key": "pmsWorkbench",
+              "name": "工作台",
+              "icon": "dashboard",
+              "iconColor": "#1677ff",
+              "url": "/pages-pms/pm/workbench/index",
+              "permission": "pms:pm:work-item:query"
+            },
+            {
+              "key": "pmsProjectList",
+              "name": "我的项目",
+              "icon": "apps",
+              "iconColor": "#52c41a",
+              "url": "/pages-pms/pm/project/list/index",
+              "permission": "pms:pm:project:query"
+            },
+            {
+              "key": "pmsProjectGroup",
+              "name": "项目分组",
+              "icon": "folder",
+              "iconColor": "#13c2c2",
+              "url": "/pages-pms/pm/project/group/index",
+              "permission": "pms:pm:project-group:query"
+            },
+            {
+              "key": "pmsProjectArchive",
+              "name": "归档项目",
+              "icon": "archive",
+              "iconColor": "#fa8c16",
+              "url": "/pages-pms/pm/project/archive/index",
+              "permission": "pms:pm:project:query"
+            },
+            {
+              "key": "pmsProjectRecycle",
+              "name": "项目回收站",
+              "icon": "undo",
+              "iconColor": "#f5222d",
+              "url": "/pages-pms/pm/project/recycle/index",
+              "permission": "pms:pm:project:query"
+            },
+            {
+              "key": "pmsProjectTemplate",
+              "name": "项目模板",
+              "icon": "layout",
+              "iconColor": "#722ed1",
+              "url": "/pages-pms/pm/project/template/index",
+              "permission": "pms:pm:project-template:query"
+            }
+          ]
+        },
+        {
+          "key": "kb",
+          "name": "知识中心",
+          "menus": [
+            {
+              "key": "pmsKbLibrary",
+              "name": "知识库",
+              "icon": "book",
+              "iconColor": "#1677ff",
+              "url": "/pages-pms/kb/library/index",
+              "permission": "pms:kb:library:query"
+            },
+            {
+              "key": "pmsKbSearch",
+              "name": "文档搜索",
+              "icon": "scan",
+              "iconColor": "#52c41a",
+              "url": "/pages-pms/kb/search/index",
+              "permission": "pms:kb:library:query"
+            },
+            {
+              "key": "pmsKbLabel",
+              "name": "文档标签",
+              "icon": "tags",
+              "iconColor": "#13c2c2",
+              "url": "/pages-pms/kb/label/index",
+              "permission": "pms:kb:library:query"
+            },
+            {
+              "key": "pmsKbFavorite",
+              "name": "我的关注",
+              "icon": "star",
+              "iconColor": "#fa8c16",
+              "url": "/pages-pms/kb/favorite/index",
+              "permission": "pms:kb:library:query"
+            },
+            {
+              "key": "pmsKbRecent",
+              "name": "最近使用",
+              "icon": "history",
+              "iconColor": "#722ed1",
+              "url": "/pages-pms/kb/recent/index",
+              "permission": "pms:kb:library:query"
+            },
+            {
+              "key": "pmsKbRecycle",
+              "name": "回收站",
+              "icon": "undo",
+              "iconColor": "#f5222d",
+              "url": "/pages-pms/kb/recycle/index",
+              "permission": "pms:kb:library:delete"
+            },
+            {
+              "key": "pmsKbLibraryTemplate",
+              "name": "知识库模板",
+              "icon": "copy",
+              "iconColor": "#eb2f96",
+              "url": "/pages-pms/kb/library-template/index",
+              "permission": "pms:kb:library-template:query"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "oa",
+      "name": "OA 办公协同",
+      "subGroups": [
+        {
+          "key": "home",
+          "name": "工作台",
+          "menus": [
+            {
+              "key": "oaHome",
+              "name": "工作台",
+              "icon": "dashboard",
+              "iconColor": "#1677ff",
+              "url": "/pages-oa/home/index"
+            }
+          ]
+        },
+        {
+          "key": "attendance",
+          "name": "考勤管理",
+          "menus": [
+            {
+              "key": "oaAttendanceMy",
+              "name": "我的考勤",
+              "icon": "time-line",
+              "iconColor": "#1677ff",
+              "url": "/pages-oa/attendance/my/index",
+              "permission": "oa:attendance:query"
+            },
+            {
+              "key": "oaAttendanceList",
+              "name": "考勤记录",
+              "icon": "user-group",
+              "iconColor": "#52c41a",
+              "url": "/pages-oa/attendance/list/index",
+              "permission": "oa:attendance:query"
+            },
+            {
+              "key": "oaAttendanceReport",
+              "name": "考勤报表",
+              "icon": "dashboard",
+              "iconColor": "#fa8c16",
+              "url": "/pages-oa/attendance/report/index",
+              "permission": "oa:attendance:query"
+            }
+          ]
+        },
+        {
+          "key": "announcement",
+          "name": "公告管理",
+          "menus": [
+            {
+              "key": "oaAnnouncementList",
+              "name": "我发布的",
+              "icon": "edit",
+              "iconColor": "#52c41a",
+              "url": "/pages-oa/announcement/list/index",
+              "permission": "oa:announcement:query"
+            },
+            {
+              "key": "oaAnnouncementMy",
+              "name": "我收到的",
+              "icon": "notification",
+              "iconColor": "#1677ff",
+              "url": "/pages-oa/announcement/my/index",
+              "permission": "oa:announcement:query"
+            }
+          ]
+        },
+        {
+          "key": "task",
+          "name": "任务管理",
+          "menus": [
+            {
+              "key": "oaTaskList",
+              "name": "我发布的",
+              "icon": "share-alt",
+              "iconColor": "#fa8c16",
+              "url": "/pages-oa/task/list/index",
+              "permission": "oa:task:query"
+            },
+            {
+              "key": "oaTaskMy",
+              "name": "我的任务",
+              "icon": "user",
+              "iconColor": "#52c41a",
+              "url": "/pages-oa/task/my/index",
+              "permission": "oa:task:query"
+            }
+          ]
+        },
+        {
+          "key": "schedule",
+          "name": "日程管理",
+          "menus": [
+            {
+              "key": "oaSchedule",
+              "name": "日程管理",
+              "icon": "calendar-line",
+              "iconColor": "#fa8c16",
+              "url": "/pages-oa/schedule/index",
+              "permission": "oa:schedule:query"
+            },
+            {
+              "key": "oaScheduleCalendar",
+              "name": "我的日历",
+              "icon": "calendar-line",
+              "iconColor": "#1677ff",
+              "url": "/pages-oa/schedule/calendar/index",
+              "permission": "oa:schedule:query"
+            }
+          ]
+        },
+        {
+          "key": "plan",
+          "name": "计划管理",
+          "menus": [
+            {
+              "key": "oaPlan",
+              "name": "计划管理",
+              "icon": "edit",
+              "iconColor": "#1677ff",
+              "url": "/pages-oa/plan/index",
+              "permission": "oa:plan:query"
+            },
+            {
+              "key": "oaPlanReport",
+              "name": "计划报表",
+              "icon": "dashboard",
+              "iconColor": "#13c2c2",
+              "url": "/pages-oa/plan/report/index",
+              "permission": "oa:plan:query"
+            }
+          ]
+        },
+        {
+          "key": "workreport",
+          "name": "工作汇报",
+          "menus": [
+            {
+              "key": "oaWorkReport",
+              "name": "我的汇报",
+              "icon": "edit",
+              "iconColor": "#722ed1",
+              "url": "/pages-oa/workreport/index",
+              "permission": "oa:work-report:query"
+            },
+            {
+              "key": "oaWorkReportStatistics",
+              "name": "汇报统计",
+              "icon": "dashboard",
+              "iconColor": "#eb2f96",
+              "url": "/pages-oa/workreport/statistics/index",
+              "permission": "oa:work-report:statistics"
+            }
+          ]
+        },
+        {
+          "key": "note",
+          "name": "笔记管理",
+          "menus": [
+            {
+              "key": "oaNote",
+              "name": "笔记管理",
+              "icon": "edit",
+              "iconColor": "#722ed1",
+              "url": "/pages-oa/note/index",
+              "permission": "oa:note:query"
+            }
+          ]
+        },
+        {
+          "key": "contact",
+          "name": "通讯录",
+          "menus": [
+            {
+              "key": "oaContact",
+              "name": "通讯录",
+              "icon": "user",
+              "iconColor": "#13c2c2",
+              "url": "/pages-oa/contact/index",
+              "permission": "oa:contact:query"
+            }
+          ]
+        },
+        {
+          "key": "discussion",
+          "name": "讨论区",
+          "menus": [
+            {
+              "key": "oaDiscussionManage",
+              "name": "讨论管理",
+              "icon": "edit",
+              "iconColor": "#1677ff",
+              "url": "/pages-oa/discussion/manage/index",
+              "permission": "oa:discussion:query"
+            },
+            {
+              "key": "oaDiscussion",
+              "name": "讨论区列表",
+              "icon": "message",
+              "iconColor": "#722ed1",
+              "url": "/pages-oa/discussion/list/index",
+              "permission": "oa:discussion:query"
+            }
+          ]
+        },
+        {
+          "key": "mail",
+          "name": "企业邮箱",
+          "menus": [
+            {
+              "key": "oaMail",
+              "name": "收件箱",
+              "icon": "email",
+              "iconColor": "#3b82f6",
+              "url": "/pages-oa/mail/index",
+              "permission": "oa:mail-account:query"
+            },
+            {
+              "key": "oaMailAccount",
+              "name": "我的邮箱账号",
+              "icon": "user",
+              "iconColor": "#13c2c2",
+              "url": "/pages-oa/mail/account/index",
+              "permission": "oa:mail-account:query"
+            },
+            {
+              "key": "oaMailProvider",
+              "name": "邮箱服务配置",
+              "icon": "settings",
+              "iconColor": "#909399",
+              "url": "/pages-oa/mail/provider/index",
+              "permission": "oa:mail-provider:query"
+            }
+          ]
+        },
+        {
+          "key": "file",
+          "name": "企业云盘",
+          "menus": [
+            {
+              "key": "oaFile",
+              "name": "企业云盘",
+              "icon": "folder",
+              "iconColor": "#e6a23c",
+              "url": "/pages-oa/file/index",
+              "permission": "oa:file:query"
+            }
+          ]
+        },
+        {
+          "key": "flow",
+          "name": "流程管理",
+          "menus": [
+            {
+              "key": "oaOvertime",
+              "name": "加班申请",
+              "icon": "time-line",
+              "iconColor": "#fa8c16",
+              "url": "/pages-oa/overtime/index",
+              "permission": "oa:overtime-apply:query"
+            },
+            {
+              "key": "oaLeave",
+              "name": "请假申请",
+              "icon": "clock-circle",
+              "iconColor": "#722ed1",
+              "url": "/pages-oa/leave/index",
+              "permission": "oa:leave-apply:query"
+            },
+            {
+              "key": "oaRegular",
+              "name": "转正申请",
+              "icon": "check-circle",
+              "iconColor": "#52c41a",
+              "url": "/pages-oa/regular/index",
+              "permission": "oa:regular-apply:query"
+            },
+            {
+              "key": "oaResign",
+              "name": "离职申请",
+              "icon": "double-right",
+              "iconColor": "#eb2f96",
+              "url": "/pages-oa/resign/index",
+              "permission": "oa:resign-apply:query"
+            },
+            {
+              "key": "oaReimbursement",
+              "name": "费用报销",
+              "icon": "formula",
+              "iconColor": "#fa541c",
+              "url": "/pages-oa/reimbursement/index",
+              "permission": "oa:reimbursement:query"
+            }
+          ]
+        },
+        {
+          "key": "supply",
+          "name": "办公用品管理",
+          "menus": [
+            {
+              "key": "oaSupplyItem",
+              "name": "办公用品信息",
+              "icon": "archive",
+              "iconColor": "#722ed1",
+              "url": "/pages-oa/supply/item/index",
+              "permission": "oa:supply-item:query"
+            },
+            {
+              "key": "oaSupplyApply",
+              "name": "领用申请",
+              "icon": "edit",
+              "iconColor": "#1677ff",
+              "url": "/pages-oa/supply/apply/index",
+              "permission": "oa:supply-apply:query"
+            },
+            {
+              "key": "oaSupplyIssue",
+              "name": "领用发放",
+              "icon": "send",
+              "iconColor": "#fa8c16",
+              "url": "/pages-oa/supply/issue/index",
+              "permission": "oa:supply-issue:query"
+            }
+          ]
+        },
+        {
+          "key": "seal",
+          "name": "印章管理",
+          "menus": [
+            {
+              "key": "oaSeal",
+              "name": "印章信息",
+              "icon": "stamp",
+              "iconColor": "#eb2f96",
+              "url": "/pages-oa/seal/info/index",
+              "permission": "oa:seal:query"
+            },
+            {
+              "key": "oaSealApply",
+              "name": "用印申请",
+              "icon": "edit",
+              "iconColor": "#fa541c",
+              "url": "/pages-oa/seal/apply/index",
+              "permission": "oa:seal-apply:query"
+            }
+          ]
+        },
+        {
+          "key": "vehicle",
+          "name": "车辆管理",
+          "menus": [
+            {
+              "key": "oaVehicleList",
+              "name": "车辆信息",
+              "icon": "drive-file",
+              "iconColor": "#1677ff",
+              "url": "/pages-oa/vehicle/list/index",
+              "permission": "oa:vehicle:query"
+            },
+            {
+              "key": "oaVehicleApply",
+              "name": "用车申请",
+              "icon": "clock-circle",
+              "iconColor": "#52c41a",
+              "url": "/pages-oa/vehicle/apply/index",
+              "permission": "oa:vehicle-apply:query"
+            },
+            {
+              "key": "oaVehicleReturn",
+              "name": "还车申请",
+              "icon": "backward",
+              "iconColor": "#fa8c16",
+              "url": "/pages-oa/vehicle/return/index",
+              "permission": "oa:vehicle-return:query"
+            }
+          ]
+        },
+        {
+          "key": "travel",
+          "name": "出差管理",
+          "menus": [
+            {
+              "key": "oaTravelApply",
+              "name": "出差申请",
+              "icon": "location",
+              "iconColor": "#2f54eb",
+              "url": "/pages-oa/travel/apply/index",
+              "permission": "oa:travel-apply:query"
+            },
+            {
+              "key": "oaTravelReimbursement",
+              "name": "差旅报销",
+              "icon": "drive-file",
+              "iconColor": "#faad14",
+              "url": "/pages-oa/travel/reimbursement/index",
+              "permission": "oa:travel-reimbursement:query"
+            }
+          ]
+        },
+        {
+          "key": "meetingroom",
+          "name": "会议室管理",
+          "menus": [
+            {
+              "key": "oaMeetingRoom",
+              "name": "会议室信息",
+              "icon": "company",
+              "iconColor": "#1677ff",
+              "url": "/pages-oa/meetingroom/room/index",
+              "permission": "oa:meeting-room:query"
+            },
+            {
+              "key": "oaMeetingRoomBooking",
+              "name": "会议室预定",
+              "icon": "calendar-line",
+              "iconColor": "#13c2c2",
+              "url": "/pages-oa/meetingroom/booking/index",
+              "permission": "oa:meeting-room-booking:query"
+            }
+          ]
+        },
+        {
+          "key": "officialdoc",
+          "name": "公文管理",
+          "menus": [
+            {
+              "key": "oaOfficialDocTemplate",
+              "name": "套红模板",
+              "icon": "book",
+              "iconColor": "#722ed1",
+              "url": "/pages-oa/officialdoc/template/index",
+              "permission": "oa:officialdoc-template:query"
+            },
+            {
+              "key": "oaOfficialDocSend",
+              "name": "公文发文",
+              "icon": "file-pdf",
+              "iconColor": "#eb2f96",
+              "url": "/pages-oa/officialdoc/send/index",
+              "permission": "oa:officialdoc-send:query"
+            },
+            {
+              "key": "oaOfficialDocReceive",
+              "name": "公文收文",
+              "icon": "paste",
+              "iconColor": "#13c2c2",
+              "url": "/pages-oa/officialdoc/receive/index",
+              "permission": "oa:officialdoc-receive:query"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "key": "ai",
       "name": "AI 大模型",
       "subGroups": [
@@ -2829,7 +3409,7 @@
             {
               "key": "aiImage",
               "permission": "ai:image:query",
-              "name": "AI 绘图",
+              "name": "AI 绘画",
               "icon": "image",
               "iconColor": "#722ed1",
               "url": "/pages-ai/image/index"
@@ -2869,7 +3449,7 @@
             {
               "key": "aiMindMap",
               "permission": "ai:mind-map:query",
-              "name": "思维导图",
+              "name": "AI 思维导图",
               "icon": "share-alt",
               "iconColor": "#52c41a",
               "url": "/pages-ai/mindmap/index"
@@ -2922,7 +3502,7 @@
             },
             {
               "key": "aiImageManager",
-              "name": "绘图管理",
+              "name": "绘画管理",
               "icon": "image",
               "iconColor": "#eb2f96",
               "url": "/pages-ai/image/manager/index",
@@ -3106,7 +3686,7 @@
         },
         {
           "key": "friend",
-          "name": "好友管理",
+          "name": "私聊管理",
           "menus": [
             {
               "key": "imFriend",

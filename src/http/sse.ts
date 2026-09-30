@@ -1,5 +1,10 @@
 import { useTokenStore } from '@/store/token'
+import { useUserStore } from '@/store/user'
 import { getEnvBaseUrl } from '@/utils'
+
+// #ifdef MP-WEIXIN
+import { AbortController as PolyfillAbortController } from 'abortcontroller-polyfill/dist/cjs-ponyfill'
+// #endif
 
 export interface SseOptions<T = Record<string, any>> {
   data: T
@@ -14,6 +19,18 @@ interface ChunkRequestTask extends UniNamespace.RequestTask {
 }
 
 const SSE_TIMEOUT = 10 * 60 * 1000 // 流式请求最长等待时间
+
+/** 创建流式请求控制器 */
+export function createSseController(): AbortController {
+  let controller: AbortController
+  // #ifdef MP-WEIXIN
+  controller = new PolyfillAbortController()
+  // #endif
+  // #ifndef MP-WEIXIN
+  controller = new AbortController()
+  // #endif
+  return controller
+}
 
 /** 创建 SSE 消息解析器 */
 function createSseParser<T>(options: SseOptions<T>) {
@@ -155,6 +172,7 @@ function getSseBaseUrl() {
 /** 发送微信小程序 SSE POST 请求 */
 async function sendMpSsePost<T>(url: string, options: SseOptions<T>) {
   const mpToken = await useTokenStore().tryGetValidToken()
+  const userStore = useUserStore()
   const mpParser = createSseParser(options)
   const decoder = createUtf8ChunkDecoder()
   let processing = Promise.resolve()
@@ -215,6 +233,7 @@ async function sendMpSsePost<T>(url: string, options: SseOptions<T>) {
       method: 'POST',
       header: {
         'Content-Type': 'application/json',
+        'tenant-id': userStore.visitTenantId || userStore.tenantId,
         ...(mpToken ? { Authorization: `Bearer ${mpToken}` } : {}),
       },
       data: options.data,
@@ -268,6 +287,7 @@ async function sendMpSsePost<T>(url: string, options: SseOptions<T>) {
 /** 发送 H5 SSE POST 请求 */
 async function sendH5SsePost<T>(url: string, options: SseOptions<T>) {
   const token = await useTokenStore().tryGetValidToken()
+  const userStore = useUserStore()
   const parser = createSseParser(options)
   const requestController = new AbortController()
   let timedOut = false
@@ -286,6 +306,7 @@ async function sendH5SsePost<T>(url: string, options: SseOptions<T>) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'tenant-id': String(userStore.visitTenantId || userStore.tenantId),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(options.data),
