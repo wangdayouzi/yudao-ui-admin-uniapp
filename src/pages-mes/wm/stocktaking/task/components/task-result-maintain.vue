@@ -105,8 +105,9 @@
         <wd-form ref="formRef" :model="formData" :schema="formSchema">
           <wd-cell-group border>
             <yd-form-picker
-              v-if="isCreateMode"
+              v-if="isCreateMode || formData.lineId"
               v-model="formData.lineId"
+              :disabled="!isCreateMode"
               label="盘点清单"
               label-width="220rpx"
               :columns="taskLineOptions"
@@ -148,6 +149,7 @@
 </template>
 
 <script lang="ts" setup>
+import { parseId } from '@/utils/id'
 import type { MdItem } from '@/api/mes/md/item'
 import type { StockTakingResult } from '@/api/mes/wm/stocktaking/task/result'
 import {
@@ -188,7 +190,7 @@ const formData = ref<StockTakingResult>(getDefaultFormData()) // 表单数据
 const taskLineOptions = ref<TaskLineOption[]>([]) // 盘点清单选项
 const itemPickerRef = ref<InstanceType<typeof ItemPicker>>() // 物料选择器
 const isCreateMode = computed(() => formType.value === 'create')
-const isLineSelected = computed(() => isCreateMode.value && formData.value.lineId !== undefined)
+const isLineSelected = computed(() => isCreateMode.value && !!formData.value.lineId)
 const formTitle = computed(() => isCreateMode.value ? '新增盘点结果' : '编辑盘点结果')
 const itemDisplayValue = computed(() => {
   if (formData.value.itemCode || formData.value.itemName) {
@@ -269,6 +271,7 @@ async function openUpdateForm(item: StockTakingResult) {
   formLoading.value = true
   try {
     formData.value = await getStockTakingResult(item.id)
+    await loadTaskLineOptions()
   } finally {
     formLoading.value = false
   }
@@ -276,7 +279,7 @@ async function openUpdateForm(item: StockTakingResult) {
 
 /** 选择盘点清单 */
 async function handleLineConfirm(value: number) {
-  const lineId = Number(value)
+  const lineId = parseId(value)
   const line = taskLineOptions.value.find(item => item.id === lineId)
   if (!line) {
     return

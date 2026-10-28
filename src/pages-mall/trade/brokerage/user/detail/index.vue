@@ -31,7 +31,7 @@
     <!-- 底部操作按钮 -->
     <view v-if="hasAccessByCodes(['trade:brokerage-user:update-bind-user', 'trade:brokerage-user:clear-bind-user', 'trade:brokerage-user:update-brokerage-enable'])" class="yd-detail-footer">
       <view class="yd-detail-footer-actions">
-        <wd-button v-if="hasAccessByCodes(['trade:brokerage-user:update-bind-user'])" class="flex-1" type="primary" @click="bindVisible = true">
+        <wd-button v-if="hasAccessByCodes(['trade:brokerage-user:update-bind-user'])" class="flex-1" type="primary" @click="handleOpenBind">
           修改推广员
         </wd-button>
         <wd-button v-if="formData.bindUserId && hasAccessByCodes(['trade:brokerage-user:clear-bind-user'])" class="flex-1" type="warning" :loading="submitting" @click="handleClearBind">
@@ -56,6 +56,12 @@
           修改推广员
         </view>
         <wd-input v-model="bindUserId" type="number" clearable placeholder="请输入推广员编号" />
+        <wd-button class="mt-16rpx" size="small" variant="plain" :loading="bindSearching" @click="handleSearchBindUser">
+          查询推广员
+        </wd-button>
+        <view v-if="bindUser && bindUser.id === parseId(bindUserId)" class="mt-16rpx text-28rpx text-[#666]">
+          推广员：{{ bindUser.nickname || '-' }}（{{ bindUser.id }}）
+        </view>
         <view class="mt-24rpx flex gap-20rpx">
           <wd-button class="flex-1" variant="plain" @click="bindVisible = false">
             取消
@@ -70,6 +76,8 @@
 </template>
 
 <script lang="ts" setup>
+import { parseId } from '@/utils/id'
+
 import type { TradeBrokerageUser } from '@/api/mall/trade/brokerage/user'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
@@ -99,6 +107,8 @@ const dialog = useDialog()
 const toast = useToast()
 const formData = ref<TradeBrokerageUser>({}) // 详情数据
 const submitting = ref(false) // 操作提交状态
+const bindUser = ref<TradeBrokerageUser>() // 已查询确认的推广员
+const bindSearching = ref(false) // 推广员查询状态
 const bindVisible = ref(false) // 修改推广员弹窗
 const bindUserId = ref<number | string>('') // 推广员编号输入
 
@@ -114,10 +124,38 @@ async function getDetail() {
   }
   try {
     toast.loading('加载中...')
-    formData.value = await getTradeBrokerageUser(Number(props.id))
+    formData.value = await getTradeBrokerageUser(props.id)
     bindUserId.value = formData.value.bindUserId ?? ''
   } finally {
     toast.close()
+  }
+}
+
+/** 打开修改推广员弹窗 */
+function handleOpenBind() {
+  bindUser.value = undefined
+  bindVisible.value = true
+}
+
+/** 查询推广员 */
+async function handleSearchBindUser() {
+  bindUser.value = undefined
+  const id = parseId(bindUserId.value)
+  if (!id) {
+    toast.warning('请输入推广员编号')
+    return
+  }
+  if (id === parseId(props.id)) {
+    toast.warning('不能绑定自己为推广人')
+    return
+  }
+  bindSearching.value = true
+  try {
+    bindUser.value = await getTradeBrokerageUser(id)
+    if (!bindUser.value?.id)
+      toast.warning('推广员不存在')
+  } finally {
+    bindSearching.value = false
   }
 }
 
@@ -127,9 +165,17 @@ async function handleUpdateBind() {
     toast.warning('请输入推广员编号')
     return
   }
+  if (parseId(bindUserId.value) === parseId(props.id)) {
+    toast.warning('不能绑定自己为推广人')
+    return
+  }
+  if (!bindUser.value?.id || bindUser.value.id !== parseId(bindUserId.value)) {
+    toast.warning('请先查询并确认推广人')
+    return
+  }
   submitting.value = true
   try {
-    await updateTradeBrokerageUser({ id: Number(props.id), bindUserId: Number(bindUserId.value) })
+    await updateTradeBrokerageUser({ id: props.id, bindUserId: bindUserId.value })
     toast.success('修改成功')
     bindVisible.value = false
     uni.$emit('mall:brokerage-user:reload')
@@ -148,7 +194,7 @@ async function handleClearBind() {
   }
   submitting.value = true
   try {
-    await clearTradeBrokerageUserBind(Number(props.id))
+    await clearTradeBrokerageUserBind(props.id)
     toast.success('清除成功')
     uni.$emit('mall:brokerage-user:reload')
     await getDetail()
@@ -167,7 +213,7 @@ async function handleToggleEnabled() {
   }
   submitting.value = true
   try {
-    await updateTradeBrokerageUserEnabled({ id: Number(props.id), enabled })
+    await updateTradeBrokerageUserEnabled({ id: props.id, enabled })
     toast.success('修改成功')
     uni.$emit('mall:brokerage-user:reload')
     await getDetail()

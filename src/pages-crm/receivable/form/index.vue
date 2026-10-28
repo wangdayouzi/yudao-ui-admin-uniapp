@@ -55,6 +55,8 @@
 </template>
 
 <script lang="ts" setup>
+import { parseId } from '@/utils/id'
+
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { Contract } from '@/api/crm/contract'
 import type { Receivable } from '@/api/crm/receivable'
@@ -115,10 +117,13 @@ function planFilter(raw: Record<string, any>) {
   return !raw.receivableId
 }
 
-/** 客户变更后清空合同、回款期数 */
+/** 客户变更后清空旧客户关联的回款数据 */
 function handleCustomerChange() {
   formData.value.contractId = undefined
   formData.value.planId = undefined
+  formData.value.price = undefined
+  formData.value.returnTime = undefined
+  formData.value.returnType = undefined
 }
 
 /** 合同变更后清空回款期数，并回填应回款金额（合同金额 - 已回款金额） */
@@ -153,7 +158,7 @@ function applyQueryDefaults() {
   numericKeys.forEach((key) => {
     const value = query[key]
     if (value !== undefined && value !== '') {
-      (formData.value as Record<string, any>)[key] = Number(value)
+      (formData.value as Record<string, any>)[key] = key.endsWith('Id') ? parseId(value) : Number(value)
     }
   })
 }
@@ -170,7 +175,7 @@ async function getDetail() {
     }
     return
   }
-  formData.value = await getReceivable(Number(props.id))
+  formData.value = await getReceivable(props.id)
 }
 
 /** 提交表单 */

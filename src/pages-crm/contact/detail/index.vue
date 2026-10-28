@@ -98,7 +98,7 @@
     <wd-action-sheet v-model="moreActionVisible" :actions="moreActions" @select="handleMoreAction" />
 
     <!-- 转移 -->
-    <CrmTransferForm ref="transferFormRef" :biz-type="bizType" @success="getDetail" />
+    <CrmTransferForm ref="transferFormRef" :biz-type="bizType" @success="handleTransferSuccess" />
   </view>
 </template>
 
@@ -147,7 +147,7 @@ const teamCanQuit = ref(false) // 是否可退出团队
 const followupRef = ref<{ openAdd: () => void }>() // 跟进记录引用
 const teamRef = ref<{ openAdd: () => void, quit: () => void, validateWrite: boolean, validateOwnerUser: boolean }>() // 团队成员引用（含权限校验）
 const transferFormRef = ref<InstanceType<typeof CrmTransferForm>>() // 转移表单引用
-const contactId = computed(() => Number(props.id))
+const contactId = computed(() => props.id)
 const activeTabConfig = computed(() => tabs[tabIndex.value])
 const activeTab = computed(() => activeTabConfig.value.key)
 const isPagingTab = computed(() => ['followup', 'log'].includes(activeTab.value)) // 跟进/操作日志 tab 用 z-paging 固定高布局
@@ -207,6 +207,13 @@ function handleMoreAction({ item }: { item: { value: string } }) {
 /** 转移 */
 function handleTransfer() {
   transferFormRef.value?.open(contactId.value)
+}
+
+/** 转移成功后刷新列表并返回 */
+function handleTransferSuccess() {
+  uni.$off('crm:contact:reload', getDetail)
+  uni.$emit('crm:contact:reload')
+  delay(handleBack)
 }
 
 /** 退出团队后返回 */

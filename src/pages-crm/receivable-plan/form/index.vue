@@ -14,11 +14,13 @@
           <CustomerFormPicker
             v-model="formData.customerId"
             prop="customerId"
+            :disabled="!!props.id"
             @change="handleCustomerChange"
           />
           <ContractFormPicker
             v-model="formData.contractId"
             prop="contractId"
+            :disabled="!!props.id || !formData.customerId"
             :customer-id="formData.customerId"
           />
           <wd-form-item v-if="props.id" title="期数" title-width="200rpx" :value="formData.period !== undefined && formData.period !== null ? String(formData.period) : '-'" />
@@ -49,6 +51,8 @@
 </template>
 
 <script lang="ts" setup>
+import { parseId } from '@/utils/id'
+
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { ReceivablePlan } from '@/api/crm/receivable/plan'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
@@ -113,11 +117,11 @@ function applyQueryDefaults() {
     return
   }
   const query = currRoute().query
-  const numericKeys = ['customerId', 'contractId', 'ownerUserId']
-  numericKeys.forEach((key) => {
+  const idKeys = ['customerId', 'contractId', 'ownerUserId']
+  idKeys.forEach((key) => {
     const value = query[key]
     if (value !== undefined && value !== '') {
-      (formData.value as Record<string, any>)[key] = Number(value)
+      (formData.value as Record<string, any>)[key] = parseId(value)
     }
   })
 }
@@ -134,7 +138,7 @@ async function getDetail() {
     }
     return
   }
-  formData.value = await getReceivablePlan(Number(props.id))
+  formData.value = await getReceivablePlan(props.id)
 }
 
 /** 提交表单 */

@@ -47,7 +47,7 @@
         <wd-input-number v-model="item.count" :min="0.001" :precision="3" :disabled="disabled" />
       </wd-form-item>
       <wd-form-item title="产品单价" title-width="180rpx" center>
-        <wd-input-number v-model="item.productPrice" :min="0.01" :precision="2" :disabled="disabled" />
+        <wd-input-number v-model="item.productPrice" :min="0" :precision="2" :disabled="disabled" />
       </wd-form-item>
       <wd-form-item title="税率(%)" title-width="180rpx" center>
         <wd-input-number v-model="item.taxPercent" :min="0" :precision="2" :disabled="disabled" />
@@ -143,7 +143,7 @@ async function handleProductConfirm(index: number, productId?: number | string) 
     item.productPrice = product.salePrice
   }
   if (productId) {
-    item.stockCount = await getStockCount(Number(productId))
+    item.stockCount = await getStockCount(productId as number)
   }
 }
 
@@ -151,10 +151,14 @@ async function handleProductConfirm(index: number, productId?: number | string) 
 function refreshItemAmount(item: Record<string, any>) {
   const count = toNumber(item.count)
   const price = toNumber(item.productPrice)
-  if (item.count !== undefined && item.productPrice !== undefined) {
+  if (item.count != null && item.count !== '' && item.productPrice != null && item.productPrice !== '') {
     item.totalProductPrice = roundPrice(count * price)
     item.taxPrice = roundPrice(item.totalProductPrice * toNumber(item.taxPercent) / 100)
     item.totalPrice = roundPrice(item.totalProductPrice + item.taxPrice)
+  } else {
+    item.totalProductPrice = undefined
+    item.taxPrice = undefined
+    item.totalPrice = undefined
   }
 }
 

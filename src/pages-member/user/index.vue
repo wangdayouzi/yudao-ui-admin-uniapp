@@ -177,6 +177,9 @@ function handleBack() {
 
 /** 查询会员列表 */
 async function queryList(pageNo: number, pageSize: number) {
+  if (pageNo === 1) {
+    selectedIds.value = []
+  }
   try {
     const data = await getMemberUserPage({
       ...queryParams.value,
@@ -207,7 +210,7 @@ function reload() {
 
 /** 是否已选择 */
 function isSelected(item: MemberUser) {
-  return !!item.id && selectedIds.value.includes(Number(item.id))
+  return !!item.id && selectedIds.value.includes(item.id)
 }
 
 /** 切换选择状态 */
@@ -215,7 +218,7 @@ function toggleSelect(item: MemberUser) {
   if (!item.id) {
     return
   }
-  const id = Number(item.id)
+  const id = item.id
   if (selectedIds.value.includes(id)) {
     selectedIds.value = selectedIds.value.filter(selectedId => selectedId !== id)
     return

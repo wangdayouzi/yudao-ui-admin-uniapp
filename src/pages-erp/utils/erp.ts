@@ -180,19 +180,24 @@ export async function loadErpItemStockCount(item: Record<string, any>, warehouse
   }
   // 有仓库时查指定仓库库存，否则查商品全仓库存
   if (item[warehouseField]) {
-    const stock = await getStockByProductAndWarehouse(Number(item.productId), Number(item[warehouseField]))
+    const stock = await getStockByProductAndWarehouse(item.productId, item[warehouseField])
     item.stockCount = stock?.count || 0
     return
   }
-  item.stockCount = await getStockCount(Number(item.productId))
+  item.stockCount = await getStockCount(item.productId)
 }
 
 /** 刷新单条明细金额（自动兼容含税明细） */
-export function refreshErpItemAmount(item: Record<string, any>) {
+export function refreshErpItemAmount(item: Record<string, any>, clearInvalid = false) {
   const hasCount = isFiniteNumberValue(item.count)
   const hasProductPrice = isFiniteNumberValue(item.productPrice)
   const hasPrice = isFiniteNumberValue(item.price)
   if (!hasCount || (!hasProductPrice && !hasPrice)) {
+    if (clearInvalid) {
+      item.totalProductPrice = undefined
+      item.taxPrice = undefined
+      item.totalPrice = undefined
+    }
     return
   }
 

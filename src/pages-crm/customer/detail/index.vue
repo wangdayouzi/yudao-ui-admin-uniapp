@@ -108,7 +108,7 @@
     <wd-action-sheet v-model="moreActionVisible" :actions="moreActions" @select="handleMoreAction" />
 
     <!-- 转移 -->
-    <CrmTransferForm ref="transferFormRef" :biz-type="bizType" @success="getDetail" />
+    <CrmTransferForm ref="transferFormRef" :biz-type="bizType" @success="handleTransferSuccess" />
 
     <!-- 公海分配 -->
     <wd-popup v-model="distributeVisible" position="bottom" safe-area-inset-bottom custom-style="border-radius: 24rpx 24rpx 0 0;">
@@ -196,7 +196,7 @@ const distributeVisible = ref(false) // 分配弹窗显示状态
 const distributeFormRef = ref<FormInstance>() // 分配表单引用
 const distributeFormData = ref({ ownerUserId: undefined as number | undefined }) // 分配表单数据
 const distributeFormSchema = createFormSchema({ ownerUserId: [{ required: true, message: '负责人不能为空' }] })
-const customerId = computed(() => Number(props.id))
+const customerId = computed(() => props.id)
 const activeTabConfig = computed(() => tabs[tabIndex.value])
 const activeTab = computed(() => activeTabConfig.value.key)
 const isPagingTab = computed(() => ['contacts', 'businesses', 'contracts', 'plans', 'receivables', 'followup', 'log'].includes(activeTab.value)) // 关系列表/跟进 tab 用 z-paging 固定高布局
@@ -377,6 +377,13 @@ async function handlePutPool() {
   } finally {
     actionLoading.value = false
   }
+}
+
+/** 转移成功后刷新列表并返回 */
+function handleTransferSuccess() {
+  uni.$off('crm:customer:reload', getDetail)
+  uni.$emit('crm:customer:reload')
+  delay(handleBack)
 }
 
 /** 退出团队后返回 */

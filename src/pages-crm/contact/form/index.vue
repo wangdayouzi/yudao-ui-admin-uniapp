@@ -14,7 +14,7 @@
           <wd-form-item title="联系人姓名" title-width="200rpx" prop="name">
             <wd-input v-model="formData.name" placeholder="请输入联系人姓名" clearable />
           </wd-form-item>
-          <CustomerFormPicker v-model="formData.customerId" prop="customerId" />
+          <CustomerFormPicker v-model="formData.customerId" prop="customerId" :disabled="customerLocked" @change="handleCustomerChange" />
           <UserFormPicker v-model="formData.ownerUserId" label="负责人" prop="ownerUserId" placeholder="请选择负责人" :disabled="!!props.id" />
           <wd-form-item title="手机" title-width="200rpx" prop="mobile">
             <wd-input v-model="formData.mobile" placeholder="请输入手机" clearable />
@@ -38,7 +38,7 @@
             <wd-switch v-model="formData.master" />
           </wd-form-item>
           <yd-form-picker v-model="formData.sex" label="性别" prop="sex" :dict-type="DICT_TYPE.SYSTEM_USER_SEX" placeholder="请选择性别" />
-          <ContactFormPicker v-model="formData.parentId" label="直属上级" prop="parentId" placeholder="请选择直属上级" :option-filter="parentFilter" />
+          <ContactFormPicker v-model="formData.parentId" label="直属上级" prop="parentId" placeholder="请选择直属上级" :option-filter="parentFilter" :customer-id="formData.customerId" :disabled="!formData.customerId" />
           <yd-tree-select v-model="formData.areaId" :data="areaTree" label="地区" prop="areaId" label-width="200rpx" placeholder="请选择地区" />
           <wd-form-item title="详细地址" title-width="200rpx" prop="detailAddress">
             <wd-input v-model="formData.detailAddress" placeholder="请输入详细地址" clearable />
@@ -62,6 +62,8 @@
 </template>
 
 <script lang="ts" setup>
+import { parseId } from '@/utils/id'
+
 import type { FormInstance } from '@wot-ui/ui/components/wd-form/types'
 import type { Contact } from '@/api/crm/contact'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
@@ -89,6 +91,7 @@ const toast = useToast()
 const userStore = useUserStore()
 const getTitle = computed(() => props.id ? '编辑联系人' : '新增联系人')
 const formLoading = ref(false) // 表单提交状态
+const customerLocked = computed(() => !props.id && !!props.customerId) // 预填客户不可改
 const formData = ref<Contact>({
   id: undefined,
   name: '',
@@ -125,6 +128,11 @@ function handleBack() {
   navigateBackPlus('/pages-crm/contact/index')
 }
 
+/** 客户变更后清空直属上级 */
+function handleCustomerChange() {
+  formData.value.parentId = undefined
+}
+
 /** 加载联系人详情 */
 async function getDetail() {
   if (!props.id) {
@@ -135,25 +143,25 @@ async function getDetail() {
     }
     // 路由参数预填（客户、负责人、直属上级）
     if (props.customerId) {
-      formData.value.customerId = Number(props.customerId)
+      formData.value.customerId = parseId(props.customerId)
     }
     if (props.ownerUserId) {
-      formData.value.ownerUserId = Number(props.ownerUserId)
+      formData.value.ownerUserId = parseId(props.ownerUserId)
     }
     if (props.parentId) {
-      formData.value.parentId = Number(props.parentId)
+      formData.value.parentId = parseId(props.parentId)
     }
     if (props.businessId) {
-      formData.value.businessId = Number(props.businessId)
+      formData.value.businessId = parseId(props.businessId)
     }
     return
   }
-  formData.value = await getContact(Number(props.id))
+  formData.value = await getContact(props.id)
 }
 
 /** 直属上级候选排除自身（编辑态不能把自己设为上级） */
 function parentFilter(raw: Record<string, any>) {
-  return Number(raw.id) !== Number(formData.value.id)
+  return parseId(raw.id) !== parseId(formData.value.id)
 }
 
 /** 提交表单 */

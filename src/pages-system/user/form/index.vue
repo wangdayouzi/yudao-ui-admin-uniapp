@@ -14,6 +14,7 @@
           <wd-form-item title="用户名称" title-width="180rpx" prop="username">
             <wd-input
               v-model="formData.username"
+              :disabled="!!formData.id"
               clearable
               placeholder="请输入用户名称"
             />
@@ -146,7 +147,7 @@ async function getDetail() {
   if (!props.id) {
     return
   }
-  formData.value = await getUser(Number(props.id))
+  formData.value = await getUser(props.id)
 }
 
 /** 提交表单 */

@@ -137,7 +137,7 @@
     <wd-action-sheet v-model="moreActionVisible" :actions="moreActions" @select="handleMoreAction" />
 
     <!-- 转移 -->
-    <CrmTransferForm ref="transferFormRef" :biz-type="bizType" @success="getDetail" />
+    <CrmTransferForm ref="transferFormRef" :biz-type="bizType" @success="handleTransferSuccess" />
 
     <!-- 变更商机状态 -->
     <CrmBusinessStatusForm ref="businessStatusFormRef" @success="getDetail" />
@@ -195,7 +195,7 @@ const teamRef = ref<{ openAdd: () => void, quit: () => void, validateWrite: bool
 const listRef = ref<{ openAdd: () => void }>() // 当前关联列表引用
 const transferFormRef = ref<InstanceType<typeof CrmTransferForm>>() // 转移表单引用
 const businessStatusFormRef = ref<InstanceType<typeof CrmBusinessStatusForm>>() // 变更商机状态引用
-const businessId = computed(() => Number(props.id))
+const businessId = computed(() => props.id)
 const totalProductPrice = computed(() => (Array.isArray(formData.value.products) ? formData.value.products : []).reduce((sum, row) => sum + Number(row.totalPrice || 0), 0)) // 产品总金额
 const activeTab = computed(() => tabs[tabIndex.value].key)
 const isPagingTab = computed(() => ['contacts', 'contracts', 'followup', 'log'].includes(activeTab.value)) // 关系列表/跟进 tab 用 z-paging 固定高布局
@@ -270,6 +270,13 @@ function handleTransfer() {
 /** 变更商机状态 */
 function handleBusinessStatus() {
   businessStatusFormRef.value?.open(formData.value as any)
+}
+
+/** 转移成功后刷新列表并返回 */
+function handleTransferSuccess() {
+  uni.$off('crm:business:reload', getDetail)
+  uni.$emit('crm:business:reload')
+  delay(handleBack)
 }
 
 /** 退出团队后返回 */

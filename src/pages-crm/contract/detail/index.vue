@@ -147,7 +147,7 @@
     <wd-action-sheet v-model="moreActionVisible" :actions="moreActions" @select="handleMoreAction" />
 
     <!-- 转移 -->
-    <CrmTransferForm ref="transferFormRef" :biz-type="bizType" @success="getDetail" />
+    <CrmTransferForm ref="transferFormRef" :biz-type="bizType" @success="handleTransferSuccess" />
   </view>
 </template>
 
@@ -202,7 +202,7 @@ const followupRef = ref<{ openAdd: () => void }>() // 跟进记录引用
 const teamRef = ref<{ openAdd: () => void, quit: () => void, validateWrite: boolean, validateOwnerUser: boolean }>() // 团队成员引用（含权限校验）
 const listRef = ref<{ openAdd: () => void }>() // 当前关联列表引用
 const transferFormRef = ref<InstanceType<typeof CrmTransferForm>>() // 转移表单引用
-const contractId = computed(() => Number(props.id))
+const contractId = computed(() => props.id)
 const products = computed<Record<string, any>[]>(() => Array.isArray(formData.value.products) ? formData.value.products : [])
 const totalProductPrice = computed(() => products.value.reduce((sum, row) => sum + Number(row.totalPrice || 0), 0)) // 产品总金额
 const activeTab = computed(() => tabs[tabIndex.value].key)
@@ -307,6 +307,13 @@ function handleViewProcess() {
     return
   }
   uni.navigateTo({ url: `/pages-bpm/processInstance/detail/index?id=${processInstanceId}` })
+}
+
+/** 转移成功后刷新列表并返回 */
+function handleTransferSuccess() {
+  uni.$off('crm:contract:reload', getDetail)
+  uni.$emit('crm:contract:reload')
+  delay(handleBack)
 }
 
 /** 退出团队后返回 */

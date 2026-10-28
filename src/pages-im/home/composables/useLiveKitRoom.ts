@@ -1,17 +1,35 @@
+import { parseId } from '@/utils/id'
 // noinspection UnreachableCodeJS
 
 import type { Ref } from 'vue'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { ref, shallowRef } from 'vue'
+// LiveKit Web SDK 依赖浏览器 DOM，仅 H5 加载，避免 App 启动报 DOMException 白屏：https://t.zsxq.com/HIauN
 // #ifdef H5
 import { Room, RoomEvent, Track } from 'livekit-client'
 // #endif
+// App 端 LiveKit 运行在通话页 renderjs 视图层，逻辑层不加载 SDK
+// #ifdef APP-PLUS
+import { useLiveKitAppRoom } from './useLiveKitAppRoom'
+// #endif
+// 微信小程序无 WebRTC，经 RTMP 网关接入同一 LiveKit 房间
+// #ifdef MP-WEIXIN
+import { useMpGatewayRoom } from './useMpGatewayRoom'
+// #endif
 import { useImRtc } from './useImRtc'
+
+/** 小程序网关下远端媒体转发状态；unavailable 为本地原生播放器重启后仍失败 */
+export type RtcMediaState = 'ready' | 'starting' | 'waiting' | 'overflow' | 'capacity' | 'failed' | 'unavailable'
+
+/** 连接失败原因；busy 为同账号在本通话已有小程序网关会话，只做本地收尾，不发送挂断信令 */
+export type RtcConnectFailedReason = 'busy'
 
 /** 参与者媒体轨道；视频优先屏幕共享，其次摄像头 */
 export interface RtcParticipantTracks {
   userId: number
   isLocal: boolean
+  videoVisible?: boolean // App 视图层 / 小程序原生组件是否已展示视频；Track 实例不跨层传递
+  mediaState?: RtcMediaState // 小程序网关下的远端媒体状态；H5 / App 不设置
   cameraTrack?: Track
   cameraMuted?: boolean
   screenShareTrack?: Track
@@ -22,12 +40,18 @@ export interface RtcParticipantTracks {
 
 let roomDisposeTask: Promise<void> | undefined // 跨通话页面串行释放物理房间
 
-/** 管理 H5 LiveKit 房间及本地媒体设备 */
+/** 管理 H5 LiveKit 房间及本地媒体设备；App 委托 renderjs 视图层房间，小程序委托 RTMP 网关 */
 export function useLiveKitRoom(options: {
   initialCameraEnabled: Readonly<Ref<boolean>>
-  onConnectFailed: () => Promise<void>
+  onConnectFailed: (reason?: RtcConnectFailedReason) => Promise<void>
   onRoomDisconnected: () => Promise<void>
 }) {
+  // #ifdef APP-PLUS
+  return useLiveKitAppRoom(options)
+  // #endif
+  // #ifdef MP-WEIXIN
+  return useMpGatewayRoom(options)
+  // #endif
   const toast = useToast()
   const { call, syncParticipant } = useImRtc()
   const micEnabled = ref(true) // 麦克风状态
@@ -148,7 +172,7 @@ export function useLiveKitRoom(options: {
         if (!isCurrentRoom()) {
           return
         }
-        upsertParticipantTrack(track, Number(participant.identity), false)
+        upsertParticipantTrack(track, parseId(participant.identity) as number, false)
       })
       .on(RoomEvent.LocalTrackPublished, (publication) => {
         if (!isCurrentRoom()) {
@@ -157,7 +181,7 @@ export function useLiveKitRoom(options: {
         if (publication.track) {
           upsertParticipantTrack(
             publication.track,
-            Number(currentRoom.localParticipant.identity),
+            parseId(currentRoom.localParticipant.identity) as number,
             true,
           )
         }
@@ -167,7 +191,7 @@ export function useLiveKitRoom(options: {
           return
         }
         removeParticipantTrack(
-          Number(currentRoom.localParticipant.identity),
+          parseId(currentRoom.localParticipant.identity) as number,
           publication.track,
           publication.trackSid,
         )
@@ -176,25 +200,25 @@ export function useLiveKitRoom(options: {
         if (!isCurrentRoom()) {
           return
         }
-        removeParticipantTrack(Number(participant.identity), track, publication.trackSid)
+        removeParticipantTrack(parseId(participant.identity) as number, track, publication.trackSid)
       })
       .on(RoomEvent.TrackMuted, (publication, participant) => {
         if (!isCurrentRoom()) {
           return
         }
-        updateParticipantTrackMuted(Number(participant.identity), publication.trackSid, true)
+        updateParticipantTrackMuted(parseId(participant.identity) as number, publication.trackSid, true)
       })
       .on(RoomEvent.TrackUnmuted, (publication, participant) => {
         if (!isCurrentRoom()) {
           return
         }
-        updateParticipantTrackMuted(Number(participant.identity), publication.trackSid, false)
+        updateParticipantTrackMuted(parseId(participant.identity) as number, publication.trackSid, false)
       })
       .on(RoomEvent.ParticipantConnected, (participant) => {
         if (!isCurrentRoom()) {
           return
         }
-        const userId = Number(participant.identity)
+        const userId = parseId(participant.identity)
         if (userId) {
           syncParticipant(userId, true)
         }
@@ -203,7 +227,7 @@ export function useLiveKitRoom(options: {
         if (!isCurrentRoom()) {
           return
         }
-        const userId = Number(participant.identity)
+        const userId = parseId(participant.identity)
         if (userId) {
           syncParticipant(userId, false)
           clearParticipantTracks(userId)
@@ -258,7 +282,7 @@ export function useLiveKitRoom(options: {
       currentRoom.remoteParticipants.forEach((participant) => {
         participant.trackPublications.forEach((publication) => {
           if (publication.track) {
-            upsertParticipantTrack(publication.track, Number(participant.identity), false)
+            upsertParticipantTrack(publication.track, parseId(participant.identity) as number, false)
           }
         })
       })
