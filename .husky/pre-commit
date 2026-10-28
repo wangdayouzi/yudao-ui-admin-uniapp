@@ -1,1 +1,1 @@
-npx lint-staged --allow-empty
+node node_modules/lint-staged/bin/lint-staged.js --allow-empty
