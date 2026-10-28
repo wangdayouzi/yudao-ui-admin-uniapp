@@ -18,6 +18,7 @@ export interface KnowledgeDocument {
   type: number // 文档类型
   fileType?: string // 文件类型
   fileSize?: number // 文件大小，单位：字节
+  versionNo?: number // 当前内容版本号
   status: number // 文档状态
   labelIds?: number[] // 标签编号列表
   creatorUserId?: number // 创建人用户编号
@@ -48,6 +49,7 @@ export interface KnowledgeDocumentCreateReq {
 /** PMS 知识库文档修改请求 */
 export interface KnowledgeDocumentUpdateReq {
   id: number // 文档编号
+  expectedVersionNo?: number // 编辑时读取的版本号
   title?: string // 文档标题
   content?: string // 文档内容或文件地址
   labelIds?: number[] // 标签编号列表，传空数组表示清空标签
@@ -90,6 +92,28 @@ export function updateKnowledgeDocument(data: KnowledgeDocumentUpdateReq) {
   return http.put<boolean>('/pms/kb/document/update', data)
 }
 
+export interface KnowledgeDocumentVersion {
+  versionNo: number
+  title: string
+  content?: string
+  type: number
+  fileType?: string
+  fileSize?: number
+  createTime: number
+}
+
+export function getKnowledgeDocumentVersionList(documentId: number) {
+  return http.get<KnowledgeDocumentVersion[]>('/pms/kb/document/version-list', { documentId })
+}
+
+export function getKnowledgeDocumentVersion(documentId: number, versionNo: number) {
+  return http.get<KnowledgeDocumentVersion>('/pms/kb/document/version-get', { documentId, versionNo })
+}
+
+export function getKnowledgeHistoryPreviewUrl(documentId: number, versionNo: number) {
+  return http.get<string>('/pms/kb/document/history-preview-url', { documentId, versionNo })
+}
+
 /** 删除知识库文档 */
 export function deleteKnowledgeDocument(id: number) {
   return http.delete<boolean>('/pms/kb/document/delete', undefined, { id })
@@ -103,4 +127,8 @@ export function moveKnowledgeDocument(data: KnowledgeDocumentMoveReq) {
 /** 查询知识库文档搜索分页 */
 export function getKnowledgeDocumentSearchPage(params: PageParam & Record<string, any>) {
   return http.get<PageResult<KnowledgeDocument>>('/pms/kb/document/search-page', params)
+}
+
+export function restoreKnowledgeDocumentVersion(documentId: number, versionNo: number, expectedVersionNo: number) {
+  return http.put<boolean>('/pms/kb/document/version-restore', undefined, { documentId, versionNo, expectedVersionNo })
 }

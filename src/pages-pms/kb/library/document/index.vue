@@ -40,6 +40,9 @@
               {{ label.name }}
             </view>
           </view>
+          <wd-button class="mt-16rpx" size="small" variant="plain" @click="openHistory">
+            历史版本
+          </wd-button>
         </view>
 
         <!-- 文档正文或文件预览 -->
@@ -55,7 +58,7 @@
             </view>
           </template>
           <template v-else>
-            <template v-if="document.content">
+            <template v-if="document.previewUrl || document.content">
               <view class="mb-16rpx flex items-center gap-12rpx">
                 <wd-tag type="default" plain>
                   {{ document.fileType || '文件' }}
@@ -121,7 +124,7 @@
           type="primary" class="flex-1"
           @click="handleEdit"
         >
-          编辑
+          {{ document.type === PmsKnowledgeDocumentType.FILE ? '替换文件' : '编辑' }}
         </wd-button>
         <wd-button
           v-if="canEdit && hasAccessByCodes(['pms:kb:library:update'])"
@@ -145,16 +148,44 @@
 
     <!-- 文档分享 -->
     <DocumentSharePopup ref="sharePopupRef" />
+    <wd-popup v-model="historyVisible" position="bottom" custom-style="height: 75vh; border-radius: 24rpx 24rpx 0 0;">
+      <scroll-view scroll-y class="h-full p-24rpx">
+        <view class="mb-20rpx text-32rpx font-semibold">
+          历史版本
+        </view>
+        <view
+          v-for="version in versions" :key="version.versionNo"
+          class="border-b border-[#eee] py-16rpx text-28rpx" @click="selectHistory(version.versionNo)"
+        >
+          v{{ version.versionNo }} · {{ version.title }} · {{ formatDate(version.createTime) }}
+        </view>
+        <view v-if="selectedVersion" class="mt-24rpx rounded-12rpx bg-[#f7f8fa] p-20rpx">
+          <wd-button v-if="canEdit && hasAccessByCodes(['pms:kb:library:update']) && selectedVersion.versionNo !== document?.versionNo" size="small" @click="restoreHistory">
+            恢复此版本
+          </wd-button>
+          <view class="mb-16rpx text-30rpx font-semibold">
+            v{{ selectedVersion.versionNo }} · {{ selectedVersion.title }}
+          </view>
+          <rich-text
+            v-if="selectedVersion.type === PmsKnowledgeDocumentType.RICH_TEXT"
+            :nodes="sanitizeRichText(selectedVersion.content || '')"
+          />
+          <wd-button v-else-if="historyPreviewUrl" variant="plain" @click="previewHistoryFile">
+            预览此版本文件
+          </wd-button>
+        </view>
+      </scroll-view>
+    </wd-popup>
   </view>
 </template>
 
 <script lang="ts" setup>
-import type { KnowledgeDocument } from '@/api/pms/kb/content/document'
+import type { KnowledgeDocument, KnowledgeDocumentVersion } from '@/api/pms/kb/content/document'
 import type { KnowledgeDocumentLabel } from '@/api/pms/kb/content/document/label'
 import { onUnload } from '@dcloudio/uni-app'
 import { useDialog } from '@wot-ui/ui/components/wd-dialog'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
-import { deleteKnowledgeDocument, getKnowledgeDocument } from '@/api/pms/kb/content/document'
+import { deleteKnowledgeDocument, getKnowledgeDocument, getKnowledgeDocumentVersion, getKnowledgeDocumentVersionList, getKnowledgeHistoryPreviewUrl, restoreKnowledgeDocumentVersion } from '@/api/pms/kb/content/document'
 import { getKnowledgeDocumentLabelList } from '@/api/pms/kb/content/document/label'
 import { createKnowledgeFavorite, deleteKnowledgeFavorite } from '@/api/pms/kb/interaction/favorite'
 import { createKnowledgeDocumentLike, deleteKnowledgeDocumentLike } from '@/api/pms/kb/interaction/like'
@@ -166,7 +197,7 @@ import {
 } from '@/pages-pms/kb/utils/constants'
 import { formatKnowledgeFileSize, getKnowledgeDocumentStatusName } from '@/pages-pms/kb/utils/format'
 import { canDeleteKnowledgeContent, canEditKnowledgeContent } from '@/pages-pms/kb/utils/permission'
-import { navigateBackPlus } from '@/utils'
+import { getEnvBaseUrlRoot, navigateBackPlus } from '@/utils'
 import { formatDate } from '@/utils/date'
 import { isHtmlContent, sanitizeRichText } from '@/utils/format'
 import { openAttachment, openFile } from '@/utils/download'
@@ -189,6 +220,52 @@ const { hasAccessByCodes } = useAccess()
 const toast = useToast()
 const dialog = useDialog()
 const document = ref<KnowledgeDocument>() // 文档详情
+const historyVisible = ref(false)
+const versions = ref<KnowledgeDocumentVersion[]>([])
+const selectedVersion = ref<KnowledgeDocumentVersion>()
+const historyPreviewUrl = ref('')
+let historyRequest = 0
+
+async function openHistory() {
+  if (!document.value)
+    return
+  historyVisible.value = true
+  selectedVersion.value = undefined
+  versions.value = await getKnowledgeDocumentVersionList(document.value.id)
+}
+
+async function selectHistory(versionNo: number) {
+  if (!document.value)
+    return
+  const request = ++historyRequest
+  selectedVersion.value = undefined
+  historyPreviewUrl.value = ''
+  const selected = await getKnowledgeDocumentVersion(document.value.id, versionNo)
+  const url = selected.type === PmsKnowledgeDocumentType.FILE
+    ? await getKnowledgeHistoryPreviewUrl(document.value.id, versionNo)
+    : ''
+  if (request !== historyRequest)
+    return
+  selectedVersion.value = selected
+  historyPreviewUrl.value = url
+}
+
+async function restoreHistory() {
+  if (!document.value || !selectedVersion.value || document.value.versionNo === undefined)
+    return
+  await dialog.confirm({ title: '恢复历史版本', msg: '恢复后会生成一个新版本，是否继续？' })
+  await restoreKnowledgeDocumentVersion(document.value.id, selectedVersion.value.versionNo, document.value.versionNo)
+  document.value = await getKnowledgeDocument(document.value.id)
+  historyVisible.value = false
+  toast.success('已恢复为新版本')
+}
+
+function previewHistoryFile() {
+  if (!historyPreviewUrl.value)
+    return
+  const url = historyPreviewUrl.value
+  openFile(url.startsWith('/admin-api/') ? `${getEnvBaseUrlRoot()}${url}` : url, selectedVersion.value?.fileType)
+}
 const labelList = ref<KnowledgeDocumentLabel[]>([]) // 文档标签列表
 const moreVisible = ref(false) // 更多操作弹窗显示状态
 const sharePopupRef = ref<InstanceType<typeof DocumentSharePopup>>() // 分享弹窗引用
@@ -280,7 +357,13 @@ function handlePreview() {
   if (!document.value) {
     return
   }
-  openFile(document.value.previewUrl || document.value.content)
+  const url = document.value.previewUrl || document.value.content
+  // #ifdef H5
+  openFile(url)
+  // #endif
+  // #ifndef H5
+  openFile(url.startsWith('/admin-api/') ? `${getEnvBaseUrlRoot()}${url}` : url, document.value?.fileType)
+  // #endif
 }
 
 /** 下载文件 */

@@ -1,5 +1,5 @@
 import type { PageMetaDatum, SubPackages } from '@uni-helper/vite-plugin-uni-pages'
-import { isMpWeixin } from '@uni-helper/uni-env'
+import { isApp, isAppPlus, isMpWeixin } from '@uni-helper/uni-env'
 import { pages, subPackages } from '@/pages.json'
 import { isPageTabbar } from '@/tabbar/store'
 
@@ -152,6 +152,10 @@ export function getCurrentPageI18nKey() {
 export function getEnvBaseUrl() {
   // 默认请求地址。微信小程序如果没有配置专用地址，也会回退到这个地址。
   let baseUrl = import.meta.env.VITE_SERVER_BASEURL
+
+  if (isApp || isAppPlus) {
+    baseUrl = import.meta.env.VITE_SERVER_BASEURL__APP || baseUrl
+  }
 
   // 微信小程序端环境区分
   if (isMpWeixin) {

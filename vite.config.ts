@@ -120,6 +120,7 @@ export default defineConfig(({ command, mode }) => {
           'src/pages-hrm', // “人力资源管理”模块
           'src/pages-fms', // “财务会计”模块
           'src/pages-wms', // “仓储管理”模块
+          'src/pages-reagent', // “领用管理”模块
           'src/pages-pms', // “项目管理”模块
           'src/pages-oa', // “OA 办公”模块
         ],

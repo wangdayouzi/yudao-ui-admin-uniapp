@@ -351,7 +351,7 @@ export function staticUrl(path: string): string {
  * 打开文件：H5 浏览器新窗口打开/下载；其他端下载后用系统能力打开
  * @param url 文件地址
  */
-export function openFile(url?: string) {
+export function openFile(url?: string, fileType?: string) {
   if (!url) {
     uni.showToast({ title: '文件地址为空', icon: 'none' })
     return
@@ -365,7 +365,13 @@ export function openFile(url?: string) {
     url,
     success: (res) => {
       if (res.statusCode === 200) {
-        uni.openDocument({ filePath: res.tempFilePath, showMenu: true })
+        const extension = fileType?.trim().toLowerCase().replace(/^\./, '')
+        const supported = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf']
+        uni.openDocument({
+          filePath: res.tempFilePath,
+          showMenu: true,
+          ...(extension && supported.includes(extension) ? { fileType: extension as 'doc' | 'docx' | 'xls' | 'xlsx' | 'ppt' | 'pptx' | 'pdf' } : {}),
+        })
       }
     },
     complete: () => uni.hideLoading(),

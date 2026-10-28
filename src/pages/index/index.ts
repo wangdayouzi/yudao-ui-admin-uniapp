@@ -24,6 +24,7 @@ export interface MenuItem {
   visible?: boolean // 是否显示，默认 true
   permission?: string // 权限标识（可选）
   permissions?: string[] // 权限标识列表（任一匹配即展示）
+  requiredPermissions?: string[] // 必须同时具备的权限标识
   onlyPc?: boolean // 仅 PC 端可用（移动端点击跳转至提示页）
 }
 
@@ -49,6 +50,8 @@ export type MenuLayout = 'section' | 'accordion' | 'sidebar' | 'tabs'
 export const FAVORITE_TAB_KEY = '__fav'
 
 const LAYOUT_STORAGE_KEY = 'workbenchMenuLayout'
+const HIDDEN_GROUPS_STORAGE_KEY = 'workbenchHiddenGroups'
+export const menuVisibilityVersion = ref(0)
 
 /** 当前菜单布局（全局共享 + 本地持久化） */
 export const menuLayout = ref<MenuLayout>((uni.getStorageSync(LAYOUT_STORAGE_KEY) as MenuLayout) || 'sidebar')
@@ -57,6 +60,26 @@ export const menuLayout = ref<MenuLayout>((uni.getStorageSync(LAYOUT_STORAGE_KEY
 export function setMenuLayout(layout: MenuLayout) {
   menuLayout.value = layout
   uni.setStorageSync(LAYOUT_STORAGE_KEY, layout)
+}
+
+/** 模块显隐按当前用户保存，避免同一设备切换账号时互相影响。 */
+function hiddenGroupsStorageKey(): string {
+  const userId = useUserStore().userInfo.userId
+  return `${HIDDEN_GROUPS_STORAGE_KEY}:${userId}`
+}
+
+export function getHiddenGroupKeys(): string[] {
+  const value = uni.getStorageSync(hiddenGroupsStorageKey())
+  return Array.isArray(value) ? value : []
+}
+
+export function setGroupVisible(key: string, visible: boolean) {
+  const keys = new Set(getHiddenGroupKeys())
+  if (visible)
+    keys.delete(key)
+  else keys.add(key)
+  uni.setStorageSync(hiddenGroupsStorageKey(), Array.from(keys))
+  menuVisibilityVersion.value++
 }
 
 /** menu.json 的原始结构（未做权限过滤） */
@@ -85,6 +108,9 @@ function resolveItem(item: MenuItem): MenuItem {
 
 /** 判断菜单是否有访问权限 */
 function hasMenuAccess(item: MenuItem, hasAccessByCodes: (codes: string[]) => boolean) {
+  if (item.requiredPermissions?.some(code => !hasAccessByCodes([code]))) {
+    return false
+  }
   const permissions = [
     item.permission,
     ...(item.permissions || []),
@@ -98,11 +124,12 @@ function hasMenuAccess(item: MenuItem, hasAccessByCodes: (codes: string[]) => bo
  * 隐藏 visible 为 false 的分组和菜单；过滤掉没有权限的菜单项；空的二级分组和大分组均不展示。
  * 分组、二级分组、菜单的展示顺序均以 menu.json 中的排列顺序为准。
  */
-export function getMenuGroups(): MenuGroup[] {
+export function getMenuGroups(includeHidden = false): MenuGroup[] {
   const { hasAccessByCodes } = useAccess()
+  const hiddenKeys = includeHidden ? [] : getHiddenGroupKeys()
   const result: MenuGroup[] = []
   for (const group of groupsData) {
-    if (group.visible === false) {
+    if (group.visible === false || hiddenKeys.includes(group.key)) {
       continue
     }
     const subGroups: MenuSubGroup[] = []

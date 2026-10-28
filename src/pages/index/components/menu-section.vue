@@ -29,7 +29,7 @@
 <script lang="ts" setup>
 import type { MenuGroup, MenuItem, MenuLayout } from '../index'
 import { useUserStore } from '@/store/user'
-import { getMenuGroups, getMenuItemByKey, menuLayout } from '../index'
+import { getMenuGroups, getMenuItemByKey, menuLayout, menuVisibilityVersion } from '../index'
 import MenuLayoutAccordion from './menu-layout-accordion.vue'
 import MenuLayoutSection from './menu-layout-section.vue'
 import MenuLayoutSidebar from './menu-layout-sidebar.vue'
@@ -80,4 +80,7 @@ function initData() {
 onShow(() => {
   initData()
 })
+
+// 从编辑工作台返回时组件可能仍保持挂载，显隐变化需要主动刷新菜单。
+watch(menuVisibilityVersion, initData)
 </script>

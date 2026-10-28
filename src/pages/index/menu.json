@@ -17,7 +17,8 @@
               "icon": "user",
               "iconColor": "#1890ff",
               "url": "/pages-system/user/index",
-              "permission": "system:user:query"
+              "permission": "system:user:query",
+              "requiredPermissions": ["system:user:list"]
             },
             {
               "key": "role",
@@ -1538,6 +1539,26 @@
       ]
     },
     {
+      "key": "reagent",
+      "name": "领用管理",
+      "subGroups": [
+        {
+          "key": "loan",
+          "name": "领用登记",
+          "menus": [
+            {
+              "key": "reagentSampleLoanCreate",
+              "name": "新增领用",
+              "icon": "edit",
+              "iconColor": "#3178d8",
+              "url": "/pages-reagent/sample-loan/create/index",
+              "permission": "reagent:sample-loan:create"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "key": "mes",
       "name": "MES 系统",
       "subGroups": [
@@ -2938,6 +2959,7 @@
     {
       "key": "oa",
       "name": "OA 办公协同",
+      "visible": false,
       "subGroups": [
         {
           "key": "home",

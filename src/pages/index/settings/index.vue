@@ -30,6 +30,21 @@
       </view>
     </view>
 
+    <!-- 左侧模块显隐 -->
+    <view class="mx-20rpx mt-20rpx overflow-hidden rounded-16rpx bg-white">
+      <view class="section-header">
+        <text class="text-28rpx text-#333 font-500">显示模块</text>
+      </view>
+      <view class="menu-list">
+        <view v-for="group in menuGroups" :key="group.key" class="menu-item" @click="toggleGroup(group.key)">
+          <text class="menu-item__name">{{ group.name }}</text>
+          <text :class="isGroupVisible(group.key) ? 'text-#3370ff' : 'text-#999'">
+            {{ isGroupVisible(group.key) ? '显示' : '已隐藏' }}
+          </text>
+        </view>
+      </view>
+    </view>
+
     <!-- 我的常用区域 -->
     <view class="mx-20rpx mt-20rpx overflow-hidden rounded-16rpx bg-white">
       <view class="section-header">
@@ -103,7 +118,7 @@ import type { MenuGroup, MenuItem, MenuLayout } from '../index'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { useUserStore } from '@/store/user'
 import { navigateBackPlus } from '@/utils'
-import { getMenuGroups, getMenuItemByKey, menuLayout, setMenuLayout } from '../index'
+import { getHiddenGroupKeys, getMenuGroups, getMenuItemByKey, menuLayout, setGroupVisible, setMenuLayout } from '../index'
 
 defineOptions({
   name: 'FavoriteSettings',
@@ -127,6 +142,16 @@ const layoutOptions: { value: MenuLayout, label: string }[] = [ // 工作台布�
 
 const searchKeyword = ref('') // 搜索关键词
 const menuGroups = ref<MenuGroup[]>([]) // 菜单分组列表
+const hiddenGroupKeys = ref<string[]>([])
+
+function isGroupVisible(key: string): boolean {
+  return !hiddenGroupKeys.value.includes(key)
+}
+
+function toggleGroup(key: string) {
+  setGroupVisible(key, !isGroupVisible(key))
+  hiddenGroupKeys.value = getHiddenGroupKeys()
+}
 /** 常用服务菜单（从 store 中计算得出） */
 const favoriteMenus = computed<MenuItem[]>(() => {
   const keys = userStore.favoriteMenus
@@ -157,7 +182,8 @@ function handleBack() {
 
 /** 初始化 */
 function initData() {
-  menuGroups.value = getMenuGroups()
+  menuGroups.value = getMenuGroups(true)
+  hiddenGroupKeys.value = getHiddenGroupKeys()
 }
 
 /** 处理添加常用服务 */

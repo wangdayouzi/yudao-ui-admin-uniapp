@@ -45,6 +45,9 @@
       <view v-if="!isFileDocument" class="p-24rpx text-24rpx text-[#999]">
         移动端以纯文本编辑文档内容；富文本格式请在 PC 端编辑
       </view>
+      <view v-else class="p-24rpx text-24rpx text-[#999]">
+        上传新文件并保存后会生成历史版本；文件在线预览为只读
+      </view>
     </scroll-view>
 
     <!-- 底部保存按钮 -->
@@ -88,10 +91,10 @@ definePage({
 })
 
 const toast = useToast()
-const getTitle = computed(() => props.id ? '编辑文档' : '新建文档')
 const formLoading = ref(false) // 表单提交状态
 const formData = ref({ // 表单数据
   id: undefined as number | undefined,
+  expectedVersionNo: undefined as number | undefined,
   libraryId: Number(props.libraryId) || 0,
   folderId: Number(props.folderId) || PmsKnowledgeRootId,
   parentId: Number(props.parentId) || PmsKnowledgeRootId,
@@ -102,6 +105,9 @@ const formData = ref({ // 表单数据
   fileType: undefined as string | undefined,
   fileSize: undefined as number | undefined,
 })
+const getTitle = computed(() => props.id
+  ? (formData.value.type === PmsKnowledgeDocumentType.FILE ? '替换文件' : '编辑文档')
+  : '新建文档')
 const isFileDocument = computed(() => formData.value.type === PmsKnowledgeDocumentType.FILE) // 是否文件类型文档
 const formSchema = computed(() => createFormSchema({
   title: [{ required: true, message: '请输入文档标题' }],
@@ -124,6 +130,7 @@ async function getDetail() {
   formData.value = {
     ...formData.value,
     id: document.id,
+    expectedVersionNo: document.versionNo,
     libraryId: document.libraryId,
     folderId: document.folderId,
     parentId: document.parentId,
@@ -158,6 +165,7 @@ async function handleSubmit() {
     if (props.id) {
       await updateKnowledgeDocument({
         id: formData.value.id!,
+        expectedVersionNo: formData.value.expectedVersionNo,
         title: formData.value.title,
         content: formData.value.content,
         labelIds: formData.value.labelIds,

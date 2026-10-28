@@ -3,7 +3,9 @@
 import type { Ref } from 'vue'
 import { useToast } from '@wot-ui/ui/components/wd-toast'
 import { ref, shallowRef } from 'vue'
+// #ifdef H5
 import { Room, RoomEvent, Track } from 'livekit-client'
+// #endif
 import { useImRtc } from './useImRtc'
 
 /** 参与者媒体轨道；视频优先屏幕共享，其次摄像头 */
