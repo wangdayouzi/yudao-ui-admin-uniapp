@@ -1,3 +1,5 @@
+import { formatNumber } from '@/utils/format'
+
 /** AI 平台枚举 */
 export const AiPlatformEnum = {
   TONG_YI: 'TongYi',
@@ -22,6 +24,39 @@ export const AiModelTypeEnum = {
   EMBEDDING: 5,
   RERANK: 6,
 } as const
+
+/** AI 聊天消息类型枚举 */
+export const AiChatMessageTypeEnum = {
+  USER: 'user', // 用户
+  ASSISTANT: 'assistant', // 助手
+  SYSTEM: 'system', // 系统
+} as const
+
+/** AI 模型输入模态的枚举 */
+export const AiModelInputModalityEnum = {
+  TEXT: 'text', // 文本
+  IMAGE: 'image', // 图片
+  VIDEO: 'video', // 视频
+} as const
+
+/** AI 模型输入模态的选项：text 必选 */
+export const AI_MODEL_INPUT_MODALITY_OPTIONS = [
+  { label: '文本', value: AiModelInputModalityEnum.TEXT, disabled: true },
+  { label: '图片', value: AiModelInputModalityEnum.IMAGE },
+  { label: '视频', value: AiModelInputModalityEnum.VIDEO },
+]
+
+/** AI 思考档位的展示名，未列出的档位直接展示档位值 */
+export const AI_REASONING_LEVEL_LABELS: Record<string, string> = {
+  off: '关闭',
+  on: '开启',
+  minimal: '最低',
+  low: '低',
+  medium: '中',
+  high: '高',
+  xhigh: '很高',
+  max: '最高',
+}
 
 /** AI 图片状态枚举 */
 export const AiImageStatusEnum = {
@@ -57,6 +92,11 @@ export const AiWriteDefaultOptions = {
   format: 1,
   tone: 1,
   language: 1,
+}
+
+/** 格式化 AI Token 数：未知（空）显示「未取得」，真实 0 显示 0 */
+export function formatAiTokens(value?: number | null) {
+  return value === undefined || value === null ? '未取得' : formatNumber(value)
 }
 
 /** 图片热词 */
