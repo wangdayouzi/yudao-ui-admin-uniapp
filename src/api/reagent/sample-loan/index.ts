@@ -30,6 +30,21 @@ export interface SampleLoanOption {
   value: string
 }
 
+/** 项目号/BAS 下拉选项（老样本系统 reagent_item） */
+export interface ReagentItemOption {
+  id: number
+  baseId: string
+  clinicalId?: number
+  clinicalName?: string
+  clinicalNumber?: string
+  typeId?: number
+}
+
+/** 按项目号/方案名称/方案编号模糊搜索 BAS（项目号） */
+export function getReagentItemOptions(params: { keyword?: string }) {
+  return http.get<ReagentItemOption[]>('/reagent/basic-data/item-options', params)
+}
+
 export function getSampleLoanSites() {
   return http.get<SampleLoanOption[]>('/reagent/sample-loan/sites')
 }

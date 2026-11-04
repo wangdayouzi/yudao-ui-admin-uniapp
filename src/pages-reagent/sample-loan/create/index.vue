@@ -39,7 +39,23 @@
         <view class="field-title">
           BAS 号 <text class="required">*</text>
         </view>
-        <input v-model="form.basNo" class="text-input" :maxlength="64" placeholder="请输入 BAS 号" placeholder-class="input-placeholder">
+        <view class="bas-input-wrap">
+          <input
+            v-model="form.basNo"
+            class="text-input"
+            :maxlength="64"
+            placeholder="输入/搜索 BAS 号（项目号）"
+            placeholder-class="input-placeholder"
+            @focus="onBasFocus('form')"
+            @input="onBasInput('form')"
+            @blur="hideBasSuggestionsSoon"
+          >
+          <view v-if="basSuggestVisible && basSuggestTarget === 'form'" class="bas-suggestions">
+            <view v-for="item in basSuggestions" :key="item" class="bas-suggestion" @click="selectBasSuggestion(item)">
+              {{ item }}
+            </view>
+          </view>
+        </view>
 
         <view class="field-title">
           站点 <text class="required">*</text>
@@ -86,7 +102,23 @@
     <scroll-view v-else scroll-y class="min-h-0 flex-1" @scrolltolower="loadMoreRecords">
       <view class="record-filters">
         <view class="search-row">
-          <input v-model="filters.basNo" class="filter-input" placeholder="搜索 BAS 号" confirm-type="search" @confirm="refreshRecords">
+          <view class="search-input-wrap">
+            <input
+              v-model="filters.basNo"
+              class="filter-input"
+              placeholder="搜索 BAS 号（项目号）"
+              confirm-type="search"
+              @focus="onBasFocus('filter')"
+              @input="onBasInput('filter')"
+              @blur="hideBasSuggestionsSoon"
+              @confirm="refreshRecords"
+            >
+            <view v-if="basSuggestVisible && basSuggestTarget === 'filter'" class="bas-suggestions bas-suggestions--filter">
+              <view v-for="item in basSuggestions" :key="item" class="bas-suggestion" @click="selectBasSuggestion(item)">
+                {{ item }}
+              </view>
+            </view>
+          </view>
           <view class="search-button" @click="refreshRecords">
             搜索
           </view>
@@ -175,7 +207,7 @@
 
 <script lang="ts" setup>
 import type { SampleLoanLocation, SampleLoanMaterialType, SampleLoanOption, SampleLoanSite, SelfSampleLoanResp } from '@/api/reagent/sample-loan'
-import { checkSampleLoanDuplicate, createSelfSampleLoan, deleteAnySampleLoan, deleteSelfSampleLoan, getMobileSampleLoanPage, getSampleLoanLocations, getSampleLoanSites, noReturnAnySampleLoan, noReturnSelfSampleLoan, returnAnySampleLoan, returnSelfSampleLoan, updateAnySampleLoan, updateSelfSampleLoan } from '@/api/reagent/sample-loan'
+import { checkSampleLoanDuplicate, createSelfSampleLoan, deleteAnySampleLoan, deleteSelfSampleLoan, getMobileSampleLoanPage, getReagentItemOptions, getSampleLoanLocations, getSampleLoanSites, noReturnAnySampleLoan, noReturnSelfSampleLoan, returnAnySampleLoan, returnSelfSampleLoan, updateAnySampleLoan, updateSelfSampleLoan } from '@/api/reagent/sample-loan'
 import { useUserStore } from '@/store/user'
 import { navigateBackPlus } from '@/utils'
 import { formatDateTime } from '@/utils/date'
@@ -227,6 +259,61 @@ const hasMore = ref(true)
 let listGeneration = 0
 const actionLoading = ref(false)
 const filters = reactive<{ basNo: string, status?: number, site?: string, location?: string }>({ basNo: '' })
+
+// ==================== BAS（项目号）模糊提示 ====================
+const basSuggestions = ref<string[]>([])
+const basSuggestTarget = ref<'form' | 'filter'>()
+const basSuggestVisible = ref(false)
+let basSearchSeq = 0
+let basInputTimer: ReturnType<typeof setTimeout> | undefined
+let basHideTimer: ReturnType<typeof setTimeout> | undefined
+
+async function searchBasSuggestions(keyword: string, target: 'form' | 'filter') {
+  basSuggestTarget.value = target
+  const seq = ++basSearchSeq
+  try {
+    const list = await getReagentItemOptions({ keyword: keyword.trim() || undefined })
+    if (seq !== basSearchSeq)
+      return
+    basSuggestions.value = Array.from(new Set(list.map(item => item.baseId).filter(Boolean)))
+    basSuggestVisible.value = basSuggestions.value.length > 0
+  } catch {
+    if (seq === basSearchSeq) {
+      basSuggestions.value = []
+      basSuggestVisible.value = false
+    }
+  }
+}
+function onBasFocus(target: 'form' | 'filter') {
+  if (basInputTimer)
+    clearTimeout(basInputTimer)
+  void searchBasSuggestions(target === 'form' ? form.basNo : filters.basNo, target)
+}
+function onBasInput(target: 'form' | 'filter') {
+  if (basInputTimer)
+    clearTimeout(basInputTimer)
+  basInputTimer = setTimeout(() => {
+    void searchBasSuggestions(target === 'form' ? form.basNo : filters.basNo, target)
+  }, 250)
+}
+function selectBasSuggestion(value: string) {
+  if (basSuggestTarget.value === 'filter') {
+    filters.basNo = value
+    basSuggestVisible.value = false
+    void refreshRecords()
+    return
+  }
+  form.basNo = value
+  basSuggestVisible.value = false
+}
+function hideBasSuggestionsSoon() {
+  if (basHideTimer)
+    clearTimeout(basHideTimer)
+  basHideTimer = setTimeout(() => {
+    basSuggestVisible.value = false
+  }, 250)
+}
+
 const formLocations = computed(() => form.site ? locationsBySite.value[form.site] || [] : [])
 const filterLocations = computed(() => filters.site
   ? locationsBySite.value[filters.site] || []
@@ -480,8 +567,29 @@ async function handleSubmit() {
   font-weight: 700;
 }
 .record-status {
-  color: #1768d8;
-  font-size: 24rpx;
+  flex-shrink: 0;
+  padding: 6rpx 16rpx;
+  border: 1rpx solid transparent;
+  border-radius: 10rpx;
+  font-size: 25rpx;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.record-status--1 {
+  color: #1859b5;
+  background: #e8f1ff;
+  border-color: #b6d2fa;
+}
+.record-status--2 {
+  color: #167447;
+  background: #e5f5eb;
+  border-color: #aadbbf;
+}
+.record-status--3 {
+  color: #925b08;
+  background: #fff2d7;
+  border-color: #edcf92;
 }
 .record-meta {
   margin-top: 12rpx;
@@ -521,6 +629,42 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   gap: 16rpx;
+}
+.bas-input-wrap,
+.search-input-wrap {
+  position: relative;
+}
+.search-input-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.search-input-wrap .filter-input {
+  flex: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.bas-suggestions {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  max-height: 420rpx;
+  margin-top: 6rpx;
+  overflow-y: auto;
+  background: #fff;
+  border: 2rpx solid #dbe3ee;
+  border-radius: 14rpx;
+  box-shadow: 0 8rpx 24rpx rgb(30 70 130 / 12%);
+}
+.bas-suggestion {
+  padding: 20rpx 22rpx;
+  color: #243950;
+  font-size: 28rpx;
+  border-bottom: 1rpx solid #edf1f6;
+}
+.bas-suggestion:last-child {
+  border-bottom: none;
 }
 .search-button {
   display: flex;

@@ -1548,7 +1548,7 @@
           "menus": [
             {
               "key": "reagentSampleLoanCreate",
-              "name": "新增领用",
+              "name": "领用管理",
               "icon": "edit",
               "iconColor": "#3178d8",
               "url": "/pages-reagent/sample-loan/create/index",
