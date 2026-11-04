@@ -12,10 +12,10 @@
     </view>
 
     <scroll-view v-if="activeTab === 'create'" scroll-y class="min-h-0 flex-1">
-      <view class="loan-intro">
+      <!-- <view class="loan-intro">
         <text class="loan-intro-title">{{ editingRecord ? '修改领用记录' : '领用登记' }}</text>
         <text class="loan-intro-subtitle">{{ editingRecord ? '需求人和领用时间保持原记录' : '领用时间以提交成功时的服务器时间为准' }}</text>
-      </view>
+      </view> -->
 
       <view v-if="createdRecord" class="success-card">
         <text class="success-title">登记成功</text>
