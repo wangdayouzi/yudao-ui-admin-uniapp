@@ -1,0 +1,14 @@
+diff --git a/lib/main.js b/lib/main.js
+index 43945edaf0475815a4f9e8a9e774385bc7939c0f..e48f549cdf917d781b7d7c9a7794e93505021a00 100644
+--- a/lib/main.js
++++ b/lib/main.js
+@@ -884,7 +884,8 @@ function createChannel(streamIn) {
+         });
+       }
+     };
+-    if ((typeof input === "string" || input instanceof Uint8Array) && input.length > 1024 * 1024) {
++    // Keep Windows transforms on the service pipe to avoid temporary-file removal failures.
++    if (process.platform !== "win32" && (typeof input === "string" || input instanceof Uint8Array) && input.length > 1024 * 1024) {
+       let next = start;
+       start = () => fs3.writeFile(input, next);
+     }

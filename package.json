@@ -195,6 +195,9 @@
   "pnpm": {
     "overrides": {
       "unconfig": "7.3.2"
+    },
+    "patchedDependencies": {
+      "esbuild@0.20.2": "patches/esbuild@0.20.2.patch"
     }
   },
   "overrides": {

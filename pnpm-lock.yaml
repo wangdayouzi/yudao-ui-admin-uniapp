@@ -8,6 +8,11 @@ overrides:
   bin-wrapper: npm:bin-wrapper-china
   unconfig: 7.3.2
 
+patchedDependencies:
+  esbuild@0.20.2:
+    hash: 2bafd34fe9186dc0a120419637bef03025509a7434ffce42560c6a674946a348
+    path: patches/esbuild@0.20.2.patch
+
 importers:
 
   .:
@@ -11867,7 +11872,7 @@ snapshots:
       compare-versions: 3.6.0
       debug: 4.4.3
       es-module-lexer: 1.7.0
-      esbuild: 0.20.2
+      esbuild: 0.20.2(patch_hash=2bafd34fe9186dc0a120419637bef03025509a7434ffce42560c6a674946a348)
       estree-walker: 2.0.2
       fast-glob: 3.3.3
       fs-extra: 10.1.0
@@ -11927,7 +11932,7 @@ snapshots:
       debug: 4.3.7
       entities: 7.0.1
       es-module-lexer: 1.5.4
-      esbuild: 0.20.2
+      esbuild: 0.20.2(patch_hash=2bafd34fe9186dc0a120419637bef03025509a7434ffce42560c6a674946a348)
       estree-walker: 2.0.2
       fast-glob: 3.3.3
       fs-extra: 10.1.0
@@ -16472,7 +16477,7 @@ snapshots:
       has-tostringtag: 1.0.2
       hasown: 2.0.4
 
-  esbuild@0.20.2:
+  esbuild@0.20.2(patch_hash=2bafd34fe9186dc0a120419637bef03025509a7434ffce42560c6a674946a348):
     optionalDependencies:
       '@esbuild/aix-ppc64': 0.20.2
       '@esbuild/android-arm': 0.20.2
@@ -21130,7 +21135,7 @@ snapshots:
 
   vite@5.2.8(@types/node@20.19.43)(less@4.5.1)(sass@1.100.0)(terser@5.43.1):
     dependencies:
-      esbuild: 0.20.2
+      esbuild: 0.20.2(patch_hash=2bafd34fe9186dc0a120419637bef03025509a7434ffce42560c6a674946a348)
       postcss: 8.5.6
       rollup: 4.14.3
     optionalDependencies:
