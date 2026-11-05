@@ -53,8 +53,8 @@ export function getSampleLoanLocations(site: string) {
   return http.get<SampleLoanOption[]>('/reagent/sample-loan/locations', { site })
 }
 
-export function createSelfSampleLoan(data: SelfSampleLoanCreateReq) {
-  return http.post<SelfSampleLoanResp>('/reagent/sample-loan/create-self', data)
+export function createSampleLoan(data: SelfSampleLoanCreateReq & { requesterId: number }) {
+  return http.post<number>('/reagent/sample-loan/create', data)
 }
 
 export function getSelfSampleLoanPage(params: { pageNo: number, pageSize: number, status?: number, site?: string, location?: string, basNo?: string }) {

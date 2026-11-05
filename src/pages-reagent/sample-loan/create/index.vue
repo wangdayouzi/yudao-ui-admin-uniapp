@@ -17,12 +17,6 @@
         <text class="loan-intro-subtitle">{{ editingRecord ? '需求人和领用时间保持原记录' : '领用时间以提交成功时的服务器时间为准' }}</text>
       </view> -->
 
-      <view v-if="createdRecord" class="success-card">
-        <text class="success-title">登记成功</text>
-        <text class="success-detail">{{ createdRecord.basNo }} · {{ createdRecord.requester }}</text>
-        <text class="success-detail">领用时间 {{ formatDateTime(createdRecord.createTime) }}</text>
-      </view>
-
       <view class="form-card">
         <view class="field-title">
           领用类型 <text class="required">*</text>
@@ -79,23 +73,47 @@
         <view class="field-title">
           需求人
         </view>
-        <view class="readonly-field">
-          {{ editingRecord?.requester || userStore.userInfo.nickname || userStore.userInfo.username || '当前登录用户' }}
+        <view v-if="editingRecord" class="readonly-field">
+          {{ editingRecord.requester }}
+        </view>
+        <view v-else>
+          <view class="readonly-field requester-field" @click="toggleRequesters">
+            <text>{{ selectedRequesterName || '请选择需求人' }}</text>
+            <text class="requester-link">{{ requesterOpen ? '收起 ▴' : '展开 ▾' }}</text>
+          </view>
+          <view v-if="requesterOpen" class="requester-dropdown">
+            <input v-model="requesterKeyword" class="filter-input" placeholder="输入姓名或账号搜索">
+            <scroll-view scroll-y :style="{ height: `${Math.min(Math.max(filteredRequesters.length, 1), 5) * 72}rpx` }">
+              <view v-if="requestersLoading" class="bas-suggestion">
+                正在加载人员…
+              </view>
+              <view v-else-if="requestersFailed" class="bas-suggestion" @click="loadRequesters">
+                加载失败，点击重试
+              </view>
+              <view v-else-if="!filteredRequesters.length" class="bas-suggestion">
+                没有匹配的人员
+              </view>
+              <view
+                v-for="user in filteredRequesters"
+                :key="user.id"
+                class="bas-suggestion requester-option"
+                :class="{ 'requester-selected': user.id === requesterId }"
+                @click="selectRequester(user.id)"
+              >
+                {{ user.nickname || user.username }}{{ user.nickname && user.username && user.nickname !== user.username ? `（${user.username}）` : '' }}
+              </view>
+            </scroll-view>
+          </view>
         </view>
 
-        <view class="more-link" @click="showMore = !showMore">
-          {{ showMore ? '收起选填信息' : '填写物料信息和备注（选填）' }}
+        <view class="field-title">
+          物料信息
         </view>
-        <template v-if="showMore">
-          <view class="field-title">
-            物料信息
-          </view>
-          <textarea v-model="form.sampleInfo" class="text-area" :maxlength="500" placeholder="选填" placeholder-class="input-placeholder" />
-          <view class="field-title">
-            备注
-          </view>
-          <textarea v-model="form.remark" class="text-area" :maxlength="500" placeholder="选填" placeholder-class="input-placeholder" />
-        </template>
+        <textarea v-model="form.sampleInfo" class="text-area" :maxlength="500" placeholder="选填" placeholder-class="input-placeholder" />
+        <view class="field-title">
+          备注
+        </view>
+        <textarea v-model="form.remark" class="text-area" :maxlength="500" placeholder="选填" placeholder-class="input-placeholder" />
       </view>
     </scroll-view>
 
@@ -122,8 +140,15 @@
           <view class="search-button" @click="refreshRecords">
             搜索
           </view>
+          <view
+            class="filter-toggle"
+            :class="{ 'has-filters': filters.status !== undefined || filters.site || filters.location }"
+            @click="filtersExpanded = !filtersExpanded"
+          >
+            {{ filtersExpanded ? '收起筛选' : '展开筛选' }}
+          </view>
         </view>
-        <view class="filter-row">
+        <view v-if="filtersExpanded" class="filter-row">
           <view class="filter-pill" :class="{ selected: filters.status === undefined }" @click="setStatus(undefined)">
             全部
           </view>
@@ -137,7 +162,7 @@
             无需归还
           </view>
         </view>
-        <view class="filter-row">
+        <view v-if="filtersExpanded" class="filter-row">
           <view class="filter-pill" :class="{ selected: !filters.site }" @click="selectFilterSite(undefined)">
             全部站点
           </view>
@@ -145,7 +170,7 @@
             {{ site.label }}
           </view>
         </view>
-        <view class="filter-row">
+        <view v-if="filtersExpanded" class="filter-row">
           <view class="filter-pill" :class="{ selected: !filters.location }" @click="setFilterLocation(undefined)">
             全部楼层
           </view>
@@ -160,7 +185,7 @@
       <view v-for="record in records" :key="record.id" class="record-card">
         <view class="record-header">
           <text class="record-bas">{{ record.basNo }}</text>
-          <text class="record-status">{{ statusLabel(record.status) }}</text>
+          <text class="record-status" :class="`record-status--${record.status}`">{{ statusLabel(record.status) }}</text>
         </view>
         <view class="record-meta">
           {{ record.materialType === 'REAGENT' ? '试剂' : '样品' }} · {{ siteLabel(record.site) }} · {{ record.location }} · {{ record.requester }}
@@ -178,17 +203,17 @@
           备注 {{ record.remark }}
         </view>
         <view v-if="canAct(record, 'delete') || (record.status === 1 && (canAct(record, 'update') || canAct(record, 'return') || canAct(record, 'noReturn')))" class="record-actions">
+          <view v-if="canAct(record, 'delete')" class="record-action danger" @click="confirmAction('delete', record)">
+            删除
+          </view>
           <view v-if="record.status === 1 && canAct(record, 'update')" class="record-action" @click="editRecord(record)">
             修改
           </view>
-          <view v-if="record.status === 1 && canAct(record, 'return')" class="record-action" @click="confirmAction('return', record)">
+          <view v-if="record.status === 1 && canAct(record, 'return')" class="record-action primary" @click="confirmAction('return', record)">
             归还
           </view>
-          <view v-if="record.status === 1 && canAct(record, 'noReturn')" class="record-action" @click="confirmAction('noReturn', record)">
+          <view v-if="record.status === 1 && canAct(record, 'noReturn')" class="record-action primary" @click="confirmAction('noReturn', record)">
             无需归还
-          </view>
-          <view v-if="canAct(record, 'delete')" class="record-action danger" @click="confirmAction('delete', record)">
-            删除
           </view>
         </view>
       </view>
@@ -199,7 +224,7 @@
 
     <view v-if="activeTab === 'create'" class="yd-detail-footer">
       <wd-button type="primary" block :loading="submitting" :disabled="submitting" @click="handleSubmit">
-        {{ editingRecord ? '保存修改' : '确认领用' }}
+        {{ editingRecord ? '保存修改' : '提交领用' }}
       </wd-button>
     </view>
   </view>
@@ -207,8 +232,10 @@
 
 <script lang="ts" setup>
 import type { SampleLoanLocation, SampleLoanMaterialType, SampleLoanOption, SampleLoanSite, SelfSampleLoanResp } from '@/api/reagent/sample-loan'
-import { checkSampleLoanDuplicate, createSelfSampleLoan, deleteAnySampleLoan, deleteSelfSampleLoan, getMobileSampleLoanPage, getReagentItemOptions, getSampleLoanLocations, getSampleLoanSites, noReturnAnySampleLoan, noReturnSelfSampleLoan, returnAnySampleLoan, returnSelfSampleLoan, updateAnySampleLoan, updateSelfSampleLoan } from '@/api/reagent/sample-loan'
+import type { User } from '@/api/system/user'
+import { checkSampleLoanDuplicate, createSampleLoan, deleteAnySampleLoan, deleteSelfSampleLoan, getMobileSampleLoanPage, getReagentItemOptions, getSampleLoanLocations, getSampleLoanSites, noReturnAnySampleLoan, noReturnSelfSampleLoan, returnAnySampleLoan, returnSelfSampleLoan, updateAnySampleLoan, updateSelfSampleLoan } from '@/api/reagent/sample-loan'
 import { useUserStore } from '@/store/user'
+import { getSimpleUserList } from '@/api/system/user'
 import { navigateBackPlus } from '@/utils'
 import { formatDateTime } from '@/utils/date'
 
@@ -245,11 +272,10 @@ const form = reactive({
   sampleInfo: '',
   remark: '',
 })
-const showMore = ref(false)
 const submitting = ref(false)
-const createdRecord = ref<SelfSampleLoanResp>()
 const editingRecord = ref<SelfSampleLoanResp>()
 const activeTab = ref<'create' | 'records'>('create')
+const filtersExpanded = ref(false)
 const records = ref<SelfSampleLoanResp[]>([])
 const recordsLoading = ref(false)
 const recordsTotal = ref(0)
@@ -257,6 +283,48 @@ const pageNo = ref(1)
 const pageSize = 20
 const hasMore = ref(true)
 let listGeneration = 0
+const requesterId = ref<number>()
+const requesterOpen = ref(false)
+const requesterKeyword = ref('')
+const requesters = ref<User[]>()
+const requestersLoading = ref(false)
+const requestersFailed = ref(false)
+const selectedRequesterName = computed(() => {
+  const user = requesters.value?.find(user => user.id === requesterId.value)
+  return user?.nickname || user?.username
+})
+const filteredRequesters = computed(() => {
+  const keyword = requesterKeyword.value.trim().toLowerCase()
+  return (requesters.value ?? []).filter(user => user.id != null
+    && (!keyword || [user.nickname, user.username].some(name => name?.toLowerCase().includes(keyword))))
+})
+
+async function loadRequesters() {
+  if (requestersLoading.value)
+    return
+  requestersLoading.value = true
+  requestersFailed.value = false
+  try {
+    requesters.value = await getSimpleUserList()
+  } catch {
+    requestersFailed.value = true
+  } finally {
+    requestersLoading.value = false
+  }
+}
+
+function toggleRequesters() {
+  requesterOpen.value = !requesterOpen.value
+  requesterKeyword.value = ''
+  if (requesterOpen.value && !requesters.value)
+    void loadRequesters()
+}
+
+function selectRequester(id?: number) {
+  requesterId.value = id
+  requesterOpen.value = false
+}
+const currentUserId = computed(() => Number(userStore.userInfo.userId) || undefined)
 const actionLoading = ref(false)
 const filters = reactive<{ basNo: string, status?: number, site?: string, location?: string }>({ basNo: '' })
 
@@ -365,12 +433,14 @@ function statusLabel(status: number) {
 }
 
 function resetForm() {
+  requesterId.value = undefined
+  requesterOpen.value = false
+  requesterKeyword.value = ''
   editingRecord.value = undefined
   form.basNo = ''
   form.materialType = undefined
   form.sampleInfo = ''
   form.remark = ''
-  showMore.value = false
 }
 
 function switchTab(tab: 'create' | 'records') {
@@ -378,7 +448,6 @@ function switchTab(tab: 'create' | 'records') {
     resetForm()
   activeTab.value = tab
   if (tab === 'records') {
-    createdRecord.value = undefined
     refreshRecords()
   }
 }
@@ -423,8 +492,6 @@ function editRecord(record: SelfSampleLoanResp) {
   void loadLocations(record.site || 'NINGBO')
   form.sampleInfo = record.sampleInfo || ''
   form.remark = record.remark || ''
-  showMore.value = Boolean(form.sampleInfo || form.remark)
-  createdRecord.value = undefined
   activeTab.value = 'create'
 }
 
@@ -468,13 +535,15 @@ async function handleSubmit() {
     return notify('请选择楼层')
   if (!formLocations.value.some(location => location.value === form.location))
     return notify('该楼层不可用，请重新选择')
+  if (!editingRecord.value && !requesterId.value)
+    return notify('请选择需求人')
 
   submitting.value = true
   try {
-    const requesterId = editingRecord.value?.requesterId || Number(userStore.userInfo.userId)
-    if (requesterId > 0) {
+    const selectedRequesterId = editingRecord.value?.requesterId || requesterId.value || currentUserId.value
+    if (selectedRequesterId) {
       try {
-        const duplicate = await checkSampleLoanDuplicate({ basNo, site: form.site, location: form.location, requesterId, excludeId: editingRecord.value?.id })
+        const duplicate = await checkSampleLoanDuplicate({ basNo, site: form.site, location: form.location, requesterId: selectedRequesterId, excludeId: editingRecord.value?.id })
         if (duplicate) {
           const choice = await uni.showModal({
             title: '重复领用提醒',
@@ -508,8 +577,8 @@ async function handleSubmit() {
           submitter: editingRecord.value.submitter,
         })
       }
-    } else {
-      createdRecord.value = await createSelfSampleLoan(payload)
+    } else if (selectedRequesterId) {
+      await createSampleLoan({ ...payload, requesterId: selectedRequesterId })
     }
     try {
       uni.setStorageSync(storageKey, { site: form.site, location: form.location })
@@ -518,7 +587,7 @@ async function handleSubmit() {
     }
     const wasEditing = Boolean(editingRecord.value)
     resetForm()
-    notify(wasEditing ? '领用记录已修改' : '领用登记成功')
+    notify(wasEditing ? '领用记录已修改' : '提交成功')
     if (wasEditing) {
       activeTab.value = 'records'
       await refreshRecords()
@@ -535,23 +604,24 @@ async function handleSubmit() {
 }
 .loan-tabs {
   display: flex;
+  border-top: 8rpx solid #edf1f6;
   background: #fff;
-  border-bottom: 1rpx solid #e7edf5;
 }
 .loan-tabs > view {
   flex: 1;
-  padding: 24rpx 0;
+  padding: 14rpx 0;
   color: #64758a;
+  border-bottom: 4rpx solid #ccd7e5;
   text-align: center;
   font-size: 29rpx;
 }
 .loan-tabs > view.active {
   color: #1768d8;
-  border-bottom: 4rpx solid #1768d8;
+  border-bottom-color: #1768d8;
   font-weight: 700;
 }
 .record-card {
-  margin: 20rpx 24rpx;
+  margin: 10rpx 24rpx 0;
   padding: 26rpx;
   background: #fff;
   border-radius: 18rpx;
@@ -560,11 +630,14 @@ async function handleSubmit() {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12rpx;
 }
 .record-bas {
+  min-width: 0;
   color: #183153;
   font-size: 32rpx;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 .record-status {
   flex-shrink: 0;
@@ -592,29 +665,48 @@ async function handleSubmit() {
   border-color: #edcf92;
 }
 .record-meta {
-  margin-top: 12rpx;
+  margin-top: 8rpx;
   color: #66788d;
   font-size: 25rpx;
   overflow-wrap: anywhere;
 }
 .record-action {
-  padding: 18rpx 10rpx;
+  display: flex;
+  flex: 1 0 auto;
+  min-height: 80rpx;
+  padding: 0 8rpx;
+  align-items: center;
+  justify-content: center;
   color: #1768d8;
-  font-size: 27rpx;
+  background: #eef4ff;
+  border-radius: 10rpx;
+  font-size: 28rpx;
+  white-space: nowrap;
 }
 .record-actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10rpx;
-  margin-top: 18rpx;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 12rpx;
+  padding-top: 8rpx;
   border-top: 1rpx solid #edf1f6;
+}
+.record-action.primary {
+  color: #24578d;
+  background: #e4eef9;
 }
 .record-action.danger {
   color: #cb4545;
+  background: #fceeee;
+}
+.record-action.danger:only-child {
+  flex: none;
+  min-height: 72rpx;
+  padding: 0 24rpx;
 }
 .record-filters {
-  padding: 20rpx 24rpx;
+  padding: 20rpx 24rpx 8rpx;
   background: #fff;
 }
 .filter-input {
@@ -666,16 +758,28 @@ async function handleSubmit() {
 .bas-suggestion:last-child {
   border-bottom: none;
 }
-.search-button {
+.search-button,
+.filter-toggle {
   display: flex;
+  flex-shrink: 0;
   height: 72rpx;
-  padding: 0 28rpx;
+  padding: 0 18rpx;
   align-items: center;
   justify-content: center;
   color: #fff;
   background: #1768d8;
   border-radius: 12rpx;
   font-size: 26rpx;
+  white-space: nowrap;
+}
+.filter-toggle {
+  color: #53657a;
+  background: #f4f7fb;
+}
+.filter-toggle.has-filters {
+  color: #1768d8;
+  background: #e8f1ff;
+  font-weight: 700;
 }
 .filter-row {
   display: flex;
@@ -726,28 +830,12 @@ async function handleSubmit() {
   font-size: 25rpx;
   color: #66788d;
 }
-.form-card,
-.success-card {
+.form-card {
   margin: 0 24rpx 24rpx;
   padding: 28rpx;
   background: #fff;
   border-radius: 20rpx;
   box-shadow: 0 8rpx 28rpx rgb(30 70 130 / 5%);
-}
-.success-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10rpx;
-  border-left: 6rpx solid #27a16f;
-}
-.success-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #167a54;
-}
-.success-detail {
-  font-size: 25rpx;
-  color: #506273;
 }
 .field-title {
   margin: 26rpx 0 14rpx;
@@ -809,12 +897,32 @@ async function handleSubmit() {
   padding-top: 18rpx;
   font-size: 28rpx;
 }
+.requester-field {
+  justify-content: space-between;
+}
+.requester-link {
+  color: #1768d8;
+}
+.requester-dropdown {
+  margin-top: 8rpx;
+  padding: 10rpx;
+  border: 2rpx solid #dbe3ee;
+  border-radius: 14rpx;
+}
+.requester-option {
+  height: 72rpx;
+  padding: 0 22rpx;
+  box-sizing: border-box;
+  line-height: 72rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.requester-selected {
+  color: #1768d8;
+  background: #e8f1ff;
+}
 .input-placeholder {
   color: #9aa9b7;
-}
-.more-link {
-  padding: 32rpx 0 4rpx;
-  font-size: 27rpx;
-  color: #1768d8;
 }
 </style>
