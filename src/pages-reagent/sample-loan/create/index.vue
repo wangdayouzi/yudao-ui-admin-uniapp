@@ -77,12 +77,17 @@
           {{ editingRecord.requester }}
         </view>
         <view v-else>
-          <view class="readonly-field requester-field" @click="toggleRequesters">
-            <text>{{ selectedRequesterName || '请选择需求人' }}</text>
-            <text class="requester-link">{{ requesterOpen ? '收起 ▴' : '展开 ▾' }}</text>
+          <view class="readonly-field requester-field">
+            <input
+              :value="requesterOpen ? requesterKeyword : selectedRequesterName || ''"
+              class="requester-input"
+              placeholder="输入姓名或账号搜索"
+              @focus="openRequesters"
+              @input="searchRequesters"
+            >
+            <text class="requester-link" @click="toggleRequesters">{{ requesterOpen ? '收起 ▴' : '展开 ▾' }}</text>
           </view>
           <view v-if="requesterOpen" class="requester-dropdown">
-            <input v-model="requesterKeyword" class="filter-input" placeholder="输入姓名或账号搜索">
             <scroll-view scroll-y :style="{ height: `${Math.min(Math.max(filteredRequesters.length, 1), 5) * 72}rpx` }">
               <view v-if="requestersLoading" class="bas-suggestion">
                 正在加载人员…
@@ -313,16 +318,33 @@ async function loadRequesters() {
   }
 }
 
-function toggleRequesters() {
-  requesterOpen.value = !requesterOpen.value
-  requesterKeyword.value = ''
-  if (requesterOpen.value && !requesters.value)
+function openRequesters() {
+  requesterOpen.value = true
+  if (!requesters.value)
     void loadRequesters()
+}
+
+function searchRequesters(event: { detail: { value: string } }) {
+  requesterKeyword.value = event.detail.value
+  if (!requesterOpen.value)
+    openRequesters()
+}
+
+function toggleRequesters() {
+  if (requesterOpen.value) {
+    requesterOpen.value = false
+    requesterKeyword.value = ''
+    uni.hideKeyboard()
+  } else {
+    openRequesters()
+  }
 }
 
 function selectRequester(id?: number) {
   requesterId.value = id
   requesterOpen.value = false
+  requesterKeyword.value = ''
+  uni.hideKeyboard()
 }
 const currentUserId = computed(() => Number(userStore.userInfo.userId) || undefined)
 const actionLoading = ref(false)
@@ -898,9 +920,15 @@ async function handleSubmit() {
   font-size: 28rpx;
 }
 .requester-field {
-  justify-content: space-between;
+  gap: 12rpx;
+}
+.requester-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
 }
 .requester-link {
+  flex-shrink: 0;
   color: #1768d8;
 }
 .requester-dropdown {
