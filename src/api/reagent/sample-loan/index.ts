@@ -23,6 +23,7 @@ export interface SelfSampleLoanResp extends SelfSampleLoanCreateReq {
   requesterId: number
   submitterId: number
   returnTime?: string | number
+  returner?: string
 }
 
 export interface SampleLoanOption {
@@ -65,7 +66,12 @@ export function getMobileSampleLoanPage(params: { pageNo: number, pageSize: numb
   return http.get<PageResult<SelfSampleLoanResp>>('/reagent/sample-loan/page-mobile', params)
 }
 
-export function updateSelfSampleLoan(data: SelfSampleLoanCreateReq & { id: number }) {
+interface SampleLoanUpdateTimes {
+  createTime?: number
+  returnTime?: number
+}
+
+export function updateSelfSampleLoan(data: SelfSampleLoanCreateReq & SampleLoanUpdateTimes & { id: number }) {
   return http.put<boolean>('/reagent/sample-loan/update-self', data)
 }
 
@@ -81,7 +87,7 @@ export function deleteSelfSampleLoan(id: number) {
   return http.delete<boolean>(`/reagent/sample-loan/delete-self?id=${id}`)
 }
 
-export function updateAnySampleLoan(data: SelfSampleLoanCreateReq & { id: number, requesterId: number, requester: string, submitterId: number, submitter: string }) {
+export function updateAnySampleLoan(data: SelfSampleLoanCreateReq & SampleLoanUpdateTimes & { id: number, requesterId: number, requester: string, submitterId: number, submitter: string }) {
   return http.put<boolean>('/reagent/sample-loan/update', data)
 }
 

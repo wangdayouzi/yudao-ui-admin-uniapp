@@ -14,7 +14,6 @@
     <scroll-view v-if="activeTab === 'create'" scroll-y class="min-h-0 flex-1">
       <!-- <view class="loan-intro">
         <text class="loan-intro-title">{{ editingRecord ? '修改领用记录' : '领用登记' }}</text>
-        <text class="loan-intro-subtitle">{{ editingRecord ? '需求人和领用时间保持原记录' : '领用时间以提交成功时的服务器时间为准' }}</text>
       </view> -->
 
       <view class="form-card">
@@ -111,6 +110,26 @@
           </view>
         </view>
 
+        <template v-if="editingRecord">
+          <view class="field-title">
+            领用时间
+          </view>
+          <view class="readonly-field requester-field" @click="loanTimeVisible = true">
+            <text>{{ formatDateTime(loanTime) }}</text>
+            <text class="requester-link">选择 ›</text>
+          </view>
+          <wd-datetime-picker v-model="loanTime" v-model:visible="loanTimeVisible" title="选择领用时间" type="datetime" use-second root-portal :max-date="Date.now()" />
+          <template v-if="editingRecord.status === 2">
+            <view class="field-title">
+              归还时间
+            </view>
+            <view class="readonly-field requester-field" @click="returnTimeVisible = true">
+              <text>{{ formatDateTime(returnTime) }}</text>
+              <text class="requester-link">选择 ›</text>
+            </view>
+            <wd-datetime-picker v-model="returnTime" v-model:visible="returnTimeVisible" title="选择归还时间" type="datetime" use-second root-portal :max-date="Date.now()" />
+          </template>
+        </template>
         <view class="field-title">
           物料信息
         </view>
@@ -196,10 +215,10 @@
           {{ record.materialType === 'REAGENT' ? '试剂' : '样品' }} · {{ siteLabel(record.site) }} · {{ record.location }} · {{ record.requester }}
         </view>
         <view class="record-meta">
-          领用时间 {{ formatDateTime(record.createTime) }}
+          领用时间 {{ formatDateTime(record.createTime) }} · 领用人 {{ record.submitter || '未记录' }}
         </view>
         <view v-if="record.returnTime" class="record-meta">
-          归还时间 {{ formatDateTime(record.returnTime) }}
+          归还时间 {{ formatDateTime(record.returnTime) }} · 归还人 {{ record.returner || '未记录' }}
         </view>
         <view v-if="record.sampleInfo" class="record-meta">
           物料信息 {{ record.sampleInfo }}
@@ -207,11 +226,11 @@
         <view v-if="record.remark" class="record-meta">
           备注 {{ record.remark }}
         </view>
-        <view v-if="canAct(record, 'delete') || (record.status === 1 && (canAct(record, 'update') || canAct(record, 'return') || canAct(record, 'noReturn')))" class="record-actions">
+        <view v-if="canEditRecord(record) || canAct(record, 'delete') || (record.status === 1 && (canAct(record, 'return') || canAct(record, 'noReturn')))" class="record-actions">
           <view v-if="canAct(record, 'delete')" class="record-action danger" @click="confirmAction('delete', record)">
             删除
           </view>
-          <view v-if="record.status === 1 && canAct(record, 'update')" class="record-action" @click="editRecord(record)">
+          <view v-if="canEditRecord(record)" class="record-action" @click="editRecord(record)">
             修改
           </view>
           <view v-if="record.status === 1 && canAct(record, 'return')" class="record-action primary" @click="confirmAction('return', record)">
@@ -242,7 +261,7 @@ import { checkSampleLoanDuplicate, createSampleLoan, deleteAnySampleLoan, delete
 import { useUserStore } from '@/store/user'
 import { getSimpleUserList } from '@/api/system/user'
 import { navigateBackPlus } from '@/utils'
-import { formatDateTime } from '@/utils/date'
+import { formatDateTime, toTimestamp } from '@/utils/date'
 
 definePage({
   style: { navigationBarTitleText: '', navigationStyle: 'custom' },
@@ -279,6 +298,10 @@ const form = reactive({
 })
 const submitting = ref(false)
 const editingRecord = ref<SelfSampleLoanResp>()
+const loanTime = ref(0)
+const returnTime = ref(0)
+const loanTimeVisible = ref(false)
+const returnTimeVisible = ref(false)
 const activeTab = ref<'create' | 'records'>('create')
 const filtersExpanded = ref(false)
 const records = ref<SelfSampleLoanResp[]>([])
@@ -503,10 +526,16 @@ async function loadMoreRecords() {
   }
 }
 
+function canEditRecord(record: SelfSampleLoanResp) {
+  return (record.status === 1 || record.status === 2) && canAct(record, 'update')
+}
+
 function editRecord(record: SelfSampleLoanResp) {
-  if (record.status !== 1 || !canAct(record, 'update'))
+  if (!canEditRecord(record))
     return
   editingRecord.value = record
+  loanTime.value = toTimestamp(record.createTime) || 0
+  returnTime.value = toTimestamp(record.returnTime) || 0
   form.basNo = record.basNo
   form.materialType = record.materialType
   form.site = record.site || 'NINGBO'
@@ -559,11 +588,13 @@ async function handleSubmit() {
     return notify('该楼层不可用，请重新选择')
   if (!editingRecord.value && !requesterId.value)
     return notify('请选择需求人')
+  if (editingRecord.value?.status === 2 && returnTime.value && returnTime.value < loanTime.value)
+    return notify('归还时间不能早于领用时间')
 
   submitting.value = true
   try {
     const selectedRequesterId = editingRecord.value?.requesterId || requesterId.value || currentUserId.value
-    if (selectedRequesterId) {
+    if (selectedRequesterId && editingRecord.value?.status !== 2) {
       try {
         const duplicate = await checkSampleLoanDuplicate({ basNo, site: form.site, location: form.location, requesterId: selectedRequesterId, excludeId: editingRecord.value?.id })
         if (duplicate) {
@@ -587,11 +618,16 @@ async function handleSubmit() {
       remark: form.remark.trim() || undefined,
     }
     if (editingRecord.value) {
+      const timeChanges = {
+        createTime: loanTime.value && loanTime.value !== toTimestamp(editingRecord.value.createTime) ? loanTime.value : undefined,
+        returnTime: editingRecord.value.status === 2 && returnTime.value && returnTime.value !== toTimestamp(editingRecord.value.returnTime) ? returnTime.value : undefined,
+      }
       if (isOwn(editingRecord.value) && hasPermission('reagent:sample-loan:create')) {
-        await updateSelfSampleLoan({ ...payload, id: editingRecord.value.id })
+        await updateSelfSampleLoan({ ...payload, ...timeChanges, id: editingRecord.value.id })
       } else {
         await updateAnySampleLoan({
           ...payload,
+          ...timeChanges,
           id: editingRecord.value.id,
           requesterId: editingRecord.value.requesterId,
           requester: editingRecord.value.requester,
