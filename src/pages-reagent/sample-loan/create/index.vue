@@ -80,7 +80,7 @@
             <input
               :value="requesterOpen ? requesterKeyword : selectedRequesterName || ''"
               class="requester-input"
-              placeholder="输入姓名或账号搜索"
+              placeholder="输入姓名、账号或拼音"
               @focus="openRequesters"
               @input="searchRequesters"
             >
@@ -257,6 +257,7 @@
 <script lang="ts" setup>
 import type { SampleLoanLocation, SampleLoanMaterialType, SampleLoanOption, SampleLoanSite, SelfSampleLoanResp } from '@/api/reagent/sample-loan'
 import type { User } from '@/api/system/user'
+import { pinyin } from 'pinyin-pro'
 import { checkSampleLoanDuplicate, createSampleLoan, deleteAnySampleLoan, deleteSelfSampleLoan, getMobileSampleLoanPage, getReagentItemOptions, getSampleLoanLocations, getSampleLoanSites, noReturnAnySampleLoan, noReturnSelfSampleLoan, returnAnySampleLoan, returnSelfSampleLoan, updateAnySampleLoan, updateSelfSampleLoan } from '@/api/reagent/sample-loan'
 import { useUserStore } from '@/store/user'
 import { getSimpleUserList } from '@/api/system/user'
@@ -321,10 +322,25 @@ const selectedRequesterName = computed(() => {
   const user = requesters.value?.find(user => user.id === requesterId.value)
   return user?.nickname || user?.username
 })
+const requesterSearchEntries = computed(() => (requesters.value ?? [])
+  .filter(user => user.id != null)
+  .map((user) => {
+    const syllables = pinyin(user.nickname ?? '', { type: 'array', toneType: 'none', surname: 'head', v: true })
+    return {
+      user,
+      fullPinyin: syllables.join('').replace(/\s/g, '').toLowerCase(),
+      initials: syllables.filter(syllable => syllable.trim()).map(syllable => syllable[0]).join('').toLowerCase(),
+    }
+  }))
 const filteredRequesters = computed(() => {
   const keyword = requesterKeyword.value.trim().toLowerCase()
-  return (requesters.value ?? []).filter(user => user.id != null
-    && (!keyword || [user.nickname, user.username].some(name => name?.toLowerCase().includes(keyword))))
+  const pinyinKeyword = keyword.replace(/\s/g, '').replace(/ü/g, 'v')
+  return requesterSearchEntries.value
+    .filter(({ user, fullPinyin, initials }) => !keyword
+      || [user.nickname, user.username].some(name => name?.toLowerCase().includes(keyword))
+      || fullPinyin.includes(pinyinKeyword)
+      || initials.includes(pinyinKeyword))
+    .map(({ user }) => user)
 })
 
 async function loadRequesters() {
