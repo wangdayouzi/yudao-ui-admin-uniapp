@@ -39,6 +39,7 @@ const savedRedirectKey = 'oauthLoginRedirect'
  * 后端回调地址形如：
  *   /h5/#/pages-core/auth/oauth-callback?token=...&refreshToken=...&expiresTime=...
  * 或：
+ *   /h5/#/pages-core/auth/oauth-callback?passwordSetupRequired=true&passwordSetupToken=...
  *   /h5/#/pages-core/auth/oauth-callback?error=...
  *
  * 职责单一：解析回调参数 → 完成登录 → 跳转
@@ -46,6 +47,17 @@ const savedRedirectKey = 'oauthLoginRedirect'
  * App：预留，可通过 web-view 打开本页，再用 uni.postMessage 把 token 回传原生层
  */
 onLoad((options) => {
+  if (options?.passwordSetupRequired === 'true' && options.passwordSetupToken) {
+    uni.removeStorageSync(savedRedirectKey)
+    uni.showModal({
+      title: '请先设置 CMS 密码',
+      content: '请先在电脑网页端用钉钉登录，按提示设置 CMS 密码。设置后，再回到手机端用钉钉登录。',
+      showCancel: false,
+      confirmText: '返回登录',
+      complete: () => uni.reLaunch({ url: LOGIN_PAGE }),
+    })
+    return
+  }
   // 未携带 token，说明不是合法回调，回到登录页
   if (!options?.token) {
     if (options?.error) {
